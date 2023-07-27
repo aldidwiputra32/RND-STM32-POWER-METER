@@ -44,7 +44,48 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+uint8_t addrSensor[] = {
+		// POWER REGISTER >> 20 addrs
+		r_Pa,				r_Pb,				r_Pc,				r_Pt,
+		r_Qa,				r_Qb,				r_Qc,				r_Qt,
+		r_Sa,				r_Sb,				r_Sc,				r_St,
+		r_LinePa,			r_LinePb,			r_LinePc,			r_LinePt,
+		r_LineQa,			r_LineQb,			r_LineQc,			r_LineQt,
+		// RMS REGISTER >> 14 addrs
+		r_UaRms,			r_UbRms,			r_UcRms,			r_UtRms,
+		r_IaRms,			r_IbRms,			r_IcRms,			r_ItRms,
+		r_LineUaRrms,		r_LineUbRrms, 		r_LineUcRrms,
+		r_LineIaRrms, 		r_LineIbRrms,		r_LineIcRrms,
+		// POWER FACTOR REGISTER >> 4 addrs
+		r_Pfa,				r_Pfb,				r_Pfc,				r_Pft,
+		// ENERGY REGISTER >> 8 addrs
+		r_Epa,				r_Epb, 				r_Epc,				r_Ept,
+		r_Eqa,				r_Eqb,				r_Eqc,				r_Eqt
+		// TOTAL REGISTER >> 46
+};
+uint8_t sizeSensor = sizeof(addrSensor)/sizeof(addrSensor[0]);
+uint32_t valueSensor[46];
+float valueFloat[46];
 
+// POWER REGISTER
+float 	powerActiveA,		powerActiveB,		powerActiveC,		PowerActiveCombine,
+		powerReactiveA,		powerReactiveB,		powerReactiveC,		powerReactiveCombine,
+		powerApparentA,		powerApparentB,		powerApparentC,		powerApparentCombine,
+		powerActiveWaveA,	powerActiveWaveB,	powerActiveWaveC,	powerActiveWaveSum,
+		powerReactiveWaveA,	powerReactiveWaveB,	powerReactiveWaveC,	powerReactiveWaveCombine;
+
+// RMS REGISTER
+float 	rmsVoltageA,		rmsVoltageB,		rmsVoltageC,		rmsVoltageVector,
+		rmsCurrentA,		rmsCurrentB,		rmsCurrentC,		rmsCurrentVector,
+		rmsVoltageWaveA,	rmsVoltageWaveB,	rmsVoltageWaveC,
+		rmsCurrentWaveA,	rmsCurrentWaveB,	rmsCurrentWaveC;
+
+// POWER FACTOR REGISTER
+float 	powerFactorA,		powerFactorB,		powerFactorC, 		powerFactorCombine;
+
+// ENERGY REGISTER
+float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombine,
+		energyReactiveA,	energyReactiveB, 	energyReactiveC, 	energyReactiveCombine;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -87,6 +128,7 @@ int main(void)
   MX_GPIO_Init();
   MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
+
   uint32_t dataRX[46];
   powerInit();
   dataRX[0] = spiRead24(r_IaRms);
@@ -106,9 +148,9 @@ int main(void)
   };
   powerSetup(address,addressData,addressStatus,addressSize);
   for(;;){
-	  dataRX[1] = spiRead24(r_IaRms); // 6
-	  dataRX[2] = spiRead24(r_IbRms); // 6
-	  dataRX[3] = spiRead24(r_IcRms); // 6
+	  powerReadSensor(addrSensor, valueSensor, valueFloat, 46);
+	  rmsCurrentA = powerScanValue(r_IaRms, addrSensor, valueSensor, 46);
+	  HAL_Delay(75);
   }
 
 

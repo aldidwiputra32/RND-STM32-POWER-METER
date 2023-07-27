@@ -1,47 +1,5 @@
 #include "HT7036.h"
 
-uint8_t addrSensor[] = {
-		// POWER REGISTER >> 20 addrs
-		r_Pa,				r_Pb,				r_Pc,				r_Pt,
-		r_Qa,				r_Qb,				r_Qc,				r_Qt,
-		r_Sa,				r_Sb,				r_Sc,				r_St,
-		r_LinePa,			r_LinePb,			r_LinePc,			r_LinePt,
-		r_LineQa,			r_LineQb,			r_LineQc,			r_LineQt,
-		// RMS REGISTER >> 14 addrs
-		r_UaRms,			r_UbRms,			r_UcRms,			r_UtRms,
-		r_IaRms,			r_IbRms,			r_IcRms,			r_ItRms,
-		r_LineUaRrms,		r_LineUbRrms, 		r_LineUcRrms,
-		r_LineIaRrms, 		r_LineIbRrms,		r_LineIcRrms,
-		// POWER FACTOR REGISTER >> 4 addrs
-		r_Pfa,				r_Pfb,				r_Pfc,				r_Pft,
-		// ENERGY REGISTER >> 8 addrs
-		r_Epa,				r_Epb, 				r_Epc,				r_Ept,
-		r_Eqa,				r_Eqb,				r_Eqc,				r_Eqt
-		// TOTAL REGISTER >> 46
-};
-uint8_t sizeSensor = sizeof(addrSensor)/sizeof(addrSensor[0]);
-uint32_t valueSensor[46];
-
-// POWER REGISTER
-float 	powerActiveA,		powerActiveB,		powerActiveC,		PowerActiveCombine,
-		powerReactiveA,		powerReactiveB,		powerReactiveC,		powerReactiveCombine,
-		powerApparentA,		powerApparentB,		powerApparentC,		powerApparentCombine,
-		powerActiveWaveA,	powerActiveWaveB,	powerActiveWaveC,	powerActiveWaveSum,
-		powerReactiveWaveA,	powerReactiveWaveB,	powerReactiveWaveC,	powerReactiveWaveCombine;
-
-// RMS REGISTER
-float 	rmsVoltageA,		rmsVoltageB,		rmsVoltageC,		rmsVoltageVector,
-		rmsCurrentA,		rmsCurrentB,		rmsCurrentC,		rmsCurrentVector,
-		rmsVoltageWaveA,	rmsVoltageWaveB,	rmsVoltageWaveC,
-		rmsCurrentWaveA,	rmsCurrentWaveB,	rmsCurrentWaveC;
-
-// POWER FACTOR REGISTER
-float 	powerFactorA,		powerFactorB,		powerFactorC, 		powerFactorCombine;
-
-// ENERGY REGISTER
-float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombine,
-		energyReactiveA,	energyReactiveB, 	energyReactiveC, 	energyReactiveCombine;
-
 void spiDisable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);}
 void spiEnable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);}
 
@@ -182,7 +140,7 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 	// ENABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
 	spiCommandSpecial(w_calib, BYTE_ENABLE);
 	spiCommandSpecial(w_read_calib, BYTE_ENABLE);
-
+	uint32_t data = spiReadCalib(w_Hfconst);
 	// WRTIE CALIBRATION PARAMETER BASED ON ATRIBUTE
 	for(int indeks=0;indeks<numberCalib;indeks++){
 		spiWriteCalib(address[indeks], dataSet[indeks]);
@@ -197,6 +155,67 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 	HAL_Delay(75);
 }
 
-uint32_t uint24ToInt24(uint32_t data){
-	testing
+void powerReadSensor(uint8_t * address, uint32_t * valueBuffer, float * valueFloat, uint8_t size){
+	int32_t bufferSign;
+	for(uint8_t indeks=0;indeks<size;indeks++){
+		valueBuffer[indeks] = spiRead24(address[indeks]);
+		// GROUPING DATA POWER PARAMETER >> ???
+		if(indeks>=0 && indeks<20){
+			// FORMULA >> powerData * 2.592*10^10/(HFconst*EC*2^23)  | HFconst = 1280(def)  &  EC = 6400
+			bufferSign = unsignToSign(valueBuffer[indeks], BIT_SIZE_24);
+			valueFloat[indeks] = (float)bufferSign * COEF_POWER;
+		}
+		// GROUPING DATA RMS ???
+		if(indeks>=20 && indeks<34){
+			//[VRMS] FORMULA >> rmsData / 2 ^ 13
+			if(indeks<23)valueFloat[indeks] = (float)valueBuffer[indeks] / 8192;
+			//[VRMS COMBINE] FORMULA >> rmsData / 2 ^ 12
+			else if(indeks==23)valueFloat[indeks] = (float)valueBuffer[indeks] / 4096;
+			//[VRMS] FORMULA >> rmsData / 2 ^ 13
+			else if(indeks<27)valueFloat[indeks] = (float)valueBuffer[indeks] / 8192;
+			//[VRMS COMBINE] FORMULA >> rmsData / 2 ^ 12
+			else if(indeks==27)valueFloat[indeks] = (float)valueBuffer[indeks] / 4096;
+			//[LINE RMS] FORMULA >> rmsData / 2 ^ 13
+			else valueFloat[indeks] = (float)valueBuffer[indeks] / 8192;
+		}
+		// GROUPING DATA POWER FACTOR
+		if(indeks>=34 && indeks<38){
+			// FORMULA >> pwrFactor / 2 ^ 23
+			bufferSign = unsignToSign(&valueBuffer[indeks], BIT_SIZE_24);
+			valueFloat[indeks] = (float)bufferSign / 8388608;
+		}
+		// GROUPING DATA ENERGY
+		if(indeks<=38 && indeks<46){
+
+		}
+	}
 }
+
+uint32_t powerScanValue(uint8_t address, uint32_t * addressBuffer ,uint32_t * valueBuffer, uint8_t size){
+	uint32_t value = 0;
+	for(uint8_t indeks=0;indeks<size;indeks++){
+		if(address == addressBuffer[indeks]){
+			value = valueBuffer[indeks];
+			break;
+		}
+	}
+	return value;
+}
+
+int32_t unsignToSign(uint32_t * data, uint8_t bitsize){
+	int32_t value;
+	// FOR BYTE LENGTH 24 BIT
+	if(bitsize == BIT_SIZE_24){
+		if(*data > 0x800000){						// data > 2^23
+			value = (int32_t)(*data - 0x1000000); 	// data - 2^24
+		}else value = *data;
+	}
+	// FOR BYTE LENGTH 32 BIT
+	if(bitsize == BIT_SIZE_32){
+		if(*data > 0x80000000){						// data > 2^31
+			value = (int32_t)(*data - 0x100000000);	// data - 2^32
+		}else value = *data;
+	}
+	return value;
+}
+

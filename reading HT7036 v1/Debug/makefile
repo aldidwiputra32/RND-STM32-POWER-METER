@@ -60,8 +60,8 @@ all: main-build
 main-build: reading\ HT7036\ v1.elf secondary-outputs
 
 # Tool invocations
-reading\ HT7036\ v1.elf reading\ HT7036\ v1.map: $(OBJS) $(USER_OBJS) D:\Users\user\STM32CubeIDE\POWER\ METER\reading\ HT7036\ v1\STM32F030C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "reading HT7036 v1.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"D:\Users\user\STM32CubeIDE\POWER METER\reading HT7036 v1\STM32F030C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="reading HT7036 v1.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+reading\ HT7036\ v1.elf reading\ HT7036\ v1.map: $(OBJS) $(USER_OBJS) D:\Users\user\git\RND-STM32-Power_Meter\reading\ HT7036\ v1\STM32F030C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "reading HT7036 v1.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"D:\Users\user\git\RND-STM32-Power_Meter\reading HT7036 v1\STM32F030C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="reading HT7036 v1.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

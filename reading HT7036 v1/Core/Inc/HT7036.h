@@ -5,13 +5,21 @@
 #include "spi.h"
 
 /* NOTE
- * IrmsOffset = (Irms^2)/ (2^15)
+ * 1) POWER PARAMETER = powerGroup*K
+ *                    = Power
+ *      K = 2.592*10^10/(HFconst*EC*2^23)  | HFconst = 1280(def)  &  EC = 6400
+ *
+ * 2) IrmsOffset = (Irms^2)/ (2^15)
+ *
  *
  */
-// ------------------------------GROUP SENSOR----------------------------------------
+
+// ------------------------------GROUP SENSOR & FORMULA----------------------------------------
 #define POWER 	0
 #define RMS		1
 #define ENERGY	2
+
+#define COEF_POWER ((2.592*10000000000)/(1280*6400*8388608)) // K = 2.592*10^10/(HFconst*EC*2^23)
 
 // ----------------------------DATA WRITE / READ-------------------------------------
 #define BYTE_ENABLE 	0x00005A
@@ -120,6 +128,7 @@
 #define r_LineQt		0x5A
 #define r_PtrWavebuff	0x7E
 #define r_WaveBuff		0x7F
+
 // ------------------REGISTER ADDRESS CALIBRATION SENSOR(READ/WRITE)---------------------
 #define	w_ModeCfg		0x1
 #define	w_PGACtrl		0x2
@@ -196,6 +205,9 @@
 #define	w_EMCfg			0x70
 #define	w_OILVL			0x71
 
+// -------------------------------------------------------------------------------------
+#define BIT_SIZE_24 	0
+#define BIT_SIZE_32		1
 
 // -------------------------------PRIVATE VARIABLE--------------------------------------
 void spiDisable();
@@ -208,6 +220,9 @@ HAL_StatusTypeDef spiWriteCalib(uint8_t address, uint32_t dataSet);
 uint16_t spiRead16(uint8_t address);
 uint32_t spiRead24(uint8_t address);
 void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataStatus, uint8_t numberCalib);
+int32_t unsignToSign(uint32_t * data, uint8_t bitsize);
+uint32_t powerScanValue(uint8_t address, uint32_t * addressBuffer ,uint32_t * valueBuffer, uint8_t size);
+void powerReadSensor(uint8_t * address, uint32_t * valueBuffer, float * valueFloat, uint8_t size);
 
 #endif
 
