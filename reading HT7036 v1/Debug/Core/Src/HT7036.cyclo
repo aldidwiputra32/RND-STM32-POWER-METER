@@ -1,0 +1,11 @@
+HT7036.c:45:6:spiDisable	1
+HT7036.c:46:6:spiEnable	1
+HT7036.c:48:19:spiWrite16	3
+HT7036.c:65:19:spiWrite24	4
+HT7036.c:81:19:spiCommandSpecial	4
+HT7036.c:97:10:spiReadCalib	1
+HT7036.c:118:19:spiWriteCalib	4
+HT7036.c:134:10:spiRead16	1
+HT7036.c:153:10:spiRead24	1
+HT7036.c:175:6:powerInit	1
+HT7036.c:180:6:powerSetup	3
