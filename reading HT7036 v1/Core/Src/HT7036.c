@@ -183,6 +183,7 @@ void powerReadSensor(uint8_t * address, uint32_t * valueBuffer, float * valueFlo
 			// FORMULA >> pwrFactor / 2 ^ 23
 			bufferSign = unsignToSign(&valueBuffer[indeks], BIT_SIZE_24);
 			valueFloat[indeks] = (float)bufferSign / 8388608;
+			HAL_Delay(10);
 		}
 		// GROUPING DATA ENERGY
 		if(indeks<=38 && indeks<46){

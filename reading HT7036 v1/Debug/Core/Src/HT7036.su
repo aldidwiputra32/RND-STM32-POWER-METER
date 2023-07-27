@@ -10,5 +10,5 @@
 ../Core/Src/HT7036.c:133:6:powerInit	8	static
 ../Core/Src/HT7036.c:138:6:powerSetup	40	static
 ../Core/Src/HT7036.c:158:6:powerReadSensor	48	static
-../Core/Src/HT7036.c:194:10:powerScanValue	32	static
-../Core/Src/HT7036.c:205:9:unsignToSign	24	static
+../Core/Src/HT7036.c:195:10:powerScanValue	32	static
+../Core/Src/HT7036.c:206:9:unsignToSign	24	static

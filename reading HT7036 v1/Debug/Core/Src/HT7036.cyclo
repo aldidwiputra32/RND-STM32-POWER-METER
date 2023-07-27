@@ -10,5 +10,5 @@ HT7036.c:111:10:spiRead24	1
 HT7036.c:133:6:powerInit	1
 HT7036.c:138:6:powerSetup	3
 HT7036.c:158:6:powerReadSensor	11
-HT7036.c:194:10:powerScanValue	3
-HT7036.c:205:9:unsignToSign	5
+HT7036.c:195:10:powerScanValue	3
+HT7036.c:206:9:unsignToSign	5
