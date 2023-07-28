@@ -138,8 +138,11 @@ void powerInit(){
 void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataStatus, uint8_t numberCalib){
 	uint32_t check;
 	// ENABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
-	spiCommandSpecial(w_calib, BYTE_ENABLE);
+	spiCommandSpecial(w_calib_state, BYTE_ENABLE);
 	spiCommandSpecial(w_read_calib, BYTE_ENABLE);
+	// SETUP ADC STATE >> EMABLE ADC VRMS AND IRMS
+	spiWrite24(w_ModeCfg, 0xF9FE);
+	check = spiReadCalib(w_ModeCfg);
 	uint32_t data = spiReadCalib(w_Hfconst);
 	// WRTIE CALIBRATION PARAMETER BASED ON ATRIBUTE
 	for(int indeks=0;indeks<numberCalib;indeks++){
@@ -151,7 +154,7 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 	}
 	// DISBALE CALIBRATION MODE & DISABLE READ CALIRATION MODE
 	spiCommandSpecial(w_read_calib, BYTE_DISABLE);
-	spiCommandSpecial(w_calib, BYTE_DISABLE);
+	spiCommandSpecial(w_calib_state, BYTE_DISABLE);
 	HAL_Delay(75);
 }
 
@@ -162,8 +165,8 @@ void powerReadSensor(uint8_t * address, uint32_t * valueBuffer, float * valueFlo
 		// GROUPING DATA POWER PARAMETER >> ???
 		if(indeks>=0 && indeks<20){
 			// FORMULA >> powerData * 2.592*10^10/(HFconst*EC*2^23)  | HFconst = 1280(def)  &  EC = 6400
-			bufferSign = unsignToSign(valueBuffer[indeks], BIT_SIZE_24);
-			valueFloat[indeks] = (float)bufferSign * COEF_POWER;
+			bufferSign = unsignToSign(&valueBuffer[indeks], BIT_SIZE_24);
+			valueFloat[indeks] = (float)bufferSign * COEF_POWER; // (405000)/(128*64*8388608)
 		}
 		// GROUPING DATA RMS ???
 		if(indeks>=20 && indeks<34){
@@ -187,7 +190,7 @@ void powerReadSensor(uint8_t * address, uint32_t * valueBuffer, float * valueFlo
 		}
 		// GROUPING DATA ENERGY
 		if(indeks<=38 && indeks<46){
-
+			//
 		}
 	}
 }
@@ -220,3 +223,49 @@ int32_t unsignToSign(uint32_t * data, uint8_t bitsize){
 	return value;
 }
 
+uint32_t powerCalculateCalib(uint8_t type, uint32_t dataRaw, uint32_t dataActual){
+	// CALCULATE OFFSET PARAMTER
+	if((type == VRMS_OFFSET)||(type == IRMS_OFFSET)){
+		uint32_t value;
+		// value = data ^ 2 / 2 ^ 15
+		value = (dataRaw*dataRaw) / 32768;
+		return value;
+	}
+	// CALCULATE GAIN PARAMETER
+	if(type == VRMS_GAIN){
+		float gainFloat;
+		float valueBuffer;
+		valueBuffer = dataRaw / 8192;
+		// GET GAIN VRMS
+		gainFloat = ((float)dataActual/valueBuffer) - 1.000f;
+		// VALUE = VALUE * 2 ^ 15
+		if(gainFloat >= 0)gainFloat = gainFloat * 32768.0f;
+		// VALUE = 2 ^ 16 + VALUE * 2 * 15
+		if(gainFloat < 0){
+			gainFloat = gainFloat * 32768.0f;
+			gainFloat = gainFloat + 65536.0f;
+		}
+		return gainFloat;
+	}
+}
+
+void powerRestoreCalib(){
+	spiCommandSpecial(w_calib_restore, BYTE_NULL);
+}
+
+// USED OR UNUSED ?????????????
+void powerCalib(uint8_t * addressBuffer, uint32_t * dataSet, HAL_StatusTypeDef * status, uint8_t size){
+	uint32_t check;
+	// ENABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
+	spiCommandSpecial(w_calib_state, BYTE_ENABLE);
+	spiCommandSpecial(w_read_calib, BYTE_ENABLE);
+	// WRITING REGISTER FOR CALIBRATION
+	for(uint8_t indeks=0;indeks<size;indeks++){
+		spiWriteCalib(addressBuffer[indeks], dataSet[indeks]);
+		check = spiReadCalib(addressBuffer[indeks]);
+		if(check == dataSet[indeks])status[indeks] = HAL_OK;
+		else status[indeks] = HAL_ERROR;
+	}
+	spiCommandSpecial(w_calib_state, BYTE_DISABLE);
+	spiCommandSpecial(w_read_calib, BYTE_DISABLE);
+}

@@ -130,8 +130,22 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   uint32_t dataRX[46];
-  powerInit();
-  dataRX[0] = spiRead24(r_IaRms);
+
+
+//  dataRX[0] = powerCalculateCalib(VRMS_GAIN, 589824, 12);
+
+  // TESTING
+//  spiCommandSpecial(w_calib, BYTE_ENABLE);
+//  spiCommandSpecial(w_read_calib, BYTE_ENABLE);
+//  spiWrite24(w_ModeCfg, 0xF9FE);
+//  spiCommandSpecial(w_calib, BYTE_DISABLE);
+//  spiCommandSpecial(w_read_calib, BYTE_DISABLE);
+//  dataRX[0] = spiRead24(r_UaRms);
+//  dataRX[1] = spiRead24(r_UbRms);
+//  dataRX[2] = spiRead24(r_UcRms);
+//
+//  powerInit();
+//  dataRX[0] = spiRead24(deviceId);
   // SET CALIBRATION
 
   int addressSize = 3;
@@ -139,18 +153,37 @@ int main(void)
   uint8_t address[] = {
 		  w_IaRmsoffse,
 		  w_IbRmsoffse,
-		  w_IcRmsoffse
+		  w_IcRmsoffse,
+		  w_UaRmsoffse,
+		  w_UbRmsoffse,
+		  w_UcRmsoffse,
+		  w_UgainA,
+		  w_UgainB,
+		  w_UgainC
   };
   uint32_t addressData[] = {
 		  6,
 		  6,
+		  6,
+		  6,
+		  6,
 		  6
   };
+  powerRestoreCalib();
   powerSetup(address,addressData,addressStatus,addressSize);
+  powerReadSensor(addrSensor, valueSensor, valueFloat, 46);
+  dataRX[0] = powerCalculateCalib(VRMS_GAIN, valueSensor[20], 50);
+  address[0] = w_UgainA;
+  address[1] = w_UgainB;
+  address[2] = w_UgainC;
+  addressData[0] = dataRX[0];
+  addressData[1] = dataRX[0];
+  addressData[2] = dataRX[0];
+  powerCalib(address, addressData, addressStatus, 3);
   for(;;){
 	  powerReadSensor(addrSensor, valueSensor, valueFloat, 46);
-	  rmsCurrentA = powerScanValue(r_IaRms, addrSensor, valueSensor, 46);
 	  HAL_Delay(75);
+
   }
 
 

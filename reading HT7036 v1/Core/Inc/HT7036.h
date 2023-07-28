@@ -4,22 +4,36 @@
 #include "main.h"
 #include "spi.h"
 
-/* NOTE
+/* NOTE FORMULA
  * 1) POWER PARAMETER = powerGroup*K
  *                    = Power
  *      K = 2.592*10^10/(HFconst*EC*2^23)  | HFconst = 1280(def)  &  EC = 6400
  *
  * 2) IrmsOffset = (Irms^2)/ (2^15)
+ * 3) VrmsOffset = (Vrms^2)/ (2^15)
+ * 4) V Gain:
+ *		Vrms = RAWrms / 2 ^ 13
+ *		Vgain = (Vactual / Vrms) - 1
+ *		if Vgain >= 0:
+ *			Vgain = int(Vgain * 2 ^ 15)
+ *		if Vgain < 0:
+ *			Vgain = int(2 ^ 16 + Vgain * 2 ^ 15)
+ * 5) I Gain:
  *
  *
  */
 
 // ------------------------------GROUP SENSOR & FORMULA----------------------------------------
-#define POWER 	0
-#define RMS		1
-#define ENERGY	2
+#define POWER 			0
+#define RMS				1
+#define ENERGY			2
 
-#define COEF_POWER ((2.592*10000000000)/(1280*6400*8388608)) // K = 2.592*10^10/(HFconst*EC*2^23)
+#define VRMS_OFFSET 	3
+#define VRMS_GAIN 		4
+#define IRMS_OFFSET 	5
+#define IRMS_GAIN		6
+
+#define COEF_POWER 		((2.592*10000000000)/(1280.000f*6400.000f*8388608.000f)) // K = 2.592*10^10/(HFconst*EC*2^23)
 
 // ----------------------------DATA WRITE / READ-------------------------------------
 #define BYTE_ENABLE 	0x00005A
@@ -27,8 +41,11 @@
 #define BYTE_NULL		0x000000
 
 // ----------------------------SPECIAL COMMAND-------------------------------------
+#define w_start_buffer	0xC0
+#define w_read_buffer	0xC1
+#define w_calib_restore	0xC3
 #define w_reset 		0xD3
-#define w_calib			0xC9
+#define w_calib_state	0xC9
 #define w_read_calib	0xC6
 
 // ------------------REGISTER ADDRESS VALUE SENSOR (READ ONLY)---------------------
@@ -223,6 +240,8 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 int32_t unsignToSign(uint32_t * data, uint8_t bitsize);
 uint32_t powerScanValue(uint8_t address, uint32_t * addressBuffer ,uint32_t * valueBuffer, uint8_t size);
 void powerReadSensor(uint8_t * address, uint32_t * valueBuffer, float * valueFloat, uint8_t size);
-
+void powerCalib(uint8_t * addressBuffer, uint32_t * dataSet, HAL_StatusTypeDef * status, uint8_t size);
+uint32_t powerCalculateCalib(uint8_t type, uint32_t dataRaw, uint32_t dataActual);
+void powerRestoreCalib();
 #endif
 

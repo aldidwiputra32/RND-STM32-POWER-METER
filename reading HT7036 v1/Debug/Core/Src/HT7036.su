@@ -9,6 +9,9 @@
 ../Core/Src/HT7036.c:111:10:spiRead24	56	static
 ../Core/Src/HT7036.c:133:6:powerInit	8	static
 ../Core/Src/HT7036.c:138:6:powerSetup	40	static
-../Core/Src/HT7036.c:158:6:powerReadSensor	48	static
-../Core/Src/HT7036.c:195:10:powerScanValue	32	static
-../Core/Src/HT7036.c:206:9:unsignToSign	24	static
+../Core/Src/HT7036.c:161:6:powerReadSensor	40	static
+../Core/Src/HT7036.c:198:10:powerScanValue	32	static
+../Core/Src/HT7036.c:209:9:unsignToSign	24	static
+../Core/Src/HT7036.c:226:10:powerCalculateCalib	40	static
+../Core/Src/HT7036.c:252:6:powerRestoreCalib	8	static
+../Core/Src/HT7036.c:257:6:powerCalib	40	static
