@@ -148,7 +148,7 @@ int main(void)
 //  dataRX[0] = spiRead24(deviceId);
   // SET CALIBRATION
 
-  int addressSize = 3;
+  int addressSize = 9;
   HAL_StatusTypeDef addressStatus[addressSize];
   uint8_t address[] = {
 		  w_IaRmsoffse,
@@ -156,10 +156,10 @@ int main(void)
 		  w_IcRmsoffse,
 		  w_UaRmsoffse,
 		  w_UbRmsoffse,
-		  w_UcRmsoffse,
-		  w_UgainA,
-		  w_UgainB,
-		  w_UgainC
+		  w_UcRmsoffse
+//		  w_UgainA,
+//		  w_UgainB,
+//		  w_UgainC
   };
   uint32_t addressData[] = {
 		  6,
@@ -172,20 +172,25 @@ int main(void)
   powerRestoreCalib();
   powerSetup(address,addressData,addressStatus,addressSize);
   powerReadSensor(addrSensor, valueSensor, valueFloat, 46);
-  dataRX[0] = powerCalculateCalib(VRMS_GAIN, valueSensor[20], 50);
+  dataRX[0] = powerCalculateCalib(VRMS_GAIN, valueSensor[20], 6);
   address[0] = w_UgainA;
   address[1] = w_UgainB;
   address[2] = w_UgainC;
-  addressData[0] = dataRX[0];
-  addressData[1] = dataRX[0];
-  addressData[2] = dataRX[0];
-  powerCalib(address, addressData, addressStatus, 3);
+  uint8_t addressCalib[] = {
+		  w_UgainA,
+		  w_UgainB,
+		  w_UgainC
+  };
+  uint32_t dataCalib[] = {
+		  dataRX[0],
+		  dataRX[0],
+		  dataRX[0]
+  };
+  powerCalib(addressCalib, dataCalib, addressStatus, 3);
   for(;;){
 	  powerReadSensor(addrSensor, valueSensor, valueFloat, 46);
 	  HAL_Delay(75);
-
   }
-
 
   /* USER CODE END 2 */
 

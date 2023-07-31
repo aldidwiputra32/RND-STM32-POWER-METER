@@ -9,9 +9,9 @@ HT7036.c:92:10:spiRead16	1
 HT7036.c:111:10:spiRead24	1
 HT7036.c:133:6:powerInit	1
 HT7036.c:138:6:powerSetup	3
-HT7036.c:161:6:powerReadSensor	11
-HT7036.c:198:10:powerScanValue	3
-HT7036.c:209:9:unsignToSign	5
-HT7036.c:226:10:powerCalculateCalib	6
-HT7036.c:252:6:powerRestoreCalib	1
-HT7036.c:257:6:powerCalib	3
+HT7036.c:170:6:powerReadSensor	11
+HT7036.c:207:10:powerScanValue	3
+HT7036.c:218:9:unsignToSign	5
+HT7036.c:235:10:powerCalculateCalib	6
+HT7036.c:261:6:powerRestoreCalib	1
+HT7036.c:267:6:powerCalib	3

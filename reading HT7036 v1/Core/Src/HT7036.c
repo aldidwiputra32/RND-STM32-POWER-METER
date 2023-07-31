@@ -141,8 +141,17 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 	spiCommandSpecial(w_calib_state, BYTE_ENABLE);
 	spiCommandSpecial(w_read_calib, BYTE_ENABLE);
 	// SETUP ADC STATE >> EMABLE ADC VRMS AND IRMS
-	spiWrite24(w_ModeCfg, 0xF9FE);
+	spiWriteCalib(w_ModeCfg, 0xF9FE);
+	spiWriteCalib(w_EMCfg, 0x0003);
+	spiWriteCalib(w_EMUCfg, 0x3400);
 	check = spiReadCalib(w_ModeCfg);
+	check = spiReadCalib(w_ModeCfg);
+	check = spiReadCalib(w_EMUIE);
+	check = spiReadCalib(w_EMCfg);
+	check = spiReadCalib(w_ModuleCFG);
+	check = spiReadCalib(w_PGACtrl);
+	check = spiReadCalib(w_EMUCfg);
+
 	uint32_t data = spiReadCalib(w_Hfconst);
 	// WRTIE CALIBRATION PARAMETER BASED ON ATRIBUTE
 	for(int indeks=0;indeks<numberCalib;indeks++){
@@ -250,6 +259,7 @@ uint32_t powerCalculateCalib(uint8_t type, uint32_t dataRaw, uint32_t dataActual
 }
 
 void powerRestoreCalib(){
+	// RESTORE ALL CALIBRATION PARAMETER
 	spiCommandSpecial(w_calib_restore, BYTE_NULL);
 }
 
