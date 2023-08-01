@@ -19,8 +19,6 @@
  *		if Vgain < 0:
  *			Vgain = int(2 ^ 16 + Vgain * 2 ^ 15)
  * 5) I Gain:
- *
- *
  */
 
 // ------------------------------GROUP SENSOR & FORMULA----------------------------------------
@@ -33,7 +31,7 @@
 #define IRMS_OFFSET 	5
 #define IRMS_GAIN		6
 
-#define COEF_POWER 		((2.592*10000000000)/(1280.000f*6400.000f*8388608.000f)) // K = 2.592*10^10/(HFconst*EC*2^23)
+#define COEF_POWER(n) 	((2.592.0f*10000000000.0f)/(n*6400.000f*8388608.000f)) // K = 2.592*10^10/(HFconst*EC*2^23)
 
 // ----------------------------DATA WRITE / READ-------------------------------------
 #define BYTE_ENABLE 	0x00005A

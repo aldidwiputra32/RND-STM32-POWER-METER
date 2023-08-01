@@ -1,5 +1,7 @@
 #include "HT7036.h"
 
+float HFconstVal;
+
 void spiDisable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);}
 void spiEnable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);}
 
@@ -137,22 +139,47 @@ void powerInit(){
 
 void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataStatus, uint8_t numberCalib){
 	uint32_t check;
-	// ENABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
+//	// ENABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
 	spiCommandSpecial(w_calib_state, BYTE_ENABLE);
 	spiCommandSpecial(w_read_calib, BYTE_ENABLE);
-	// SETUP ADC STATE >> EMABLE ADC VRMS AND IRMS
-	spiWriteCalib(w_ModeCfg, 0xF9FE);
-	spiWriteCalib(w_EMCfg, 0x0003);
-	spiWriteCalib(w_EMUCfg, 0x3400);
-	check = spiReadCalib(w_ModeCfg);
+//	// SETUP ADC STATE >> EMABLE ADC VRMS AND IRMS
+//	spiWriteCalib(w_ModeCfg, 0xF9FE);
+//	// SETUP EMC CONFIG
+//	spiWriteCalib(w_EMCfg, 0x0003);
+//	// SETUP EMU CONFIG
+//	spiWriteCalib(w_EMUCfg, 0x3400);
+//	// READING VALUE PARAMETER
+
+	// -----------------------------SETUP BASED ON DATASHEET---------------------------------
+	/* WRITE MODE CONFIGURATION REGISTER
+	 * Turn on the Vref Chopper function to improve Vref performance; turn on the power
+	 * effective value slowly Speed mode to reduce jitter; configure EMU clock 921.6kHz to reduce power consumption; enable 6 ADCs;
+	 */
+	spiWriteCalib(w_ModeCfg,0xB97E); 	// 1011 1001 0111 1110
+	/* WRITE INTO EMU
+	 * Turn on energy metering, use power as the basis for creep start, turn off fundamental wave power Can,
+	 * choose PQS mode for apparent power energy
+	 */
+	spiWriteCalib(w_EMUCfg,0xF804);		// 1111 1000 0000 0100
+
+	/* WRITE IN THE ANALOG MODULE ENABLE REGISTER
+	 * turn on the high-pass filter; turn on the BOR power monitoring circuit;
+	 */
+	spiWriteCalib(w_ModuleCFG,0x3427);	// 0011 0100 0010 0111
+
+	/* WRITE CONFIG HFCONST */
+	spiWriteCalib(w_Hfconst, 0x09FF);
+	HFconstVal = (float)spiRead16(w_Hfconst);
+
+	// READING VALUE PARAMETER
 	check = spiReadCalib(w_ModeCfg);
 	check = spiReadCalib(w_EMUIE);
 	check = spiReadCalib(w_EMCfg);
 	check = spiReadCalib(w_ModuleCFG);
 	check = spiReadCalib(w_PGACtrl);
 	check = spiReadCalib(w_EMUCfg);
+	check = spiReadCalib(w_Hfconst);
 
-	uint32_t data = spiReadCalib(w_Hfconst);
 	// WRTIE CALIBRATION PARAMETER BASED ON ATRIBUTE
 	for(int indeks=0;indeks<numberCalib;indeks++){
 		spiWriteCalib(address[indeks], dataSet[indeks]);
@@ -175,7 +202,7 @@ void powerReadSensor(uint8_t * address, uint32_t * valueBuffer, float * valueFlo
 		if(indeks>=0 && indeks<20){
 			// FORMULA >> powerData * 2.592*10^10/(HFconst*EC*2^23)  | HFconst = 1280(def)  &  EC = 6400
 			bufferSign = unsignToSign(&valueBuffer[indeks], BIT_SIZE_24);
-			valueFloat[indeks] = (float)bufferSign * COEF_POWER; // (405000)/(128*64*8388608)
+			valueFloat[indeks] = (float)bufferSign * COEF_POWER(HFconstVal); // (405000)/(128*64*8388608)
 		}
 		// GROUPING DATA RMS ???
 		if(indeks>=20 && indeks<34){

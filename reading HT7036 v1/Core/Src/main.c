@@ -172,7 +172,7 @@ int main(void)
   powerRestoreCalib();
   powerSetup(address,addressData,addressStatus,addressSize);
   powerReadSensor(addrSensor, valueSensor, valueFloat, 46);
-  dataRX[0] = powerCalculateCalib(VRMS_GAIN, valueSensor[20], 6);
+  dataRX[0] = powerCalculateCalib(VRMS_GAIN, valueSensor[20], 16);
   address[0] = w_UgainA;
   address[1] = w_UgainB;
   address[2] = w_UgainC;
