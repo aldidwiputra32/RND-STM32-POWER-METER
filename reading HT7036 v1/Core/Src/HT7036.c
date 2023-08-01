@@ -139,13 +139,13 @@ void powerInit(){
 
 void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataStatus, uint8_t numberCalib){
 	uint32_t check;
-//	// ENABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
+	// ENABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
 	spiCommandSpecial(w_calib_state, BYTE_ENABLE);
 	spiCommandSpecial(w_read_calib, BYTE_ENABLE);
 //	// SETUP ADC STATE >> EMABLE ADC VRMS AND IRMS
 //	spiWriteCalib(w_ModeCfg, 0xF9FE);
 //	// SETUP EMC CONFIG
-//	spiWriteCalib(w_EMCfg, 0x0003);
+	spiWriteCalib(w_EMCfg, 0x0003);
 //	// SETUP EMU CONFIG
 //	spiWriteCalib(w_EMUCfg, 0x3400);
 //	// READING VALUE PARAMETER
@@ -168,9 +168,11 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 	spiWriteCalib(w_ModuleCFG,0x3427);	// 0011 0100 0010 0111
 
 	/* WRITE CONFIG HFCONST */
-	spiWriteCalib(w_Hfconst, 0x09FF);
-	HFconstVal = (float)spiRead16(w_Hfconst);
-
+//	spiWriteCalib(w_Hfconst, 0x0A00);
+	HFconstVal = (float)spiReadCalib(w_Hfconst);
+//	spiWriteCalib(w_UgainA, 0x022E);
+//	spiWriteCalib(w_UgainB, 0x022E);
+//	spiWriteCalib(w_UgainC, 0x022E);
 	// READING VALUE PARAMETER
 	check = spiReadCalib(w_ModeCfg);
 	check = spiReadCalib(w_EMUIE);
