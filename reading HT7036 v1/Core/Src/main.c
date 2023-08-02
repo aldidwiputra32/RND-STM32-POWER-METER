@@ -137,7 +137,9 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   uint32_t dataRX[46];
+  dataRX[0] =  powerCalculateCalib(VRMS_GAIN, 2115766, 220);
 
+  float testFloat = 1965 * COEF_POWER(1280);
 
 //  dataRX[0] = powerCalculateCalib(VRMS_GAIN, 589824, 12);
 
@@ -164,53 +166,59 @@ int main(void)
 		  w_UaRmsoffse,
 		  w_UbRmsoffse,
 		  w_UcRmsoffse
+//		  w_UgainA,
+//		  w_UgainB,
+//		  w_UgainC
   };
   uint32_t addressData[] = {
-		  6,
-		  6,
-		  6,
-		  6,
-		  6,
-		  6
+		  7,
+		  7,
+		  7,
+		  8,
+		  8,
+		  8
+//		  24445,
+//		  24445,
+//		  24445
   };
   powerRestoreCalib();
   powerSetup(address,addressData,addressStatus,addressSize);
   powerReadSensor(addrSensor, valueSensor, valueFloat, 46);
 //  dataRX[0] = powerCalculateCalib(VRMS_GAIN, valueSensor[20], 16);
-//  address[0] = w_UgainA;
-//  address[1] = w_UgainB;
-//  address[2] = w_UgainC;
-//  uint8_t addressCalib[] = {
-//		  w_UgainA,
-//		  w_UgainB,
-//		  w_UgainC
-//  };
-//  uint32_t dataCalib[] = {
-//		  dataRX[0],
-//		  dataRX[0],
-//		  dataRX[0]
-//  };
-//  powerCalib(addressCalib, dataCalib, addressStatus, 3);
+  address[0] = w_UgainA;
+  address[1] = w_UgainB;
+  address[2] = w_UgainC;
+  uint8_t addressCalib[] = {
+		  w_UgainA,
+		  w_UgainB,
+		  w_UgainC
+  };
+  uint32_t dataCalib[] = {
+		  60709,
+		  60709,
+		  60709
+  };
+  powerCalib(addressCalib, dataCalib, addressStatus, 3);
   for(;;){
 	  powerReadSensor(addrSensor, valueSensor, valueFloat, 46);
 	  uint8_t dataPrint[1000];
-//	  sprintf(
-//	  			  dataPrint,
-//	  			  "\r\n\r\npowerActiveA=%.6f(%d)[%.6f] ,powerActiveB=%.6f(%d)[%.6f], powerActiveC=%.6f(%d)[%.6f], PowerActiveCombine=%.6f(%d)[%.6f], powerReactiveA=%.6f(%d), powerReactiveB=%.6f(%d), powerReactiveC=%.6f(%d), powerReactiveCombine=%.6f(%d), powerApparentA=%.6f(%d), powerApparentB=%.6f(%d), powerApparentC=%.6f(%d), powerApparentCombine=%.6f(%d), rmsVoltageA=%.6f(%d), rmsVoltageB=%.6f(%d), rmsVoltageC=%.6f(%d), rmsVoltageVector=%.6f(%d), rmsCurrentA=%.6f(%d), rmsCurrentB=%.6f(%d), rmsCurrentC=%.6f(%d), rmsCurrentVector=%.6f(%d), powerFactorA=%.6f(%d), powerFactorB=%.6f(%d), powerFactorC=%.6f(%d), powerFactorCombine=%.6f(%d), energyActiveA=%.6f(%d), energyActiveB=%.6f(%d), energyActiveC=%.6f(%d), energyActiveCombine=%.6f(%d), energyReactiveA=%.6f(%d), energyReactiveB=%.6f(%d), energyReactiveC=%.6f(%d), energyReactiveCombine=%.6f(%d)\r\n\r\n",
-//	  			  valueFloat[0],valueSensor[0], valueFloat[0]*467,valueFloat[1],valueSensor[1],valueFloat[1]*467,valueFloat[2],valueSensor[2],valueFloat[2]*467,valueFloat[3],valueSensor[3],valueFloat[3]*467,valueFloat[4],valueSensor[4],
-//	  			  valueFloat[5],valueSensor[5],valueFloat[6],valueSensor[6],valueFloat[7],valueSensor[7],valueFloat[8],valueSensor[8],
-//	  			  valueFloat[9],valueSensor[9],valueFloat[10],valueSensor[10],valueFloat[11],valueSensor[11],valueFloat[20],valueSensor[20],
-//	  			  valueFloat[21],valueSensor[21],valueFloat[22],valueSensor[22],valueFloat[23],valueSensor[23],valueFloat[24],valueSensor[24],valueFloat[25],valueSensor[25],
-//	  			  valueFloat[26],valueSensor[26],valueFloat[27],valueSensor[27],valueFloat[34],valueSensor[34],valueFloat[35],valueSensor[35],valueFloat[36],valueSensor[36],valueFloat[37],valueSensor[37],
-//	  			  valueFloat[38],valueSensor[38],valueFloat[39],valueSensor[39],valueFloat[40],valueSensor[40],valueFloat[41],valueSensor[41],
-//	  			  valueFloat[42],valueSensor[42],valueFloat[43],valueSensor[43],valueFloat[44],valueSensor[44],valueFloat[45],valueSensor[45]
-//	  );
-
 	  sprintf(
-			  dataPrint,
-			  "\r\n\r\nrmsVoltageC=%.6f(%d) | rmsCurrentC=%.6f(%d)\r\n\r\n",
-			  valueFloat[22],valueSensor[22],valueFloat[26],valueSensor[26]
-			  );
+	  			  dataPrint,
+	  			  "\r\n\r\npowerActiveA=%.6f(%d)[%.6f] ,powerActiveB=%.6f(%d)[%.6f], powerActiveC=%.6f(%d)[%.6f], PowerActiveCombine=%.6f(%d)[%.6f], powerReactiveA=%.6f(%d), powerReactiveB=%.6f(%d), powerReactiveC=%.6f(%d), powerReactiveCombine=%.6f(%d), powerApparentA=%.6f(%d), powerApparentB=%.6f(%d), powerApparentC=%.6f(%d), powerApparentCombine=%.6f(%d), rmsVoltageA=%.6f(%d), rmsVoltageB=%.6f(%d), rmsVoltageC=%.6f(%d), rmsVoltageVector=%.6f(%d), rmsCurrentA=%.6f(%d), rmsCurrentB=%.6f(%d), rmsCurrentC=%.6f(%d), rmsCurrentVector=%.6f(%d), powerFactorA=%.6f(%d), powerFactorB=%.6f(%d), powerFactorC=%.6f(%d), powerFactorCombine=%.6f(%d), energyActiveA=%.6f(%d), energyActiveB=%.6f(%d), energyActiveC=%.6f(%d), energyActiveCombine=%.6f(%d), energyReactiveA=%.6f(%d), energyReactiveB=%.6f(%d), energyReactiveC=%.6f(%d), energyReactiveCombine=%.6f(%d)\r\n\r\n",
+	  			  valueFloat[0],valueSensor[0], valueFloat[0]*467,valueFloat[1],valueSensor[1],valueFloat[1]*467,valueFloat[2],valueSensor[2],valueFloat[2]*467,valueFloat[3],valueSensor[3],valueFloat[3]*467,valueFloat[4],valueSensor[4],
+	  			  valueFloat[5],valueSensor[5],valueFloat[6],valueSensor[6],valueFloat[7],valueSensor[7],valueFloat[8],valueSensor[8],
+	  			  valueFloat[9],valueSensor[9],valueFloat[10],valueSensor[10],valueFloat[11],valueSensor[11],valueFloat[20],valueSensor[20],
+	  			  valueFloat[21],valueSensor[21],valueFloat[22],valueSensor[22],valueFloat[23],valueSensor[23],valueFloat[24],valueSensor[24],valueFloat[25],valueSensor[25],
+	  			  valueFloat[26],valueSensor[26],valueFloat[27],valueSensor[27],valueFloat[34],valueSensor[34],valueFloat[35],valueSensor[35],valueFloat[36],valueSensor[36],valueFloat[37],valueSensor[37],
+	  			  valueFloat[38],valueSensor[38],valueFloat[39],valueSensor[39],valueFloat[40],valueSensor[40],valueFloat[41],valueSensor[41],
+	  			  valueFloat[42],valueSensor[42],valueFloat[43],valueSensor[43],valueFloat[44],valueSensor[44],valueFloat[45],valueSensor[45]
+	  );
+
+//	  sprintf(
+//			  dataPrint,
+//			  "\r\n\r\nrmsVoltageC=%.6f(%d) | rmsCurrentC=%.6f(%d)\r\n\r\n",
+//			  valueFloat[22],valueSensor[22],valueFloat[26],valueSensor[26]
+//			  );
 //	  sprintf(
 //			  dataPrint,
 //			  "powerActiveA=%.6f ,powerActiveB=%.6f, powerActiveC=%.6f, PowerActiveCombine=%.6f, powerReactiveA=%.6f, powerReactiveB=%.6f, powerReactiveC=%.6f, powerReactiveCombine=%.6f, powerApparentA=%.6f, powerApparentB=%.6f, powerApparentC=%.6f, powerApparentCombine=%.6f, powerActiveWaveA=%.6f, powerActiveWaveB=%.6f,	powerActiveWaveC,=%.6f powerActiveWaveSum=%.6f, powerReactiveWaveA=%.6f, powerReactiveWaveB=%.6f, powerReactiveWaveC=%.6f, powerReactiveWaveCombine=%.6f rmsVoltageA=%.6f, rmsVoltageB=%.6f, rmsVoltageC=%.6f, rmsVoltageVector=%.6f, rmsCurrentA=%.6f, rmsCurrentB=%.6f, rmsCurrentC=%.6f, rmsCurrentVector=%.6f, rmsVoltageWaveA=%.6f, rmsVoltageWaveB=%.6f, rmsVoltageWaveC=%.6f, rmsCurrentWaveA=%.6f, rmsCurrentWaveB=%.6f, rmsCurrentWaveC=%.6f ,powerFactorA=%.6f, powerFactorB=%.6f, powerFactorC=%.6f, powerFactorCombine=%.6f, energyActiveA=%.6f, energyActiveB=%.6f, energyActiveC=%.6f, energyActiveCombine=%.6f ,energyReactiveA=%.6f, energyReactiveB=%.6f, energyReactiveC=%.6f, energyReactiveCombine=%.6f",
@@ -226,7 +234,8 @@ int main(void)
 //			  valueFloat[38],valueFloat[39],valueFloat[40],valueFloat[41],
 //			  valueFloat[42],valueFloat[43],valueFloat[44],valueFloat[45]
 //	  );
-	  HAL_UART_Transmit(&huart2, dataPrint, 70, 2000);
+//	  HAL_UART_Transmit(&huart2, dataPrint, 70, 2000);
+	  HAL_UART_Transmit(&huart2, dataPrint, 1000, 2000);
 
 	  HAL_Delay(1000);
 

@@ -141,11 +141,14 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 	uint32_t check;
 	// ENABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
 	spiCommandSpecial(w_calib_state, BYTE_ENABLE);
+	HAL_Delay(10);
 	spiCommandSpecial(w_read_calib, BYTE_ENABLE);
+	HAL_Delay(10);
 //	// SETUP ADC STATE >> EMABLE ADC VRMS AND IRMS
 //	spiWriteCalib(w_ModeCfg, 0xF9FE);
 //	// SETUP EMC CONFIG
 	spiWriteCalib(w_EMCfg, 0x0003);
+	HAL_Delay(10);
 //	// SETUP EMU CONFIG
 //	spiWriteCalib(w_EMUCfg, 0x3400);
 //	// READING VALUE PARAMETER
@@ -156,20 +159,24 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 	 * effective value slowly Speed mode to reduce jitter; configure EMU clock 921.6kHz to reduce power consumption; enable 6 ADCs;
 	 */
 	spiWriteCalib(w_ModeCfg,0xB97E); 	// 1011 1001 0111 1110
+	HAL_Delay(10);
 	/* WRITE INTO EMU
 	 * Turn on energy metering, use power as the basis for creep start, turn off fundamental wave power Can,
 	 * choose PQS mode for apparent power energy
 	 */
 	spiWriteCalib(w_EMUCfg,0xF804);		// 1111 1000 0000 0100
+	HAL_Delay(10);
 
 	/* WRITE IN THE ANALOG MODULE ENABLE REGISTER
 	 * turn on the high-pass filter; turn on the BOR power monitoring circuit;
 	 */
 	spiWriteCalib(w_ModuleCFG,0x3427);	// 0011 0100 0010 0111
+	HAL_Delay(10);
 
 	/* WRITE CONFIG HFCONST */
 //	spiWriteCalib(w_Hfconst, 0x0A00);
 	HFconstVal = (float)spiReadCalib(w_Hfconst);
+	HAL_Delay(10);
 //	spiWriteCalib(w_UgainA, 0x022E);
 //	spiWriteCalib(w_UgainB, 0x022E);
 //	spiWriteCalib(w_UgainC, 0x022E);
@@ -185,6 +192,7 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 	// WRTIE CALIBRATION PARAMETER BASED ON ATRIBUTE
 	for(int indeks=0;indeks<numberCalib;indeks++){
 		spiWriteCalib(address[indeks], dataSet[indeks]);
+		HAL_Delay(10);
 		check = spiReadCalib(address[indeks]);
 		// CHECK VALUE AFTER WRIING PARAMETER REGISTER
 		if(check == dataSet[indeks])dataStatus[indeks] = HAL_OK;
@@ -192,6 +200,7 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 	}
 	// DISBALE CALIBRATION MODE & DISABLE READ CALIRATION MODE
 	spiCommandSpecial(w_read_calib, BYTE_DISABLE);
+	HAL_Delay(10);
 	spiCommandSpecial(w_calib_state, BYTE_DISABLE);
 	HAL_Delay(75);
 }
