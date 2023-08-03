@@ -31,7 +31,7 @@
 #define IRMS_OFFSET 	5
 #define IRMS_GAIN		6
 
-#define COEF_POWER(n) 	((2.592*10000000000)/(n*22.000f*8388608.000f)) // K = 2.592*10^10/(HFconst*EC*2^23)
+#define COEF_POWER(n) 	((2.592*10000000000)/(n*43.700f*8388608.000f)) // K = 2.592*10^10/(HFconst*EC*2^23)
 
 // ----------------------------DATA WRITE / READ-------------------------------------
 #define BYTE_ENABLE 	0x00005A
@@ -221,10 +221,11 @@
 #define	w_OILVL			0x71
 
 // -------------------------------------------------------------------------------------
+#define BIT_SIZE_21		2
 #define BIT_SIZE_24 	0
 #define BIT_SIZE_32		1
-
 // -------------------------------PRIVATE VARIABLE--------------------------------------
+
 void spiDisable();
 void spiEnable();
 HAL_StatusTypeDef spiWrite16(uint8_t address, uint16_t dataSet);
@@ -239,7 +240,9 @@ int32_t unsignToSign(uint32_t * data, uint8_t bitsize);
 uint32_t powerScanValue(uint8_t address, uint32_t * addressBuffer ,uint32_t * valueBuffer, uint8_t size);
 void powerReadSensor(uint8_t * address, uint32_t * valueBuffer, float * valueFloat, uint8_t size);
 void powerCalib(uint8_t * addressBuffer, uint32_t * dataSet, HAL_StatusTypeDef * status, uint8_t size);
-uint32_t powerCalculateCalib(uint8_t type, uint32_t dataRaw, uint32_t dataActual);
+uint32_t powerCalculateCalib(uint8_t type, uint32_t dataRaw, float dataActual);
 void powerRestoreCalib();
+void handleAbsolute(float * value);
+
 #endif
 

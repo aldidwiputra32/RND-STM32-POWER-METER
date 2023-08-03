@@ -137,25 +137,10 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   uint32_t dataRX[46];
-  dataRX[0] =  powerCalculateCalib(VRMS_GAIN, 2115766, 220);
+  uint8_t dataPrint[1100];
+
 
   float testFloat = 1965 * COEF_POWER(1280);
-
-//  dataRX[0] = powerCalculateCalib(VRMS_GAIN, 589824, 12);
-
-  // TESTING
-//  spiCommandSpecial(w_calib, BYTE_ENABLE);
-//  spiCommandSpecial(w_read_calib, BYTE_ENABLE);
-//  spiWrite24(w_ModeCfg, 0xF9FE);
-//  spiCommandSpecial(w_calib, BYTE_DISABLE);
-//  spiCommandSpecial(w_read_calib, BYTE_DISABLE);
-//  dataRX[0] = spiRead24(r_UaRms);
-//  dataRX[1] = spiRead24(r_UbRms);
-//  dataRX[2] = spiRead24(r_UcRms);
-//
-//  powerInit();
-//  dataRX[0] = spiRead24(deviceId);
-  // SET CALIBRATION
 
   int addressSize = 9;
   HAL_StatusTypeDef addressStatus[addressSize];
@@ -165,10 +150,13 @@ int main(void)
 		  w_IcRmsoffse,
 		  w_UaRmsoffse,
 		  w_UbRmsoffse,
-		  w_UcRmsoffse
-//		  w_UgainA,
-//		  w_UgainB,
-//		  w_UgainC
+		  w_UcRmsoffse,
+  		  w_UgainA,
+		  w_UgainB,
+		  w_UgainC,
+		  w_IgainA,
+		  w_IgainB,
+		  w_IgainC
   };
   uint32_t addressData[] = {
 		  7,
@@ -176,36 +164,91 @@ int main(void)
 		  7,
 		  8,
 		  8,
-		  8
-//		  24445,
-//		  24445,
-//		  24445
+		  8,
+		  62011,
+		  62011,
+		  62011,
+		  48970,
+		  48970,
+		  48970
   };
   powerRestoreCalib();
   powerSetup(address,addressData,addressStatus,addressSize);
   powerReadSensor(addrSensor, valueSensor, valueFloat, 46);
-//  dataRX[0] = powerCalculateCalib(VRMS_GAIN, valueSensor[20], 16);
   address[0] = w_UgainA;
   address[1] = w_UgainB;
   address[2] = w_UgainC;
   uint8_t addressCalib[] = {
 		  w_UgainA,
 		  w_UgainB,
-		  w_UgainC
+		  w_UgainC,
+		  w_IgainA,
+		  w_IgainB,
+		  w_IgainC
   };
   uint32_t dataCalib[] = {
-		  60709,
-		  60709,
-		  60709
+		  62011,
+		  62011,
+		  62011,
+		  48970,
+		  48970,
+		  48970
   };
-  powerCalib(addressCalib, dataCalib, addressStatus, 3);
-  for(;;){
+
+  powerCalib(addressCalib, dataCalib, addressStatus, 6);
+//  addressCalib[0] = w_IgainA;
+//  addressCalib[1] = w_IgainB;
+//  addressCalib[2] = w_IgainC;
+//
+//  dataCalib[0] = powerCalculateCalib(IRMS_GAIN, valueSensor[24], 1);
+//  dataCalib[1] = powerCalculateCalib(IRMS_GAIN, valueSensor[25], 1);
+//  dataCalib[2] = powerCalculateCalib(IRMS_GAIN, valueSensor[26], 1);
+//  powerCalib(addressCalib, dataCalib, addressStatus, 3);
+
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  while (1)
+  {
+	  // READING ANGLE POWER
+	  float angle[3];
+	  uint32_t angleBuffer[3];
+	  int32_t angleSign[3];
+	  uint8_t angleAddress[3] = {
+			  r_Pga,
+			  r_Pgb,
+			  r_Pgc,
+	  };
+	  for(int indeks=0; indeks<3; indeks++){
+		  angleBuffer[indeks] = spiRead24(angleAddress[indeks]);
+		  angleSign[indeks] = unsignToSign(&angleBuffer[indeks], BIT_SIZE_21);
+		  angle[indeks] = angleSign[indeks]*180/0x100000;	// dataSign*180/2^20
+	  }
+
 	  powerReadSensor(addrSensor, valueSensor, valueFloat, 46);
-	  uint8_t dataPrint[1000];
+
+	  handleAbsolute(&valueFloat[0]);
+	  valueFloat[38] += valueFloat[0]/3600000;
+	  handleAbsolute(&valueFloat[1]);
+	  valueFloat[39] += valueFloat[1]/3600000;
+	  handleAbsolute(&valueFloat[2]);
+	  valueFloat[40] += valueFloat[2]/3600000;
+	  handleAbsolute(&valueFloat[3]);
+	  valueFloat[41] += valueFloat[3]/3600000;
+
+	  handleAbsolute(&valueFloat[4]);
+	  valueFloat[42] += valueFloat[4]/3600000;
+	  handleAbsolute(&valueFloat[5]);
+	  valueFloat[43] += valueFloat[5]/3600000;
+	  handleAbsolute(&valueFloat[6]);
+	  valueFloat[44] += valueFloat[6]/3600000;
+	  handleAbsolute(&valueFloat[7]);
+	  valueFloat[45] += valueFloat[7]/3600000;
 	  sprintf(
 	  			  dataPrint,
-	  			  "\r\n\r\npowerActiveA=%.6f(%d)[%.6f] ,powerActiveB=%.6f(%d)[%.6f], powerActiveC=%.6f(%d)[%.6f], PowerActiveCombine=%.6f(%d)[%.6f], powerReactiveA=%.6f(%d), powerReactiveB=%.6f(%d), powerReactiveC=%.6f(%d), powerReactiveCombine=%.6f(%d), powerApparentA=%.6f(%d), powerApparentB=%.6f(%d), powerApparentC=%.6f(%d), powerApparentCombine=%.6f(%d), rmsVoltageA=%.6f(%d), rmsVoltageB=%.6f(%d), rmsVoltageC=%.6f(%d), rmsVoltageVector=%.6f(%d), rmsCurrentA=%.6f(%d), rmsCurrentB=%.6f(%d), rmsCurrentC=%.6f(%d), rmsCurrentVector=%.6f(%d), powerFactorA=%.6f(%d), powerFactorB=%.6f(%d), powerFactorC=%.6f(%d), powerFactorCombine=%.6f(%d), energyActiveA=%.6f(%d), energyActiveB=%.6f(%d), energyActiveC=%.6f(%d), energyActiveCombine=%.6f(%d), energyReactiveA=%.6f(%d), energyReactiveB=%.6f(%d), energyReactiveC=%.6f(%d), energyReactiveCombine=%.6f(%d)\r\n\r\n",
-	  			  valueFloat[0],valueSensor[0], valueFloat[0]*467,valueFloat[1],valueSensor[1],valueFloat[1]*467,valueFloat[2],valueSensor[2],valueFloat[2]*467,valueFloat[3],valueSensor[3],valueFloat[3]*467,valueFloat[4],valueSensor[4],
+	  			  "\r\n\r\nangleA=%.2f, angleB=%.2f, angleC=%.2f, npowerActiveA=%.6f(%d)[%.6f] ,powerActiveB=%.6f(%d)[%.6f], powerActiveC=%.6f(%d)[%.6f], PowerActiveCombine=%.6f(%d)[%.6f], powerReactiveA=%.6f(%d), powerReactiveB=%.6f(%d), powerReactiveC=%.6f(%d), powerReactiveCombine=%.6f(%d), powerApparentA=%.6f(%d), powerApparentB=%.6f(%d), powerApparentC=%.6f(%d), powerApparentCombine=%.6f(%d), rmsVoltageA=%.6f(%d), rmsVoltageB=%.6f(%d), rmsVoltageC=%.6f(%d), rmsVoltageVector=%.6f(%d), rmsCurrentA=%.6f(%d), rmsCurrentB=%.6f(%d), rmsCurrentC=%.6f(%d), rmsCurrentVector=%.6f(%d), powerFactorA=%.6f(%d), powerFactorB=%.6f(%d), powerFactorC=%.6f(%d), powerFactorCombine=%.6f(%d), energyActiveA=%.6f(%d), energyActiveB=%.6f(%d), energyActiveC=%.6f(%d), energyActiveCombine=%.6f(%d), energyReactiveA=%.6f(%d), energyReactiveB=%.6f(%d), energyReactiveC=%.6f(%d), energyReactiveCombine=%.6f(%d)\r\n\r\n",
+	  			  angle[0],angle[1],angle[2],valueFloat[0],valueSensor[0], valueFloat[0]*467,valueFloat[1],valueSensor[1],valueFloat[1]*467,valueFloat[2],valueSensor[2],valueFloat[2]*467,valueFloat[3],valueSensor[3],valueFloat[3]*467,valueFloat[4],valueSensor[4],
 	  			  valueFloat[5],valueSensor[5],valueFloat[6],valueSensor[6],valueFloat[7],valueSensor[7],valueFloat[8],valueSensor[8],
 	  			  valueFloat[9],valueSensor[9],valueFloat[10],valueSensor[10],valueFloat[11],valueSensor[11],valueFloat[20],valueSensor[20],
 	  			  valueFloat[21],valueSensor[21],valueFloat[22],valueSensor[22],valueFloat[23],valueSensor[23],valueFloat[24],valueSensor[24],valueFloat[25],valueSensor[25],
@@ -235,19 +278,9 @@ int main(void)
 //			  valueFloat[42],valueFloat[43],valueFloat[44],valueFloat[45]
 //	  );
 //	  HAL_UART_Transmit(&huart2, dataPrint, 70, 2000);
-	  HAL_UART_Transmit(&huart2, dataPrint, 1000, 2000);
+	  HAL_UART_Transmit(&huart2, dataPrint, 1100, 2000);
 
 	  HAL_Delay(1000);
-
-
-  }
-
-  /* USER CODE END 2 */
-
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1)
-  {
 
     /* USER CODE END WHILE */
 

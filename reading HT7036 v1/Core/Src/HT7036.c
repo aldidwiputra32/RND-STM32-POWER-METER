@@ -156,7 +156,8 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 	// -----------------------------SETUP BASED ON DATASHEET---------------------------------
 	/* WRITE MODE CONFIGURATION REGISTER
 	 * Turn on the Vref Chopper function to improve Vref performance; turn on the power
-	 * effective value slowly Speed mode to reduce jitter; configure EMU clock 921.6kHz to reduce power consumption; enable 6 ADCs;
+	 * effective value slowly Speed mode to reduce jitter; configure EMU clock 921.6kHz
+	 * to reduce power consumption; enable 6 ADCs;
 	 */
 	spiWriteCalib(w_ModeCfg,0xB97E); 	// 1011 1001 0111 1110
 	HAL_Delay(10);
@@ -166,20 +167,17 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 	 */
 	spiWriteCalib(w_EMUCfg,0xF804);		// 1111 1000 0000 0100
 	HAL_Delay(10);
-
 	/* WRITE IN THE ANALOG MODULE ENABLE REGISTER
 	 * turn on the high-pass filter; turn on the BOR power monitoring circuit;
 	 */
 	spiWriteCalib(w_ModuleCFG,0x3427);	// 0011 0100 0010 0111
 	HAL_Delay(10);
+	// -------------------------------------------------------------------------------------
 
 	/* WRITE CONFIG HFCONST */
 //	spiWriteCalib(w_Hfconst, 0x0A00);
 	HFconstVal = (float)spiReadCalib(w_Hfconst);
 	HAL_Delay(10);
-//	spiWriteCalib(w_UgainA, 0x022E);
-//	spiWriteCalib(w_UgainB, 0x022E);
-//	spiWriteCalib(w_UgainC, 0x022E);
 	// READING VALUE PARAMETER
 	check = spiReadCalib(w_ModeCfg);
 	check = spiReadCalib(w_EMUIE);
@@ -214,6 +212,8 @@ void powerReadSensor(uint8_t * address, uint32_t * valueBuffer, float * valueFlo
 			// FORMULA >> powerData * 2.592*10^10/(HFconst*EC*2^23)  | HFconst = 1280(def)  &  EC = 6400
 			bufferSign = unsignToSign(&valueBuffer[indeks], BIT_SIZE_24);
 			valueFloat[indeks] = (float)bufferSign * COEF_POWER(HFconstVal); // (405000)/(128*64*8388608)
+			// FORMULA >> powerdata * 2 * 2.592*10^10/(HFconst*EC*2^23)
+			if((indeks==3)||(indeks==7)||(indeks==11))valueFloat[indeks] = (float)bufferSign * 2 * COEF_POWER(HFconstVal); // (405000)/(128*64*8388608)
 		}
 		// GROUPING DATA RMS ???
 		if(indeks>=20 && indeks<34){
@@ -267,10 +267,18 @@ int32_t unsignToSign(uint32_t * data, uint8_t bitsize){
 			value = (int32_t)(*data - 0x100000000);	// data - 2^32
 		}else value = *data;
 	}
+	// FOR BYTE LENGTH 21 BIT
+	if(bitsize == BIT_SIZE_21){
+		if(*data >= 0x100000){						// data >= 2^20
+			value = (int32_t)(*data - 0x1000000);	// data - 2^24
+		} else value = *data;
+	}
 	return value;
 }
 
-uint32_t powerCalculateCalib(uint8_t type, uint32_t dataRaw, uint32_t dataActual){
+uint32_t powerCalculateCalib(uint8_t type, uint32_t dataRaw, float dataActual){
+	float gainFloat;
+	float valueBuffer;
 	// CALCULATE OFFSET PARAMTER
 	if((type == VRMS_OFFSET)||(type == IRMS_OFFSET)){
 		uint32_t value;
@@ -279,12 +287,11 @@ uint32_t powerCalculateCalib(uint8_t type, uint32_t dataRaw, uint32_t dataActual
 		return value;
 	}
 	// CALCULATE GAIN PARAMETER
-	if(type == VRMS_GAIN){
-		float gainFloat;
-		float valueBuffer;
-		valueBuffer = dataRaw / 8192;
+	if((type == VRMS_GAIN)||(type == IRMS_GAIN)){
+		if(type == VRMS_GAIN) valueBuffer = (float)dataRaw / 8192;
+		if(type == IRMS_GAIN) valueBuffer = (float)dataRaw / 8192;
 		// GET GAIN VRMS
-		gainFloat = ((float)dataActual/valueBuffer) - 1.000f;
+		gainFloat = (dataActual/valueBuffer) - 1.000f;
 		// VALUE = VALUE * 2 ^ 15
 		if(gainFloat >= 0)gainFloat = gainFloat * 32768.0f;
 		// VALUE = 2 ^ 16 + VALUE * 2 * 15
@@ -292,7 +299,7 @@ uint32_t powerCalculateCalib(uint8_t type, uint32_t dataRaw, uint32_t dataActual
 			gainFloat = gainFloat * 32768.0f;
 			gainFloat = gainFloat + 65536.0f;
 		}
-		return gainFloat;
+		return (uint32_t)gainFloat;
 	}
 }
 
@@ -301,7 +308,6 @@ void powerRestoreCalib(){
 	spiCommandSpecial(w_calib_restore, BYTE_NULL);
 }
 
-// USED OR UNUSED ?????????????
 void powerCalib(uint8_t * addressBuffer, uint32_t * dataSet, HAL_StatusTypeDef * status, uint8_t size){
 	uint32_t check;
 	// ENABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
@@ -317,3 +323,16 @@ void powerCalib(uint8_t * addressBuffer, uint32_t * dataSet, HAL_StatusTypeDef *
 	spiCommandSpecial(w_calib_state, BYTE_DISABLE);
 	spiCommandSpecial(w_read_calib, BYTE_DISABLE);
 }
+
+void handleAbsolute(float * value){
+	if(*value < 0){
+		*value = *value *(-1);
+	}
+}
+
+/*
+ * NOTE >
+ * dataRX[0] =  powerCalculateCalib(VRMS_GAIN, 2115766, 220); 	// 07 august >> 60709
+ * dataRX[0] =  powerCalculateCalib(VRMS_GAIN, 2083696, 227); 	// 08 august >> 62011
+ * dataRX[0] = powerCalculateCalib(IRMS_GAIN, 19715, 1.19);	// 08 august >> 48970
+ */
