@@ -97,6 +97,9 @@ float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombine,
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
+void serialPrint(char* text, uint8_t size){
+	HAL_UART_Transmit(&huart2, (uint8_t*)text, size, 100);
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -142,7 +145,7 @@ int main(void)
 
   float testFloat = 1965 * COEF_POWER(1280);
 
-  int addressSize = 9;
+  int addressSize = 12;
   HAL_StatusTypeDef addressStatus[addressSize];
   uint8_t address[] = {
 		  w_IaRmsoffse,
@@ -175,27 +178,6 @@ int main(void)
   powerRestoreCalib();
   powerSetup(address,addressData,addressStatus,addressSize);
   powerReadSensor(addrSensor, valueSensor, valueFloat, 46);
-  address[0] = w_UgainA;
-  address[1] = w_UgainB;
-  address[2] = w_UgainC;
-  uint8_t addressCalib[] = {
-		  w_UgainA,
-		  w_UgainB,
-		  w_UgainC,
-		  w_IgainA,
-		  w_IgainB,
-		  w_IgainC
-  };
-  uint32_t dataCalib[] = {
-		  62011,
-		  62011,
-		  62011,
-		  48970,
-		  48970,
-		  48970
-  };
-
-  powerCalib(addressCalib, dataCalib, addressStatus, 6);
 //  addressCalib[0] = w_IgainA;
 //  addressCalib[1] = w_IgainB;
 //  addressCalib[2] = w_IgainC;
@@ -245,41 +227,71 @@ int main(void)
 	  valueFloat[44] += valueFloat[6]/3600000;
 	  handleAbsolute(&valueFloat[7]);
 	  valueFloat[45] += valueFloat[7]/3600000;
-	  sprintf(
-	  			  dataPrint,
-	  			  "\r\n\r\nangleA=%.2f, angleB=%.2f, angleC=%.2f, npowerActiveA=%.6f(%d)[%.6f] ,powerActiveB=%.6f(%d)[%.6f], powerActiveC=%.6f(%d)[%.6f], PowerActiveCombine=%.6f(%d)[%.6f], powerReactiveA=%.6f(%d), powerReactiveB=%.6f(%d), powerReactiveC=%.6f(%d), powerReactiveCombine=%.6f(%d), powerApparentA=%.6f(%d), powerApparentB=%.6f(%d), powerApparentC=%.6f(%d), powerApparentCombine=%.6f(%d), rmsVoltageA=%.6f(%d), rmsVoltageB=%.6f(%d), rmsVoltageC=%.6f(%d), rmsVoltageVector=%.6f(%d), rmsCurrentA=%.6f(%d), rmsCurrentB=%.6f(%d), rmsCurrentC=%.6f(%d), rmsCurrentVector=%.6f(%d), powerFactorA=%.6f(%d), powerFactorB=%.6f(%d), powerFactorC=%.6f(%d), powerFactorCombine=%.6f(%d), energyActiveA=%.6f(%d), energyActiveB=%.6f(%d), energyActiveC=%.6f(%d), energyActiveCombine=%.6f(%d), energyReactiveA=%.6f(%d), energyReactiveB=%.6f(%d), energyReactiveC=%.6f(%d), energyReactiveCombine=%.6f(%d)\r\n\r\n",
-	  			  angle[0],angle[1],angle[2],valueFloat[0],valueSensor[0], valueFloat[0]*467,valueFloat[1],valueSensor[1],valueFloat[1]*467,valueFloat[2],valueSensor[2],valueFloat[2]*467,valueFloat[3],valueSensor[3],valueFloat[3]*467,valueFloat[4],valueSensor[4],
-	  			  valueFloat[5],valueSensor[5],valueFloat[6],valueSensor[6],valueFloat[7],valueSensor[7],valueFloat[8],valueSensor[8],
-	  			  valueFloat[9],valueSensor[9],valueFloat[10],valueSensor[10],valueFloat[11],valueSensor[11],valueFloat[20],valueSensor[20],
-	  			  valueFloat[21],valueSensor[21],valueFloat[22],valueSensor[22],valueFloat[23],valueSensor[23],valueFloat[24],valueSensor[24],valueFloat[25],valueSensor[25],
-	  			  valueFloat[26],valueSensor[26],valueFloat[27],valueSensor[27],valueFloat[34],valueSensor[34],valueFloat[35],valueSensor[35],valueFloat[36],valueSensor[36],valueFloat[37],valueSensor[37],
-	  			  valueFloat[38],valueSensor[38],valueFloat[39],valueSensor[39],valueFloat[40],valueSensor[40],valueFloat[41],valueSensor[41],
-	  			  valueFloat[42],valueSensor[42],valueFloat[43],valueSensor[43],valueFloat[44],valueSensor[44],valueFloat[45],valueSensor[45]
+
+	  // DEBUGGING VALUE >> GROUP POWER
+	  serialPrint("\r\n------------Power Active------------\r\n", 40);
+	  sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
+			  valueFloat[0],valueSensor[0],
+			  valueFloat[1],valueSensor[1],
+			  valueFloat[2],valueSensor[2],
+			  valueFloat[3],valueSensor[3]
 	  );
-
-//	  sprintf(
-//			  dataPrint,
-//			  "\r\n\r\nrmsVoltageC=%.6f(%d) | rmsCurrentC=%.6f(%d)\r\n\r\n",
-//			  valueFloat[22],valueSensor[22],valueFloat[26],valueSensor[26]
-//			  );
-//	  sprintf(
-//			  dataPrint,
-//			  "powerActiveA=%.6f ,powerActiveB=%.6f, powerActiveC=%.6f, PowerActiveCombine=%.6f, powerReactiveA=%.6f, powerReactiveB=%.6f, powerReactiveC=%.6f, powerReactiveCombine=%.6f, powerApparentA=%.6f, powerApparentB=%.6f, powerApparentC=%.6f, powerApparentCombine=%.6f, powerActiveWaveA=%.6f, powerActiveWaveB=%.6f,	powerActiveWaveC,=%.6f powerActiveWaveSum=%.6f, powerReactiveWaveA=%.6f, powerReactiveWaveB=%.6f, powerReactiveWaveC=%.6f, powerReactiveWaveCombine=%.6f rmsVoltageA=%.6f, rmsVoltageB=%.6f, rmsVoltageC=%.6f, rmsVoltageVector=%.6f, rmsCurrentA=%.6f, rmsCurrentB=%.6f, rmsCurrentC=%.6f, rmsCurrentVector=%.6f, rmsVoltageWaveA=%.6f, rmsVoltageWaveB=%.6f, rmsVoltageWaveC=%.6f, rmsCurrentWaveA=%.6f, rmsCurrentWaveB=%.6f, rmsCurrentWaveC=%.6f ,powerFactorA=%.6f, powerFactorB=%.6f, powerFactorC=%.6f, powerFactorCombine=%.6f, energyActiveA=%.6f, energyActiveB=%.6f, energyActiveC=%.6f, energyActiveCombine=%.6f ,energyReactiveA=%.6f, energyReactiveB=%.6f, energyReactiveC=%.6f, energyReactiveCombine=%.6f",
-//			  valueFloat[0],valueFloat[1],valueFloat[2],valueFloat[3],valueFloat[4],
-//			  valueFloat[5],valueFloat[6],valueFloat[7],valueFloat[8],
-//			  valueFloat[9],valueFloat[10],valueFloat[11],valueFloat[12],
-//			  valueFloat[13],valueFloat[14],valueFloat[15],valueFloat[16],
-//			  valueFloat[17],valueFloat[18],valueFloat[19],valueFloat[20],
-//			  valueFloat[21],valueFloat[22],valueFloat[23],valueFloat[24],valueFloat[25],
-//			  valueFloat[26],valueFloat[27],valueFloat[28],valueFloat[29],
-//			  valueFloat[30],valueFloat[31],valueFloat[32],valueFloat[33],
-//			  valueFloat[34],valueFloat[35],valueFloat[36],valueFloat[37],
-//			  valueFloat[38],valueFloat[39],valueFloat[40],valueFloat[41],
-//			  valueFloat[42],valueFloat[43],valueFloat[44],valueFloat[45]
-//	  );
-//	  HAL_UART_Transmit(&huart2, dataPrint, 70, 2000);
-	  HAL_UART_Transmit(&huart2, dataPrint, 1100, 2000);
-
+	  HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+	  memset(dataPrint, 0, sizeof(dataPrint));
+	  serialPrint("\r\n------------Power Rective-----------\r\n", 40);
+	  sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d),\r\nCombine=%.6f(%d)\r\n",
+			  valueFloat[4],valueSensor[4],
+			  valueFloat[5],valueSensor[5],
+			  valueFloat[6],valueSensor[6],
+			  valueFloat[7],valueSensor[7]
+	  );
+	  HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+	  memset(dataPrint, 0, sizeof(dataPrint));
+	  serialPrint("\r\n------------Power Apparent----------\r\n", 40);
+	  sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
+			  valueFloat[8],valueSensor[8],
+			  valueFloat[9],valueSensor[9],
+			  valueFloat[10],valueSensor[10],
+			  valueFloat[11],valueSensor[11]
+	  );
+	  HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+	  memset(dataPrint, 0, sizeof(dataPrint));
+	  serialPrint("\r\n------------Voltage RMS-------------\r\n", 40);
+	  sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nVector=%.6f(%d)\r\n",
+			  valueFloat[20],valueSensor[20],
+			  valueFloat[21],valueSensor[21],
+			  valueFloat[22],valueSensor[22],
+			  valueFloat[23],valueSensor[23]
+	  );
+	  HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+	  memset(dataPrint, 0, sizeof(dataPrint));
+	  serialPrint("\r\n------------Current RMS-------------\r\n", 40);
+	  sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nVector=%.6f(%d)\r\n",
+			  valueFloat[24],valueSensor[24],
+			  valueFloat[25],valueSensor[25],
+			  valueFloat[26],valueSensor[26],
+			  valueFloat[27],valueSensor[27]
+	  );
+	  HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+	  memset(dataPrint, 0, sizeof(dataPrint));
+	  serialPrint("\r\n------------Power Factor------------\r\n", 40);
+	  sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
+			  valueFloat[34],valueSensor[34],
+			  valueFloat[35],valueSensor[35],
+			  valueFloat[36],valueSensor[36],
+			  valueFloat[37],valueSensor[37]
+	  );
+	  HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+	  memset(dataPrint, 0, sizeof(dataPrint));
+	  serialPrint("\r\n------------Energy Active-----------\r\n", 40);
+	  sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
+			  valueFloat[38],valueSensor[38],
+			  valueFloat[39],valueSensor[39],
+			  valueFloat[40],valueSensor[40],
+			  valueFloat[41],valueSensor[41]
+	  );
+	  HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+	  memset(dataPrint, 0, sizeof(dataPrint));
 	  HAL_Delay(1000);
 
     /* USER CODE END WHILE */

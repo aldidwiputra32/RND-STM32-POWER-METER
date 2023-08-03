@@ -141,18 +141,8 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 	uint32_t check;
 	// ENABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
 	spiCommandSpecial(w_calib_state, BYTE_ENABLE);
-	HAL_Delay(10);
 	spiCommandSpecial(w_read_calib, BYTE_ENABLE);
-	HAL_Delay(10);
-//	// SETUP ADC STATE >> EMABLE ADC VRMS AND IRMS
-//	spiWriteCalib(w_ModeCfg, 0xF9FE);
-//	// SETUP EMC CONFIG
 	spiWriteCalib(w_EMCfg, 0x0003);
-	HAL_Delay(10);
-//	// SETUP EMU CONFIG
-//	spiWriteCalib(w_EMUCfg, 0x3400);
-//	// READING VALUE PARAMETER
-
 	// -----------------------------SETUP BASED ON DATASHEET---------------------------------
 	/* WRITE MODE CONFIGURATION REGISTER
 	 * Turn on the Vref Chopper function to improve Vref performance; turn on the power
@@ -160,24 +150,19 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 	 * to reduce power consumption; enable 6 ADCs;
 	 */
 	spiWriteCalib(w_ModeCfg,0xB97E); 	// 1011 1001 0111 1110
-	HAL_Delay(10);
 	/* WRITE INTO EMU
 	 * Turn on energy metering, use power as the basis for creep start, turn off fundamental wave power Can,
 	 * choose PQS mode for apparent power energy
 	 */
 	spiWriteCalib(w_EMUCfg,0xF804);		// 1111 1000 0000 0100
-	HAL_Delay(10);
 	/* WRITE IN THE ANALOG MODULE ENABLE REGISTER
 	 * turn on the high-pass filter; turn on the BOR power monitoring circuit;
 	 */
 	spiWriteCalib(w_ModuleCFG,0x3427);	// 0011 0100 0010 0111
-	HAL_Delay(10);
 	// -------------------------------------------------------------------------------------
 
 	/* WRITE CONFIG HFCONST */
-//	spiWriteCalib(w_Hfconst, 0x0A00);
 	HFconstVal = (float)spiReadCalib(w_Hfconst);
-	HAL_Delay(10);
 	// READING VALUE PARAMETER
 	check = spiReadCalib(w_ModeCfg);
 	check = spiReadCalib(w_EMUIE);
@@ -330,9 +315,38 @@ void handleAbsolute(float * value){
 	}
 }
 
+// SETUP CALIB
+/* Dataframe
+ * GV,actualData
+ * GI,actualData
+ * OV
+ * OI
+ * MC,actuaData
+ */
+void powerSetupCalib(uint8_t type, uint32_t dataActual){
+	uint32_t calibVal;
+	if(type == VRMS_GAIN){
+		calibVal = powerCalculateCalib(type, valueSensor, dataActual);
+	}
+
+}
+
 /*
  * NOTE >
  * dataRX[0] =  powerCalculateCalib(VRMS_GAIN, 2115766, 220); 	// 07 august >> 60709
  * dataRX[0] =  powerCalculateCalib(VRMS_GAIN, 2083696, 227); 	// 08 august >> 62011
  * dataRX[0] = powerCalculateCalib(IRMS_GAIN, 19715, 1.19);	// 08 august >> 48970
  */
+
+// -------------------------------------------------------------------------DATA PRINT FOR DEBUGGING----------------------------------------------------------------------
+//sprintf(
+//	  			  dataPrint,
+//	  			  "\r\n\r\nangleA=%.2f, angleB=%.2f, angleC=%.2f, npowerActiveA=%.6f(%d)[%.6f] ,powerActiveB=%.6f(%d)[%.6f], powerActiveC=%.6f(%d)[%.6f], PowerActiveCombine=%.6f(%d)[%.6f], powerReactiveA=%.6f(%d), powerReactiveB=%.6f(%d), powerReactiveC=%.6f(%d), powerReactiveCombine=%.6f(%d), powerApparentA=%.6f(%d), powerApparentB=%.6f(%d), powerApparentC=%.6f(%d), powerApparentCombine=%.6f(%d), rmsVoltageA=%.6f(%d), rmsVoltageB=%.6f(%d), rmsVoltageC=%.6f(%d), rmsVoltageVector=%.6f(%d), rmsCurrentA=%.6f(%d), rmsCurrentB=%.6f(%d), rmsCurrentC=%.6f(%d), rmsCurrentVector=%.6f(%d), powerFactorA=%.6f(%d), powerFactorB=%.6f(%d), powerFactorC=%.6f(%d), powerFactorCombine=%.6f(%d), energyActiveA=%.6f(%d), energyActiveB=%.6f(%d), energyActiveC=%.6f(%d), energyActiveCombine=%.6f(%d), energyReactiveA=%.6f(%d), energyReactiveB=%.6f(%d), energyReactiveC=%.6f(%d), energyReactiveCombine=%.6f(%d)\r\n\r\n",
+//	  			  angle[0],angle[1],angle[2],valueFloat[0],valueSensor[0], valueFloat[0]*467,valueFloat[1],valueSensor[1],valueFloat[1]*467,valueFloat[2],valueSensor[2],valueFloat[2]*467,valueFloat[3],valueSensor[3],valueFloat[3]*467,valueFloat[4],valueSensor[4],
+//	  			  valueFloat[5],valueSensor[5],valueFloat[6],valueSensor[6],valueFloat[7],valueSensor[7],valueFloat[8],valueSensor[8],
+//	  			  valueFloat[9],valueSensor[9],valueFloat[10],valueSensor[10],valueFloat[11],valueSensor[11],valueFloat[20],valueSensor[20],
+//	  			  valueFloat[21],valueSensor[21],valueFloat[22],valueSensor[22],valueFloat[23],valueSensor[23],valueFloat[24],valueSensor[24],valueFloat[25],valueSensor[25],
+//	  			  valueFloat[26],valueSensor[26],valueFloat[27],valueSensor[27],valueFloat[34],valueSensor[34],valueFloat[35],valueSensor[35],valueFloat[36],valueSensor[36],valueFloat[37],valueSensor[37],
+//	  			  valueFloat[38],valueSensor[38],valueFloat[39],valueSensor[39],valueFloat[40],valueSensor[40],valueFloat[41],valueSensor[41],
+//	  			  valueFloat[42],valueSensor[42],valueFloat[43],valueSensor[43],valueFloat[44],valueSensor[44],valueFloat[45],valueSensor[45]
+//	  );

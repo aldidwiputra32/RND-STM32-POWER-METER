@@ -30,6 +30,7 @@
 #define VRMS_GAIN 		4
 #define IRMS_OFFSET 	5
 #define IRMS_GAIN		6
+#define METER_CONSTANT	7
 
 #define COEF_POWER(n) 	((2.592*10000000000)/(n*43.700f*8388608.000f)) // K = 2.592*10^10/(HFconst*EC*2^23)
 
