@@ -188,7 +188,7 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 	HAL_Delay(75);
 }
 
-void powerReadSensor(uint8_t * address, uint32_t * valueBuffer, float * valueFloat, uint8_t size){
+void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * valueFloat, uint8_t size){
 	int32_t bufferSign;
 	for(uint8_t indeks=0;indeks<size;indeks++){
 		valueBuffer[indeks] = spiRead24(address[indeks]);
@@ -225,6 +225,11 @@ void powerReadSensor(uint8_t * address, uint32_t * valueBuffer, float * valueFlo
 			//
 		}
 	}
+}
+
+void powerSingleReadSensor(uint8_t * address, uint32_t * valueBuffer, float * valueFloat){
+	int32_t bufferSign;
+
 }
 
 uint32_t powerScanValue(uint8_t address, uint32_t * addressBuffer ,uint32_t * valueBuffer, uint8_t size){
@@ -326,6 +331,7 @@ void handleAbsolute(float * value){
 void powerSetupCalib(uint8_t type, uint32_t dataActual){
 	uint32_t calibVal;
 	if(type == VRMS_GAIN){
+		spiRead24(r_IaRms);
 		calibVal = powerCalculateCalib(type, valueSensor, dataActual);
 	}
 
