@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dma.h"
 #include "spi.h"
 #include "usart.h"
 #include "gpio.h"
@@ -25,6 +26,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "HT7036.h"
+#include "modbusSlave.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -45,61 +47,89 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+
+//------------------------- GROUP VARIABLE POWER METER ---------------------------------
 uint8_t addrSensor[] = {
-		// POWER REGISTER >> 20 addrs
+		// POWER REGISTER >> 12 addrs
 		r_Pa,				r_Pb,				r_Pc,				r_Pt,
 		r_Qa,				r_Qb,				r_Qc,				r_Qt,
 		r_Sa,				r_Sb,				r_Sc,				r_St,
-		r_LinePa,			r_LinePb,			r_LinePc,			r_LinePt,
-		r_LineQa,			r_LineQb,			r_LineQc,			r_LineQt,
-		// RMS REGISTER >> 14 addrs
+		// RMS REGISTER >> 8 addrs
 		r_UaRms,			r_UbRms,			r_UcRms,			r_UtRms,
 		r_IaRms,			r_IbRms,			r_IcRms,			r_ItRms,
-		r_LineUaRrms,		r_LineUbRrms, 		r_LineUcRrms,
-		r_LineIaRrms, 		r_LineIbRrms,		r_LineIcRrms,
 		// POWER FACTOR REGISTER >> 4 addrs
 		r_Pfa,				r_Pfb,				r_Pfc,				r_Pft,
-		// ENERGY REGISTER >> 8 addrs
-		r_Epa,				r_Epb, 				r_Epc,				r_Ept,
-		r_Eqa,				r_Eqb,				r_Eqc,				r_Eqt
-		// TOTAL REGISTER >> 46
+		// ENERGY REGISTER >> 4 addrs
+		r_Epa,				r_Epb, 				r_Epc,				r_Ept
+		// TOTAL REGISTER >> 28
 };
+
 uint8_t sizeSensor = sizeof(addrSensor)/sizeof(addrSensor[0]);
-uint32_t valueSensor[46];
-float valueFloat[46];
+uint32_t valueSensor[28];
+uint64_t powerTimer = 0;
+uint64_t powerTimerDelta = 0;
+float valueFloat[28];
 
 // POWER REGISTER
 float 	powerActiveA,		powerActiveB,		powerActiveC,		PowerActiveCombine,   // V x i x cos phi
 		powerReactiveA,		powerReactiveB,		powerReactiveC,		powerReactiveCombine, // V x i x sin phi
-		powerApparentA,		powerApparentB,		powerApparentC,		powerApparentCombine, // V x i
-		powerActiveWaveA,	powerActiveWaveB,	powerActiveWaveC,	powerActiveWaveSum,
-		powerReactiveWaveA,	powerReactiveWaveB,	powerReactiveWaveC,	powerReactiveWaveCombine;
-
+		powerApparentA,		powerApparentB,		powerApparentC,		powerApparentCombine; // V x i
 // RMS REGISTER
 float 	rmsVoltageA,		rmsVoltageB,		rmsVoltageC,		rmsVoltageVector,
-		rmsCurrentA,		rmsCurrentB,		rmsCurrentC,		rmsCurrentVector,
-		rmsVoltageWaveA,	rmsVoltageWaveB,	rmsVoltageWaveC,
-		rmsCurrentWaveA,	rmsCurrentWaveB,	rmsCurrentWaveC;
-
+		rmsCurrentA,		rmsCurrentB,		rmsCurrentC,		rmsCurrentVector;
 // POWER FACTOR REGISTER
 float 	powerFactorA,		powerFactorB,		powerFactorC, 		powerFactorCombine;
 
 // ENERGY REGISTER
-float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombine,
-		energyReactiveA,	energyReactiveB, 	energyReactiveC, 	energyReactiveCombine;
+float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombine;
 
-//-----------EXPLORE---------------
-//uint8_t dataPrint[500];
+//------------------------- GROUP VARIABLE MODBUS ---------------------------------
+/* NOTE
+ * Group Power 			>> 4 byte Sign 		>> division 100
+ * Group RMS			>> 2 byte unsgin	>> division 100
+ * Gruop power vactor 	>> 2 byte unsign	>> division 100
+ * Group energy 		>> 4 byte unsign 	>> division 100
+ */
+extern MODBUS Modbus;
+uint16_t holdingRegisterAddress[] 	= 	{	0x0000,	0x0001,	0x0002, 0x0003,
+											0x0004, 0x0005, 0x0006, 0x0007,
+											0x0008, 0x0009, 0x000A, 0x000B,
+											0x000C, 0x000D, 0x000E, 0x000F,
+											0x0010, 0x0011, 0x0012, 0x0013,
+											0x0014, 0x0015, 0x0016, 0x0017,
+											0x0018, 0x0019, 0x001A, 0x001B,
+											0x001C, 0x001D, 0x001E, 0x001F,
+											0x0020, 0x0021, 0x0022, 0x0023,
+											0x0024, 0x0025, 0x0026, 0x0027,
+											0x0028, 0x0029, 0x002A, 0x002B
+										};
+uint16_t holdingRegisterValue[]		= 	{	0x0000,	0x0000,	0x0000, 0x0000,
+											0x0000, 0x0000, 0x0000, 0x0000,
+											0x0000, 0x0000, 0x0000, 0x0000,
+											0x0000, 0x0000, 0x0000, 0x0000,
+											0x0000, 0x0000, 0x0000, 0x0000,
+											0x0000, 0x0000, 0x0000, 0x0000,
+											0x0000, 0x0000, 0x0000, 0x0000,
+											0x0000, 0x0000, 0x0000, 0x0000,
+											0x0000, 0x0000, 0x0000, 0x0000,
+											0x0000, 0x0000, 0x0000, 0x0000,
+											0x0000, 0x0000, 0x0000, 0x0000
+										};
+uint16_t holdingRegisterSize		= (uint16_t)sizeof(holdingRegisterAddress)/sizeof(uint16_t);
 
-//---------------------------------
+//------------------------- GROUP VARIABLE TESTING ---------------------------------
+uint8_t dataPrint[1100];
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-void serialPrint(char* text, uint8_t size){
-	HAL_UART_Transmit(&huart2, (uint8_t*)text, size, 100);
-}
+void serialPrint(char* text, uint8_t size){HAL_UART_Transmit(&huart2, (uint8_t*)text, size, 100);}
+void powerMeterSetup();
+uint16_t byteLow32(uint32_t buf){return (uint16_t)((buf & 0x0000FFFF));}
+uint16_t byteHigh32(uint32_t buf){return (uint16_t)((buf & 0xFFFF0000) >> 16);}
+void modbusValueUpdate();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -123,7 +153,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  HAL_Delay(1000);
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -135,165 +165,41 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_SPI2_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+  // SETUP POWER METER
+  powerMeterSetup();
 
-  uint32_t dataRX[46];
-  uint8_t dataPrint[1100];
+  // INITIAL TIMER SAMPLING POWER
+  powerTimer = HAL_GetTick();
 
-
-  float testFloat = 1965 * COEF_POWER(1280);
-
-  int addressSize = 12;
-  HAL_StatusTypeDef addressStatus[addressSize];
-  uint8_t address[] = {
-		  w_IaRmsoffse,
-		  w_IbRmsoffse,
-		  w_IcRmsoffse,
-		  w_UaRmsoffse,
-		  w_UbRmsoffse,
-		  w_UcRmsoffse,
-  		  w_UgainA,
-		  w_UgainB,
-		  w_UgainC,
-		  w_IgainA,
-		  w_IgainB,
-		  w_IgainC
-  };
-  uint32_t addressData[] = {
-		  7,
-		  7,
-		  7,
-		  8,
-		  8,
-		  8,
-		  62011,
-		  62011,
-		  62011,
-		  48970,
-		  48970,
-		  48970
-  };
-  powerRestoreCalib();
-  powerSetup(address,addressData,addressStatus,addressSize);
-  powerReadSensor(addrSensor, valueSensor, valueFloat, 46);
-//  addressCalib[0] = w_IgainA;
-//  addressCalib[1] = w_IgainB;
-//  addressCalib[2] = w_IgainC;
-//
-//  dataCalib[0] = powerCalculateCalib(IRMS_GAIN, valueSensor[24], 1);
-//  dataCalib[1] = powerCalculateCalib(IRMS_GAIN, valueSensor[25], 1);
-//  dataCalib[2] = powerCalculateCalib(IRMS_GAIN, valueSensor[26], 1);
-//  powerCalib(addressCalib, dataCalib, addressStatus, 3);
-
+  // MODBUS SETUP
+  ModbusBegin(
+		  &Modbus,
+		  &huart2,
+		  0,
+		  0x00,
+		  0x01,
+		  holdingRegisterAddress,
+		  holdingRegisterValue,
+		  holdingRegisterSize,
+		  MODBUS_En_GPIO_Port,
+		  MODBUS_En_Pin
+  );
+  modbusReceive(&Modbus);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  // READING ANGLE POWER
-	  float angle[3];
-	  uint32_t angleBuffer[3];
-	  int32_t angleSign[3];
-	  uint8_t angleAddress[3] = {
-			  r_Pga,
-			  r_Pgb,
-			  r_Pgc,
-	  };
-	  for(int indeks=0; indeks<3; indeks++){
-		  angleBuffer[indeks] = spiRead24(angleAddress[indeks]);
-		  angleSign[indeks] = unsignToSign(&angleBuffer[indeks], BIT_SIZE_21);
-		  angle[indeks] = angleSign[indeks]*180/0x100000;	// dataSign*180/2^20
-	  }
-
-	  powerReadSensor(addrSensor, valueSensor, valueFloat, 46);
-
-	  handleAbsolute(&valueFloat[0]);
-	  valueFloat[38] += valueFloat[0]/3600000;
-	  handleAbsolute(&valueFloat[1]);
-	  valueFloat[39] += valueFloat[1]/3600000;
-	  handleAbsolute(&valueFloat[2]);
-	  valueFloat[40] += valueFloat[2]/3600000;
-	  handleAbsolute(&valueFloat[3]);
-	  valueFloat[41] += valueFloat[3]/3600000;
-
-	  handleAbsolute(&valueFloat[4]);
-	  valueFloat[42] += valueFloat[4]/3600000;
-	  handleAbsolute(&valueFloat[5]);
-	  valueFloat[43] += valueFloat[5]/3600000;
-	  handleAbsolute(&valueFloat[6]);
-	  valueFloat[44] += valueFloat[6]/3600000;
-	  handleAbsolute(&valueFloat[7]);
-	  valueFloat[45] += valueFloat[7]/3600000;
-
-	  // DEBUGGING VALUE >> GROUP POWER
-	  serialPrint("\r\n------------Power Active------------\r\n", 40);
-	  sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
-			  valueFloat[0],valueSensor[0],
-			  valueFloat[1],valueSensor[1],
-			  valueFloat[2],valueSensor[2],
-			  valueFloat[3],valueSensor[3]
-	  );
-	  HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
-	  memset(dataPrint, 0, sizeof(dataPrint));
-	  serialPrint("\r\n------------Power Rective-----------\r\n", 40);
-	  sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d),\r\nCombine=%.6f(%d)\r\n",
-			  valueFloat[4],valueSensor[4],
-			  valueFloat[5],valueSensor[5],
-			  valueFloat[6],valueSensor[6],
-			  valueFloat[7],valueSensor[7]
-	  );
-	  HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
-	  memset(dataPrint, 0, sizeof(dataPrint));
-	  serialPrint("\r\n------------Power Apparent----------\r\n", 40);
-	  sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
-			  valueFloat[8],valueSensor[8],
-			  valueFloat[9],valueSensor[9],
-			  valueFloat[10],valueSensor[10],
-			  valueFloat[11],valueSensor[11]
-	  );
-	  HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
-	  memset(dataPrint, 0, sizeof(dataPrint));
-	  serialPrint("\r\n------------Voltage RMS-------------\r\n", 40);
-	  sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nVector=%.6f(%d)\r\n",
-			  valueFloat[20],valueSensor[20],
-			  valueFloat[21],valueSensor[21],
-			  valueFloat[22],valueSensor[22],
-			  valueFloat[23],valueSensor[23]
-	  );
-	  HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
-	  memset(dataPrint, 0, sizeof(dataPrint));
-	  serialPrint("\r\n------------Current RMS-------------\r\n", 40);
-	  sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nVector=%.6f(%d)\r\n",
-			  valueFloat[24],valueSensor[24],
-			  valueFloat[25],valueSensor[25],
-			  valueFloat[26],valueSensor[26],
-			  valueFloat[27],valueSensor[27]
-	  );
-	  HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
-	  memset(dataPrint, 0, sizeof(dataPrint));
-	  serialPrint("\r\n------------Power Factor------------\r\n", 40);
-	  sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
-			  valueFloat[34],valueSensor[34],
-			  valueFloat[35],valueSensor[35],
-			  valueFloat[36],valueSensor[36],
-			  valueFloat[37],valueSensor[37]
-	  );
-	  HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
-	  memset(dataPrint, 0, sizeof(dataPrint));
-	  serialPrint("\r\n------------Energy Active-----------\r\n", 40);
-	  sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
-			  valueFloat[38],valueSensor[38],
-			  valueFloat[39],valueSensor[39],
-			  valueFloat[40],valueSensor[40],
-			  valueFloat[41],valueSensor[41]
-	  );
-	  HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
-	  memset(dataPrint, 0, sizeof(dataPrint));
-	  HAL_Delay(1000);
-
+	  powerTimerDelta = HAL_GetTick() - powerTimer;
+	  powerTimer = HAL_GetTick();
+	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 28);
+	  modbusValueUpdate();
+	  HAL_Delay(100);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -340,7 +246,74 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+void powerMeterSetup(){
+	HAL_StatusTypeDef addressStatus[12];
+	uint8_t address[] = {
+			  w_IaRmsoffse,
+			  w_IbRmsoffse,
+			  w_IcRmsoffse,
+			  w_UaRmsoffse,
+			  w_UbRmsoffse,
+			  w_UcRmsoffse,
+	  		  w_UgainA,
+			  w_UgainB,
+			  w_UgainC,
+			  w_IgainA,
+			  w_IgainB,
+			  w_IgainC
+	};
+	uint32_t addressData[] = {
+			  7,
+			  7,
+			  7,
+			  8,
+			  8,
+			  8,
+			  62011,
+			  62011,
+			  62011,
+			  49853,
+			  49853,
+			  49853
+	};
+	powerRestoreCalib();
+	powerSetup(address,addressData,addressStatus,12);
+	powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 46);
+}
 
+void modbusValueUpdate(){
+	uint32_t bufferUnsign32;
+	int32_t bufferSign32;
+	uint16_t bufferUnsign16;
+	uint8_t address = 0;
+	for(int indeks=0;indeks<28;indeks++){
+		// CONFERT FLOAT DATA TO INTEGER SIGN/UNSGIN & 2BYTE/4BYTE
+		// GROUP POWER
+		if(indeks >= 0 && indeks <12){
+			bufferSign32  = (int32_t)(valueFloat[indeks] * 100);
+			bufferUnsign32 = (uint32_t)bufferSign32;
+			Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
+			Modbus.holdingRegisterValue[address++] = byteLow32(bufferUnsign32);
+		}
+		// GROUP RMS
+		if(indeks>=12 && indeks<20){
+			bufferUnsign16 = (uint16_t)(valueFloat[indeks] * 100);
+			Modbus.holdingRegisterValue[address++] = bufferUnsign16;
+		}
+		// GROUP POWER FACTOR
+		if(indeks>=20 && indeks<24){
+			bufferUnsign16 = (uint16_t)(valueFloat[indeks]*100);
+			Modbus.holdingRegisterValue[address++] = bufferUnsign16;
+		}
+		// GROUP ENERGY
+		if(indeks>=24 && indeks<28){
+			bufferSign32 = (int32_t)(valueFloat[indeks]*100);
+			bufferUnsign32 = (uint32_t)bufferSign32;
+			Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
+			Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
+		}
+	}
+}
 /* USER CODE END 4 */
 
 /**

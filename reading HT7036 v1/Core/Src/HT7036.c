@@ -1,5 +1,6 @@
 #include "HT7036.h"
 
+extern uint64_t powerTimerDelta;
 float HFconstVal;
 
 void spiDisable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);}
@@ -221,8 +222,11 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 			HAL_Delay(10);
 		}
 		// GROUPING DATA ENERGY
-		if(indeks<=38 && indeks<46){
-			//
+		if(indeks>=38 && indeks<46){
+			// ABSOLUTE
+			handleAbsolute(&valueFloat[indeks-38]);
+			// CALCULATION MANUAL DATA SENSOR ENERGY => power*deltaSampling/3600000
+			valueFloat[indeks] += valueFloat[indeks-38]*(powerTimerDelta/1000)/3600000;
 		}
 	}
 }
@@ -296,6 +300,7 @@ uint32_t powerCalculateCalib(uint8_t type, uint32_t dataRaw, float dataActual){
 void powerRestoreCalib(){
 	// RESTORE ALL CALIBRATION PARAMETER
 	spiCommandSpecial(w_calib_restore, BYTE_NULL);
+	HAL_Delay(100);
 }
 
 void powerCalib(uint8_t * addressBuffer, uint32_t * dataSet, HAL_StatusTypeDef * status, uint8_t size){
@@ -328,20 +333,22 @@ void handleAbsolute(float * value){
  * OI
  * MC,actuaData
  */
-void powerSetupCalib(uint8_t type, uint32_t dataActual){
-	uint32_t calibVal;
-	if(type == VRMS_GAIN){
-		spiRead24(r_IaRms);
-		calibVal = powerCalculateCalib(type, valueSensor, dataActual);
-	}
-
-}
+//void powerSetupCalib(uint8_t type, uint32_t dataActual){
+//	uint32_t calibVal;
+//	if(type == VRMS_GAIN){
+//		spiRead24(r_IaRms);
+//		calibVal = powerCalculateCalib(type, valueSensor, dataActual);
+//	}
+//
+//}
 
 /*
  * NOTE >
- * dataRX[0] =  powerCalculateCalib(VRMS_GAIN, 2115766, 220); 	// 07 august >> 60709
- * dataRX[0] =  powerCalculateCalib(VRMS_GAIN, 2083696, 227); 	// 08 august >> 62011
- * dataRX[0] = powerCalculateCalib(IRMS_GAIN, 19715, 1.19);	// 08 august >> 48970
+ * dataRX[0] =  powerCalculateCalib(VRMS_GAIN, 2115766, 220); 	// 02 august >> 60709
+ * dataRX[0] =  powerCalculateCalib(VRMS_GAIN, 2083696, 227); 	// 03 august >> 62011
+ * dataRX[0] = powerCalculateCalib(IRMS_GAIN, 19715, 1.19);	// 03 august >> 48970
+ * dataRX[0] = powerCalculateCalib(IRMS_GAIN, 18225, 1.16);	// 04 august >> 49853
+
  */
 
 // -------------------------------------------------------------------------DATA PRINT FOR DEBUGGING----------------------------------------------------------------------
@@ -356,3 +363,126 @@ void powerSetupCalib(uint8_t type, uint32_t dataActual){
 //	  			  valueFloat[38],valueSensor[38],valueFloat[39],valueSensor[39],valueFloat[40],valueSensor[40],valueFloat[41],valueSensor[41],
 //	  			  valueFloat[42],valueSensor[42],valueFloat[43],valueSensor[43],valueFloat[44],valueSensor[44],valueFloat[45],valueSensor[45]
 //	  );
+// -------------------------------------------------------------------------DATA PRINT FOR DEBUGGING----------------------------------------------------------------------
+// READING ANGLE POWER
+//	  float angle[3];
+//	  uint32_t angleBuffer[3];
+//	  int32_t angleSign[3];
+//	  uint8_t angleAddress[3] = {
+//			  r_Pga,
+//			  r_Pgb,
+//			  r_Pgc,
+//	  };
+//	  for(int indeks=0; indeks<3; indeks++){
+//		  angleBuffer[indeks] = spiRead24(angleAddress[indeks]);
+//		  angleSign[indeks] = unsignToSign(&angleBuffer[indeks], BIT_SIZE_21);
+//		  angle[indeks] = angleSign[indeks]*180/0x100000;	// dataSign*180/2^20
+//	  }
+
+//	  sprintf(dataPrint,"\r\n=======Sampling Time %d(ms)=======\r\n",powerTimerDelta);
+//	  HAL_UART_Transmit(&huart2, dataPrint, 40, 1000);
+//	  memset(dataPrint, 0, sizeof(dataPrint));
+//	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 46);
+//	  // DEBUGGING VALUE >> GROUP POWER
+//	  serialPrint("\r\n------------Power Active------------\r\n", 40);
+//	  sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
+//			  valueFloat[0],valueSensor[0],
+//			  valueFloat[1],valueSensor[1],
+//			  valueFloat[2],valueSensor[2],
+//			  valueFloat[3],valueSensor[3]
+//	  );
+//	  HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+//	  memset(dataPrint, 0, sizeof(dataPrint));
+//	  serialPrint("\r\n------------Power Rective-----------\r\n", 40);
+//	  sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d),\r\nCombine=%.6f(%d)\r\n",
+//			  valueFloat[4],valueSensor[4],
+//			  valueFloat[5],valueSensor[5],
+//			  valueFloat[6],valueSensor[6],
+//			  valueFloat[7],valueSensor[7]
+//	  );
+//	  HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+//	  memset(dataPrint, 0, sizeof(dataPrint));
+//	  serialPrint("\r\n------------Power Apparent----------\r\n", 40);
+//	  sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
+//			  valueFloat[8],valueSensor[8],
+//			  valueFloat[9],valueSensor[9],
+//			  valueFloat[10],valueSensor[10],
+//			  valueFloat[11],valueSensor[11]
+//	  );
+//	  HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+//	  memset(dataPrint, 0, sizeof(dataPrint));
+//	  serialPrint("\r\n------------Voltage RMS-------------\r\n", 40);
+//	  sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nVector=%.6f(%d)\r\n",
+//			  valueFloat[20],valueSensor[20],
+//			  valueFloat[21],valueSensor[21],
+//			  valueFloat[22],valueSensor[22],
+//			  valueFloat[23],valueSensor[23]
+//	  );
+//	  HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+//	  memset(dataPrint, 0, sizeof(dataPrint));
+//	  serialPrint("\r\n------------Current RMS-------------\r\n", 40);
+//	  sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nVector=%.6f(%d)\r\n",
+//			  valueFloat[24],valueSensor[24],
+//			  valueFloat[25],valueSensor[25],
+//			  valueFloat[26],valueSensor[26],
+//			  valueFloat[27],valueSensor[27]
+//	  );
+//	  HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+//	  memset(dataPrint, 0, sizeof(dataPrint));
+//	  serialPrint("\r\n------------Power Factor------------\r\n", 40);
+//	  sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
+//			  valueFloat[34],valueSensor[34],
+//			  valueFloat[35],valueSensor[35],
+//			  valueFloat[36],valueSensor[36],
+//			  valueFloat[37],valueSensor[37]
+//	  );
+//	  HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+//	  memset(dataPrint, 0, sizeof(dataPrint));
+//	  serialPrint("\r\n------------Energy Active-----------\r\n", 40);
+//	  sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
+//			  valueFloat[38],valueSensor[38],
+//			  valueFloat[39],valueSensor[39],
+//			  valueFloat[40],valueSensor[40],
+//			  valueFloat[41],valueSensor[41]
+//	  );
+//	  HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+//	  memset(dataPrint, 0, sizeof(dataPrint));
+//	  HAL_Delay(1000);
+//uint8_t addrSensor[] = {
+//		// POWER REGISTER >> 20 addrs
+//		r_Pa,				r_Pb,				r_Pc,				r_Pt,
+//		r_Qa,				r_Qb,				r_Qc,				r_Qt,
+//		r_Sa,				r_Sb,				r_Sc,				r_St,
+//		r_LinePa,			r_LinePb,			r_LinePc,			r_LinePt,
+//		r_LineQa,			r_LineQb,			r_LineQc,			r_LineQt,
+//		// RMS REGISTER >> 14 addrs
+//		r_UaRms,			r_UbRms,			r_UcRms,			r_UtRms,
+//		r_IaRms,			r_IbRms,			r_IcRms,			r_ItRms,
+//		r_LineUaRrms,		r_LineUbRrms, 		r_LineUcRrms,
+//		r_LineIaRrms, 		r_LineIbRrms,		r_LineIcRrms,
+//		// POWER FACTOR REGISTER >> 4 addrs
+//		r_Pfa,				r_Pfb,				r_Pfc,				r_Pft,
+//		// ENERGY REGISTER >> 8 addrs
+//		r_Epa,				r_Epb, 				r_Epc,				r_Ept,
+//		r_Eqa,				r_Eqb,				r_Eqc,				r_Eqt
+//		// TOTAL REGISTER >> 46
+//};
+// POWER REGISTER
+//float 	powerActiveA,		powerActiveB,		powerActiveC,		PowerActiveCombine,   // V x i x cos phi
+//		powerReactiveA,		powerReactiveB,		powerReactiveC,		powerReactiveCombine, // V x i x sin phi
+//		powerApparentA,		powerApparentB,		powerApparentC,		powerApparentCombine, // V x i
+//		powerActiveWaveA,	powerActiveWaveB,	powerActiveWaveC,	powerActiveWaveSum,
+//		powerReactiveWaveA,	powerReactiveWaveB,	powerReactiveWaveC,	powerReactiveWaveCombine;
+//
+//// RMS REGISTER
+//float 	rmsVoltageA,		rmsVoltageB,		rmsVoltageC,		rmsVoltageVector,
+//		rmsCurrentA,		rmsCurrentB,		rmsCurrentC,		rmsCurrentVector,
+//		rmsVoltageWaveA,	rmsVoltageWaveB,	rmsVoltageWaveC,
+//		rmsCurrentWaveA,	rmsCurrentWaveB,	rmsCurrentWaveC;
+//
+//// POWER FACTOR REGISTER
+//float 	powerFactorA,		powerFactorB,		powerFactorC, 		powerFactorCombine;
+//
+//// ENERGY REGISTER
+//float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombine,
+//		energyReactiveA,	energyReactiveB, 	energyReactiveC, 	energyReactiveCombine;

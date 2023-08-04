@@ -1,4 +1,8 @@
-main.c:100:6:serialPrint	1
-main.c:114:5:main	3
-main.c:308:6:SystemClock_Config	3
-main.c:350:6:Error_Handler	1
+main.c:128:6:serialPrint	1
+main.c:130:10:byteLow32	1
+main.c:131:10:byteHigh32	1
+main.c:144:5:main	1
+main.c:214:6:SystemClock_Config	3
+main.c:249:6:powerMeterSetup	1
+main.c:284:6:modbusValueUpdate	10
+main.c:323:6:Error_Handler	1
