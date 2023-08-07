@@ -1,6 +1,10 @@
 #include "HT7036.h"
+#include "usart.h"
 
+extern uint32_t valueSensor[28];
+extern float valueFloat[28];
 extern uint64_t powerTimerDelta;
+uint8_t dataPrint[1100];
 float HFconstVal;
 
 void spiDisable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);}
@@ -194,7 +198,7 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 	for(uint8_t indeks=0;indeks<size;indeks++){
 		valueBuffer[indeks] = spiRead24(address[indeks]);
 		// GROUPING DATA POWER PARAMETER >> ???
-		if(indeks>=0 && indeks<20){
+		if(indeks>=0 && indeks<12){
 			// FORMULA >> powerData * 2.592*10^10/(HFconst*EC*2^23)  | HFconst = 1280(def)  &  EC = 6400
 			bufferSign = unsignToSign(&valueBuffer[indeks], BIT_SIZE_24);
 			valueFloat[indeks] = (float)bufferSign * COEF_POWER(HFconstVal); // (405000)/(128*64*8388608)
@@ -202,7 +206,7 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 			if((indeks==3)||(indeks==7)||(indeks==11))valueFloat[indeks] = (float)bufferSign * 2 * COEF_POWER(HFconstVal); // (405000)/(128*64*8388608)
 		}
 		// GROUPING DATA RMS ???
-		if(indeks>=20 && indeks<34){
+		if(indeks>=12 && indeks<20){
 			//[VRMS] FORMULA >> rmsData / 2 ^ 13
 			if(indeks<23)valueFloat[indeks] = (float)valueBuffer[indeks] / 8192;
 			//[VRMS COMBINE] FORMULA >> rmsData / 2 ^ 12
@@ -215,14 +219,14 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 			else valueFloat[indeks] = (float)valueBuffer[indeks] / 8192;
 		}
 		// GROUPING DATA POWER FACTOR
-		if(indeks>=34 && indeks<38){
+		if(indeks>=20 && indeks<24){
 			// FORMULA >> pwrFactor / 2 ^ 23
 			bufferSign = unsignToSign(&valueBuffer[indeks], BIT_SIZE_24);
 			valueFloat[indeks] = (float)bufferSign / 8388608;
 			HAL_Delay(10);
 		}
 		// GROUPING DATA ENERGY
-		if(indeks>=38 && indeks<46){
+		if(indeks>=24 && indeks<28){
 			// ABSOLUTE
 			handleAbsolute(&valueFloat[indeks-38]);
 			// CALCULATION MANUAL DATA SENSOR ENERGY => power*deltaSampling/3600000
@@ -303,7 +307,7 @@ void powerRestoreCalib(){
 	HAL_Delay(100);
 }
 
-void powerCalib(uint8_t * addressBuffer, uint32_t * dataSet, HAL_StatusTypeDef * status, uint8_t size){
+void powerMultiCalib(uint8_t * addressBuffer, uint32_t * dataSet, HAL_StatusTypeDef * status, uint8_t size){
 	uint32_t check;
 	// ENABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
 	spiCommandSpecial(w_calib_state, BYTE_ENABLE);
@@ -315,8 +319,25 @@ void powerCalib(uint8_t * addressBuffer, uint32_t * dataSet, HAL_StatusTypeDef *
 		if(check == dataSet[indeks])status[indeks] = HAL_OK;
 		else status[indeks] = HAL_ERROR;
 	}
+	// DISABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
 	spiCommandSpecial(w_calib_state, BYTE_DISABLE);
 	spiCommandSpecial(w_read_calib, BYTE_DISABLE);
+}
+
+void powerSingleCalib(uint8_t addressBuffer, uint32_t * dataSet, HAL_StatusTypeDef * status, uint8_t size){
+	uint32_t check;
+	// ENABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
+	spiCommandSpecial(w_calib_state, BYTE_ENABLE);
+	spiCommandSpecial(w_read_calib, BYTE_ENABLE);
+	// WRITING REGISTER FOR CALIBRATION
+	spiWriteCalib(addressBuffer, *dataSet);
+	check = spiReadCalib(addressBuffer);
+	if(check == *dataSet) *status = HAL_OK;
+	else *status = HAL_ERROR;
+	// DISABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
+	spiCommandSpecial(w_calib_state, BYTE_DISABLE);
+	spiCommandSpecial(w_read_calib, BYTE_DISABLE);
+
 }
 
 void handleAbsolute(float * value){
@@ -325,6 +346,76 @@ void handleAbsolute(float * value){
 	}
 }
 
+
+void powerDebug(){
+	sprintf(dataPrint,"\r\n=======Sampling Time %d(ms)=======\r\n",powerTimerDelta);
+	HAL_UART_Transmit(&huart2, dataPrint, 40, 1000);
+	memset(dataPrint, 0, sizeof(dataPrint));
+	// DEBUGGING VALUE >> GROUP POWER
+	serialPrint("\r\n------------Power Active------------\r\n", 40);
+	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
+				  valueFloat[0],valueSensor[0],
+				  valueFloat[1],valueSensor[1],
+				  valueFloat[2],valueSensor[2],
+				  valueFloat[3],valueSensor[3]
+	);
+	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+	memset(dataPrint, 0, sizeof(dataPrint));
+	serialPrint("\r\n------------Power Rective-----------\r\n", 40);
+	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d),\r\nCombine=%.6f(%d)\r\n",
+				  valueFloat[4],valueSensor[4],
+				  valueFloat[5],valueSensor[5],
+				  valueFloat[6],valueSensor[6],
+				  valueFloat[7],valueSensor[7]
+	);
+	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+	memset(dataPrint, 0, sizeof(dataPrint));
+	serialPrint("\r\n------------Power Apparent----------\r\n", 40);
+	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
+				  valueFloat[8],valueSensor[8],
+				  valueFloat[9],valueSensor[9],
+				  valueFloat[10],valueSensor[10],
+				  valueFloat[11],valueSensor[11]
+	);
+	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+	memset(dataPrint, 0, sizeof(dataPrint));
+	serialPrint("\r\n------------Voltage RMS-------------\r\n", 40);
+	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nVector=%.6f(%d)\r\n",
+				  valueFloat[12],valueSensor[12],
+				  valueFloat[13],valueSensor[13],
+				  valueFloat[14],valueSensor[14],
+				  valueFloat[15],valueSensor[15]
+	);
+	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+	memset(dataPrint, 0, sizeof(dataPrint));
+	serialPrint("\r\n------------Current RMS-------------\r\n", 40);
+	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nVector=%.6f(%d)\r\n",
+				  valueFloat[16],valueSensor[16],
+				  valueFloat[17],valueSensor[17],
+				  valueFloat[18],valueSensor[18],
+				  valueFloat[19],valueSensor[19]
+	);
+	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+	memset(dataPrint, 0, sizeof(dataPrint));
+	serialPrint("\r\n------------Power Factor------------\r\n", 40);
+	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
+				  valueFloat[20],valueSensor[20],
+				  valueFloat[21],valueSensor[21],
+				  valueFloat[22],valueSensor[22],
+				  valueFloat[23],valueSensor[23]
+	);
+	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+	memset(dataPrint, 0, sizeof(dataPrint));
+	serialPrint("\r\n------------Energy Active-----------\r\n", 40);
+	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
+				  valueFloat[24],valueSensor[24],
+				  valueFloat[25],valueSensor[25],
+				  valueFloat[26],valueSensor[26],
+				  valueFloat[27],valueSensor[27]
+		  );
+	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+	memset(dataPrint, 0, sizeof(dataPrint));
+}
 // SETUP CALIB
 /* Dataframe
  * GV,actualData

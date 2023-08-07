@@ -10,6 +10,7 @@
 
 MODBUS Modbus;
 extern triggerTX;
+uint16_t addressModbus;
 
 void ModbusBegin(MODBUS *modbus, UART_HandleTypeDef * huart, int trigState, uint8_t slaveAddrSlave, uint8_t slaveAddrSlaveSecond, uint16_t * holdingRegisterAddress, uint16_t * holdingRegisterValue, uint16_t * holdingRegisterSize, GPIO_TypeDef * gpioPort, uint16_t gpioPin){
 	modbus->trigState = trigState;
@@ -107,6 +108,8 @@ void modbusEncode(MODBUS * Modbus){
 			Modbus->dataTX[offsetByte++] = byteLow(Modbus->holdingRegisterValue[address]);
 			Modbus->startAddr++;
 		}
+		// CHANGE STARTADDR VARIABLE TO SIZE BYTE FOR UART TRANSFER ARGUMENT
+		addressModbus = Modbus->startAddr;
 		Modbus->startAddr = offsetByte;
 		Modbus->crc = modbusCreateCRC(Modbus->dataTX,offsetByte);
 		Modbus->dataTX[Modbus->startAddr++] = byteLow(Modbus->crc);
@@ -127,6 +130,7 @@ void modbusEncode(MODBUS * Modbus){
 		ModbusEncodeAddCRC(Modbus, Modbus->dataTX, 6);
 
 		// CHANGE STARTADDR VARIABLE TO SIZE BYTE FOR UART TRANSFER ARGUMENT
+		addressModbus = Modbus->startAddr;
 		Modbus->startAddr = 8;
 		Modbus->trigState = 1;
 		Modbus->crc = 0;
@@ -146,6 +150,8 @@ void modbusEncode(MODBUS * Modbus){
 		};
 		modbusEncodeAssemble(Modbus->dataTX, indeksTarget, value, 4);
 		ModbusEncodeAddCRC(Modbus, Modbus->dataTX, 6);
+		// CHANGE STARTADDR VARIABLE TO SIZE BYTE FOR UART TRANSFER ARGUMENT
+		addressModbus = Modbus->startAddr;
 		Modbus->startAddr = 8;
 		Modbus->trigState = 1;
 		Modbus->crc = 0;
