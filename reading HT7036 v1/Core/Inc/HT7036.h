@@ -241,7 +241,7 @@ int32_t unsignToSign(uint32_t * data, uint8_t bitsize);
 uint32_t powerScanValue(uint8_t address, uint32_t * addressBuffer ,uint32_t * valueBuffer, uint8_t size);
 void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * valueFloat, uint8_t size);
 void powerMultiCalib(uint8_t * addressBuffer, uint32_t * dataSet, HAL_StatusTypeDef * status, uint8_t size);
-void powerSingleCalib(uint8_t addressBuffer, uint32_t * dataSet, HAL_StatusTypeDef * status, uint8_t size);
+void powerSingleCalib(uint8_t addressBuffer, uint32_t * dataSet, HAL_StatusTypeDef * status);
 uint32_t powerCalculateCalib(uint8_t type, uint32_t dataRaw, float dataActual);
 void powerRestoreCalib();
 void handleAbsolute(float * value);

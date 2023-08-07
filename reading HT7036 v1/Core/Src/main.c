@@ -331,7 +331,7 @@ void modbusValueUpdate(){
 	}
 }
 
-// ON PROGRESS...
+// ON PROGRESS... >> indeks value sensot is invalid
 void powerCalibLoop(){
 	uint8_t addressSlave;
 	uint16_t dataCalib16;
@@ -364,12 +364,16 @@ void powerCalibLoop(){
 					else if(addressModbus == 0x1006)powerSingleCalib(w_IcRmsoffse, &dataCalib32, &spiStatus[0], 1);
 				}else __NOP();
 			}
+			// FILTER REGISTER GAIN VOLTAGE RMS
 			else if((addressModbus == 0x1007) || (addressModbus == 0x1008) || (addressModbus == 0x1009)){
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
 				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
-				if(dataCalib16){
-					dataCalib32 = powerCalculateCalib(VRMS_GAIN, w, dataActual);
+				if(dataCalib16 != 0){
+					dataCalib32 = powerCalculateCalib(VRMS_GAIN, valueSensor[addressBuffer], (float)dataCalib16/100);
+					if(addressModbus == 0x1007)powerSingleCalib(w_UgainA, &dataCalib32, &spiStatus[0], 1);
+					else if(addressModbus == 0x1008);
 				}
+
 			}
 		}
 		Modbus.trigState = 0;

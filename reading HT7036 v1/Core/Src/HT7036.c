@@ -324,7 +324,7 @@ void powerMultiCalib(uint8_t * addressBuffer, uint32_t * dataSet, HAL_StatusType
 	spiCommandSpecial(w_read_calib, BYTE_DISABLE);
 }
 
-void powerSingleCalib(uint8_t addressBuffer, uint32_t * dataSet, HAL_StatusTypeDef * status, uint8_t size){
+void powerSingleCalib(uint8_t addressBuffer, uint32_t * dataSet, HAL_StatusTypeDef * status){
 	uint32_t check;
 	// ENABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
 	spiCommandSpecial(w_calib_state, BYTE_ENABLE);
