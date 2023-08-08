@@ -90,20 +90,20 @@ float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombine;
 /* NOTE
  * Group Power 			>> 4 byte Sign 		>> division 100
  * Group RMS			>> 2 byte unsgin	>> division 100
- * Gruop power vactor 	>> 2 byte unsign	>> division 100
+ * Gruop power factor 	>> 2 byte unsign	>> division 100
  * Group energy 		>> 4 byte unsign 	>> division 100
  */
 extern MODBUS Modbus;						//  ADDRESS REGISTER VALUE POWER SENSOR
-uint16_t holdingRegisterAddress[] 	= 	{	0x0000,	0x0001,	0x0002, 0x0003,
+uint16_t holdingRegisterAddress[] 	= 	{	0x0000,	0x0001,	0x0002, 0x0003,	// power register 4 byte
 											0x0004, 0x0005, 0x0006, 0x0007,
 											0x0008, 0x0009, 0x000A, 0x000B,
 											0x000C, 0x000D, 0x000E, 0x000F,
 											0x0010, 0x0011, 0x0012, 0x0013,
 											0x0014, 0x0015, 0x0016, 0x0017,
-											0x0018, 0x0019, 0x001A, 0x001B,
+											0x0018, 0x0019, 0x001A, 0x001B,	// rms register 2 byte
 											0x001C, 0x001D, 0x001E, 0x001F,
-											0x0020, 0x0021, 0x0022, 0x0023,
-											0x0024, 0x0025, 0x0026, 0x0027,
+											0x0020, 0x0021, 0x0022, 0x0023,	// power factor register 2 byte
+											0x0024, 0x0025, 0x0026, 0x0027, // energy register 4 byte
 											0x0028, 0x0029, 0x002A, 0x002B,
 											// ADDRESS REGISTER SLAVE ID POWER SENSOR
 											0X1000,
@@ -147,6 +147,7 @@ void powerMeterSetup();
 uint16_t byteLow32(uint32_t buf){return (uint16_t)((buf & 0x0000FFFF));}
 uint16_t byteHigh32(uint32_t buf){return (uint16_t)((buf & 0xFFFF0000) >> 16);}
 void modbusValueUpdate();
+void powerCalibLoop();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -205,6 +206,7 @@ int main(void)
 		  MODBUS_En_GPIO_Port,
 		  MODBUS_En_Pin
   );
+  // START MODBUS HANDLE
   modbusReceive(&Modbus);
   /* USER CODE END 2 */
 
@@ -216,6 +218,7 @@ int main(void)
 	  powerTimer = HAL_GetTick();
 	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 28);
 	  modbusValueUpdate();
+	  powerCalibLoop();
 	  HAL_Delay(1000);
     /* USER CODE END WHILE */
 
@@ -268,9 +271,9 @@ void powerMeterSetup(){
 			  w_IaRmsoffse,
 			  w_IbRmsoffse,
 			  w_IcRmsoffse,
-			  w_UaRmsoffse,
-			  w_UbRmsoffse,
-			  w_UcRmsoffse,
+//			  w_UaRmsoffse,
+//			  w_UbRmsoffse,
+//			  w_UcRmsoffse,
 	  		  w_UgainA,
 			  w_UgainB,
 			  w_UgainC,
@@ -282,9 +285,9 @@ void powerMeterSetup(){
 			  7,
 			  7,
 			  7,
-			  8,
-			  8,
-			  8,
+//			  8,
+//			  8,
+//			  8,
 			  62011,
 			  62011,
 			  62011,
@@ -293,7 +296,7 @@ void powerMeterSetup(){
 			  49853
 	};
 	powerRestoreCalib();
-	powerSetup(address,addressData,addressStatus,12);
+	powerSetup(address,addressData,spiStatus,9);
 	powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 46);
 }
 
@@ -333,35 +336,55 @@ void modbusValueUpdate(){
 
 // ON PROGRESS... >> indeks value sensot is invalid
 void powerCalibLoop(){
-	uint8_t addressSlave;
+	uint8_t addressSlave,addressIndeks;
 	uint16_t dataCalib16;
 	uint32_t dataCalib32;
 	if(Modbus.trigState){
 		// FUCTION CODE WRITE REGISTER
 		if(Modbus.functionCode == 0x06){
-			// READING ALL SENSOR
-			powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 28);
+//			// READING ALL SENSOR
+//			powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 28);
+			uint8_t splitSensorIndeks[] = {
+					12, 13, 14,	// Address Write Voltage Offset	<< 0x1001(45), 0x1002(46), 0x1003(47)
+					16, 17, 18,	// Address Write Current Offset	<< 0x1004(48), 0x1005(49), 0x1006(50)
+					12, 13, 14,	// Address Write Voltage Gain	<< 0x1007(51), 0x1008(52), 0x1009(53)
+					16, 17, 18	// Address Write CUrrent Gain	<< 0x100A(54), 0x100B(55), 0x100C(56)
+			};
+			for(uint8_t indeks=0;indeks<12;indeks++){
+				if(addressModbus == Modbus.holdingRegisterAddress[45+indeks])addressIndeks = splitSensorIndeks[indeks];
+				else __NOP();
+			}
 			// FILTER REGISTER OFFSET VOLTAGE RMS
 			if((addressModbus == 0x1001) || (addressModbus == 0x1002) || (addressModbus == 0x1003)){
 				// GET DATA MODBUS FOR ZEROIING VALUE
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
 				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
-				if(dataCalib16){
-					dataCalib32 = powerCalculateCalib(VRMS_OFFSET, valueSensor[addressBuffer], 0);
-					if(addressModbus == 0x1001)powerSingleCalib(w_UaRmsoffse, &dataCalib32, &spiStatus[0], 1);
-					else if(addressModbus == 0x1002) powerSingleCalib(w_UbRmsoffse, dataCalib32, &spiStatus[0], 1);
-					else if(addressModbus == 0x1003) powerSingleCalib(w_UcRmsoffse, dataCalib32, &spiStatus[0], 1);
+				if(dataCalib16 == 1){
+					dataCalib32 = powerCalculateCalib(VRMS_OFFSET, valueSensor[addressIndeks], 0);
+					if(addressModbus == 0x1001)powerSingleCalib(w_UaRmsoffse, &dataCalib32, &spiStatus[0]);
+					else if(addressModbus == 0x1002) powerSingleCalib(w_UbRmsoffse, &dataCalib32, &spiStatus[0]);
+					else if(addressModbus == 0x1003) powerSingleCalib(w_UcRmsoffse, &dataCalib32, &spiStatus[0]);
+				}else if(dataCalib16 > 1){
+					dataCalib32 = (uint32_t)dataCalib16;
+					if(addressModbus == 0x1001)powerSingleCalib(w_UaRmsoffse, &dataCalib32, &spiStatus[0]);
+					else if(addressModbus == 0x1002) powerSingleCalib(w_UbRmsoffse, &dataCalib32, &spiStatus[0]);
+					else if(addressModbus == 0x1003) powerSingleCalib(w_UcRmsoffse, &dataCalib32, &spiStatus[0]);
 				}else __NOP();
 			}
 			// FILTER REGISTER OFFSET CURRENT RMS
 			else if((addressModbus == 0x1004) || (addressModbus == 0x1005) || (addressModbus == 0x1006)){
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
 				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
-				if(dataCalib16){
-					dataCalib32 = powerCalculateCalib(IRMS_OFFSET, valueSensor, 0);
-					if(addressModbus == 0x1004)powerSingleCalib(w_IaRmsoffse, &dataCalib32, &spiStatus[0], 1);
-					else if(addressModbus == 0x1005)powerSingleCalib(w_IbRmsoffse, &dataCalib32, &spiStatus[0], 1);
-					else if(addressModbus == 0x1006)powerSingleCalib(w_IcRmsoffse, &dataCalib32, &spiStatus[0], 1);
+				if(dataCalib16 == 1){
+					dataCalib32 = powerCalculateCalib(IRMS_OFFSET, valueSensor[addressIndeks], 0);
+					if(addressModbus == 0x1004)powerSingleCalib(w_IaRmsoffse, &dataCalib32, &spiStatus[0]);
+					else if(addressModbus == 0x1005)powerSingleCalib(w_IbRmsoffse, &dataCalib32, &spiStatus[0]);
+					else if(addressModbus == 0x1006)powerSingleCalib(w_IcRmsoffse, &dataCalib32, &spiStatus[0]);
+				}else if(dataCalib16 > 1){
+					dataCalib32 = (uint32_t)dataCalib16;
+					if(addressModbus == 0x1001)powerSingleCalib(w_IaRmsoffse, &dataCalib32, &spiStatus[0]);
+					else if(addressModbus == 0x1002) powerSingleCalib(w_IbRmsoffse, &dataCalib32, &spiStatus[0]);
+					else if(addressModbus == 0x1003) powerSingleCalib(w_IcRmsoffse, &dataCalib32, &spiStatus[0]);
 				}else __NOP();
 			}
 			// FILTER REGISTER GAIN VOLTAGE RMS
@@ -369,15 +392,29 @@ void powerCalibLoop(){
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
 				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
 				if(dataCalib16 != 0){
-					dataCalib32 = powerCalculateCalib(VRMS_GAIN, valueSensor[addressBuffer], (float)dataCalib16/100);
-					if(addressModbus == 0x1007)powerSingleCalib(w_UgainA, &dataCalib32, &spiStatus[0], 1);
-					else if(addressModbus == 0x1008);
-				}
-
+					dataCalib32 = powerCalculateCalib(VRMS_GAIN, valueSensor[addressIndeks], (float)dataCalib16/100);
+					if(addressModbus == 0x1007)powerSingleCalib(w_UgainA, &dataCalib32, &spiStatus[0]);
+					else if(addressModbus == 0x1008)powerSingleCalib(w_UgainB, &dataCalib32, &spiStatus[0]);
+					else if(addressModbus == 0x1009)powerSingleCalib(w_UgainC, &dataCalib32, &spiStatus[0]);
+				}else __NOP();
+			}
+			// FILTER REGISTER GAIN CURRENT RMS
+			else if((addressModbus == 0x100A) || (addressModbus == 0x100B) || (addressModbus == 0x100C)){
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
+				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
+				if(addressSlave !=0){
+					dataCalib32 = powerCalculateCalib(IRMS_GAIN, valueSensor[addressIndeks], (float)dataCalib16/100);
+					if(addressModbus == 0x100A) powerSingleCalib(w_IgainA, &dataCalib32, &spiStatus[0]);
+					else if(addressModbus == 0x100B) powerSingleCalib(w_IgainB, &dataCalib32, &spiStatus[0]);
+					else if(addressModbus == 0x100C) powerSingleCalib(w_IgainC, &dataCalib32, &spiStatus[0]);
+				}else __NOP();
 			}
 		}
+		if(Modbus.functionCode == 0x10){
+			__NOP();
+		}else __NOP();
 		Modbus.trigState = 0;
-	}
+	}else __NOP();
 }
 
 /* USER CODE END 4 */

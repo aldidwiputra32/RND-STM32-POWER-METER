@@ -15,6 +15,7 @@ HT7036.c:243:10:powerScanValue	3
 HT7036.c:254:9:unsignToSign	7
 HT7036.c:277:10:powerCalculateCalib	9
 HT7036.c:304:6:powerRestoreCalib	1
-HT7036.c:310:6:powerCalib	3
-HT7036.c:326:6:handleAbsolute	2
-HT7036.c:333:6:powerDebug	1
+HT7036.c:310:6:powerMultiCalib	3
+HT7036.c:327:6:powerSingleCalib	2
+HT7036.c:343:6:handleAbsolute	2
+HT7036.c:350:6:powerDebug	1

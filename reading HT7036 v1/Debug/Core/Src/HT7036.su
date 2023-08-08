@@ -15,6 +15,7 @@
 ../Core/Src/HT7036.c:254:9:unsignToSign	24	static
 ../Core/Src/HT7036.c:277:10:powerCalculateCalib	40	static
 ../Core/Src/HT7036.c:304:6:powerRestoreCalib	8	static
-../Core/Src/HT7036.c:310:6:powerCalib	40	static
-../Core/Src/HT7036.c:326:6:handleAbsolute	16	static
-../Core/Src/HT7036.c:333:6:powerDebug	104	static
+../Core/Src/HT7036.c:310:6:powerMultiCalib	40	static
+../Core/Src/HT7036.c:327:6:powerSingleCalib	40	static
+../Core/Src/HT7036.c:343:6:handleAbsolute	16	static
+../Core/Src/HT7036.c:350:6:powerDebug	104	static

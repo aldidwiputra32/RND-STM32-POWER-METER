@@ -310,8 +310,7 @@ void powerRestoreCalib(){
 void powerMultiCalib(uint8_t * addressBuffer, uint32_t * dataSet, HAL_StatusTypeDef * status, uint8_t size){
 	uint32_t check;
 	// ENABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
-	spiCommandSpecial(w_calib_state, BYTE_ENABLE);
-	spiCommandSpecial(w_read_calib, BYTE_ENABLE);
+	powerCalibMode(ENABLE);
 	// WRITING REGISTER FOR CALIBRATION
 	for(uint8_t indeks=0;indeks<size;indeks++){
 		spiWriteCalib(addressBuffer[indeks], dataSet[indeks]);
@@ -320,24 +319,35 @@ void powerMultiCalib(uint8_t * addressBuffer, uint32_t * dataSet, HAL_StatusType
 		else status[indeks] = HAL_ERROR;
 	}
 	// DISABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
-	spiCommandSpecial(w_calib_state, BYTE_DISABLE);
-	spiCommandSpecial(w_read_calib, BYTE_DISABLE);
+	powerCalibMode(DISABLE);
 }
 
 void powerSingleCalib(uint8_t addressBuffer, uint32_t * dataSet, HAL_StatusTypeDef * status){
 	uint32_t check;
 	// ENABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
-	spiCommandSpecial(w_calib_state, BYTE_ENABLE);
-	spiCommandSpecial(w_read_calib, BYTE_ENABLE);
+	powerCalibMode(ENABLE);
 	// WRITING REGISTER FOR CALIBRATION
 	spiWriteCalib(addressBuffer, *dataSet);
 	check = spiReadCalib(addressBuffer);
 	if(check == *dataSet) *status = HAL_OK;
 	else *status = HAL_ERROR;
 	// DISABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
-	spiCommandSpecial(w_calib_state, BYTE_DISABLE);
-	spiCommandSpecial(w_read_calib, BYTE_DISABLE);
+	powerCalibMode(DISABLE);
+}
 
+void powerSingleRecalib(uint8_t type, uint8_t addressWrite, uint32_t * dataSet, uint8_t addressRead, HAL_StatusTypeDef * status){
+	// ENABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
+	powerCalibMode(ENABLE);
+	// RESET CALIBRATION PARAMETER
+	spiWriteCalib(addressWrite, 0);
+	// DISABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
+	powerCalibMode(DISABLE);
+	// GETTING DATA SENSOR NON-CALIBRATION
+	uint32_t dataRaw = spiRead24(addressRead);
+	uint32_t dataWrite = powerCalculateCalib(type, dataRaw, (float)*dataSet/100);
+	powerCalibMode(ENABLE);
+	spiWriteCalib(addressWrite, dataWrite);
+	spiReadCalib(addressWrite);
 }
 
 void handleAbsolute(float * value){
@@ -346,6 +356,16 @@ void handleAbsolute(float * value){
 	}
 }
 
+void powerCalibMode(uint8_t state){
+	if(state == (uint8_t)ENABLE){
+		spiCommandSpecial(w_calib_state, BYTE_ENABLE);
+		spiCommandSpecial(w_read_calib, BYTE_ENABLE);
+	}
+	else if(state == (uint8_t)DISABLE){
+		spiCommandSpecial(w_calib_state, BYTE_DISABLE);
+		spiCommandSpecial(w_read_calib, BYTE_DISABLE);
+	}
+}
 
 void powerDebug(){
 	sprintf(dataPrint,"\r\n=======Sampling Time %d(ms)=======\r\n",powerTimerDelta);

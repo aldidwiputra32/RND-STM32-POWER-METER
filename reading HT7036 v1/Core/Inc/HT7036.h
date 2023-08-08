@@ -225,6 +225,8 @@
 #define BIT_SIZE_21		2
 #define BIT_SIZE_24 	0
 #define BIT_SIZE_32		1
+#define ENABLE 			1
+#define DISABLE			0
 // -------------------------------PRIVATE VARIABLE--------------------------------------
 
 void spiDisable();
@@ -246,6 +248,6 @@ uint32_t powerCalculateCalib(uint8_t type, uint32_t dataRaw, float dataActual);
 void powerRestoreCalib();
 void handleAbsolute(float * value);
 void powerDebug();
-
+void powerCalibMode(uint8_t state);
 #endif
 
