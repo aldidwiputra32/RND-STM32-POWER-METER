@@ -249,5 +249,8 @@ void powerRestoreCalib();
 void handleAbsolute(float * value);
 void powerDebug();
 void powerCalibMode(uint8_t state);
+uint32_t powerSingleRecalib(uint8_t type, uint8_t addressWrite, uint32_t * dataSet, uint8_t addressRead, HAL_StatusTypeDef * status);
+float coefPower(float hfconst, float ec);
+float calcMeterConstant(uint32_t dataBit, float hfConst, float dataAcual);
 #endif
 

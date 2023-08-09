@@ -69,7 +69,8 @@ uint64_t powerTimer = 0;
 uint64_t powerTimerDelta = 0;
 uint32_t valueSensor[28];
 HAL_StatusTypeDef spiStatus[256];
-
+extern float HFconstVal;
+extern float ECValA,ECValB,ECValC;
 
 float valueFloat[28];
 
@@ -94,17 +95,26 @@ float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombine;
  * Group energy 		>> 4 byte unsign 	>> division 100
  */
 extern MODBUS Modbus;						//  ADDRESS REGISTER VALUE POWER SENSOR
-uint16_t holdingRegisterAddress[] 	= 	{	0x0000,	0x0001,	0x0002, 0x0003,	// power register 4 byte
+uint16_t holdingRegisterAddress[] 	= 	{	// power register 4 byte
+											0x0000,	0x0001,	0x0002, 0x0003,
 											0x0004, 0x0005, 0x0006, 0x0007,
 											0x0008, 0x0009, 0x000A, 0x000B,
 											0x000C, 0x000D, 0x000E, 0x000F,
 											0x0010, 0x0011, 0x0012, 0x0013,
 											0x0014, 0x0015, 0x0016, 0x0017,
-											0x0018, 0x0019, 0x001A, 0x001B,	// rms register 2 byte
+											// rms register 2 byte
+											0x0018, 0x0019, 0x001A, 0x001B,
 											0x001C, 0x001D, 0x001E, 0x001F,
-											0x0020, 0x0021, 0x0022, 0x0023,	// power factor register 2 byte
-											0x0024, 0x0025, 0x0026, 0x0027, // energy register 4 byte
+											// power factor register 2 byte
+											0x0020, 0x0021, 0x0022, 0x0023,
+											// energy register 4 byte
+											0x0024, 0x0025, 0x0026, 0x0027,
 											0x0028, 0x0029, 0x002A, 0x002B,
+											// parameter calibraiton
+											0x002C, 0x002D, 0x002E, 		// offset voltage ABC Phase
+											0x002F, 0x0030, 0x0031, 		// offset current ABC Phase
+											0x0032, 0x0033, 0x0034, 		// gain voltage ABC Phase
+											0x0035, 0x0036, 0x0037,			// gain current ABC Phase
 											// ADDRESS REGISTER SLAVE ID POWER SENSOR
 											0X1000,
 											// ADDRESS REGISTER PARAMETER CALIBRATION POWER SENSOR
@@ -125,6 +135,10 @@ uint16_t holdingRegisterValue[]		= 	{	0x0000,	0x0000,	0x0000, 0x0000,
 											0x0000, 0x0000, 0x0000, 0x0000,
 											0x0000, 0x0000, 0x0000, 0x0000,
 											0x0000, 0x0000, 0x0000, 0x0000,
+											0x0000, 0x0000, 0x0000,
+											0x0000, 0x0000, 0x0000,
+											0x0000, 0x0000, 0x0000,
+											0x0000, 0x0000, 0x0000,
 											// VALUE REGISTER SLAVE ID POWER SENSOR
 											0x0000,
 											// VALUE  REGISTER PARAMETER CALIBRATION POWER SENSOR
@@ -148,6 +162,7 @@ uint16_t byteLow32(uint32_t buf){return (uint16_t)((buf & 0x0000FFFF));}
 uint16_t byteHigh32(uint32_t buf){return (uint16_t)((buf & 0xFFFF0000) >> 16);}
 void modbusValueUpdate();
 void powerCalibLoop();
+void splitValueSensor();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -217,6 +232,7 @@ int main(void)
 	  powerTimerDelta = HAL_GetTick() - powerTimer;
 	  powerTimer = HAL_GetTick();
 	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 28);
+	  splitValueSensor();
 	  modbusValueUpdate();
 	  powerCalibLoop();
 	  HAL_Delay(1000);
@@ -268,36 +284,37 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 void powerMeterSetup(){
 	uint8_t address[] = {
-			  w_IaRmsoffse,
-			  w_IbRmsoffse,
-			  w_IcRmsoffse,
+//			  w_IaRmsoffse,
+//			  w_IbRmsoffse,
+//			  w_IcRmsoffse,
 //			  w_UaRmsoffse,
 //			  w_UbRmsoffse,
 //			  w_UcRmsoffse,
-	  		  w_UgainA,
-			  w_UgainB,
-			  w_UgainC,
+//	  		  w_UgainA,
+//			  w_UgainB,
+//			  w_UgainC,
 			  w_IgainA,
 			  w_IgainB,
 			  w_IgainC
 	};
 	uint32_t addressData[] = {
-			  7,
-			  7,
-			  7,
+//			  7,
+//			  7,
+//			  7,
 //			  8,
 //			  8,
 //			  8,
-			  62011,
-			  62011,
-			  62011,
+//			  62011,
+//			  62011,
+//			  62011,
 			  49853,
 			  49853,
 			  49853
 	};
 	powerRestoreCalib();
-	powerSetup(address,addressData,spiStatus,9);
-	powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 46);
+	powerSetup(address,addressData,spiStatus,3);
+	powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 69);
+//	splitValueSensor();
 }
 
 void modbusValueUpdate(){
@@ -336,14 +353,13 @@ void modbusValueUpdate(){
 
 // ON PROGRESS... >> indeks value sensot is invalid
 void powerCalibLoop(){
-	uint8_t addressSlave,addressIndeks;
-	uint16_t dataCalib16;
-	uint32_t dataCalib32;
 	if(Modbus.trigState){
+		uint8_t addressSlave;
+		uint8_t addressIndeks;
+		uint16_t dataCalib16;
+		uint32_t dataCalib32;
 		// FUCTION CODE WRITE REGISTER
 		if(Modbus.functionCode == 0x06){
-//			// READING ALL SENSOR
-//			powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 28);
 			uint8_t splitSensorIndeks[] = {
 					12, 13, 14,	// Address Write Voltage Offset	<< 0x1001(45), 0x1002(46), 0x1003(47)
 					16, 17, 18,	// Address Write Current Offset	<< 0x1004(48), 0x1005(49), 0x1006(50)
@@ -359,56 +375,51 @@ void powerCalibLoop(){
 				// GET DATA MODBUS FOR ZEROIING VALUE
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
 				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
-				if(dataCalib16 == 1){
-					dataCalib32 = powerCalculateCalib(VRMS_OFFSET, valueSensor[addressIndeks], 0);
-					if(addressModbus == 0x1001)powerSingleCalib(w_UaRmsoffse, &dataCalib32, &spiStatus[0]);
-					else if(addressModbus == 0x1002) powerSingleCalib(w_UbRmsoffse, &dataCalib32, &spiStatus[0]);
-					else if(addressModbus == 0x1003) powerSingleCalib(w_UcRmsoffse, &dataCalib32, &spiStatus[0]);
-				}else if(dataCalib16 > 1){
-					dataCalib32 = (uint32_t)dataCalib16;
-					if(addressModbus == 0x1001)powerSingleCalib(w_UaRmsoffse, &dataCalib32, &spiStatus[0]);
-					else if(addressModbus == 0x1002) powerSingleCalib(w_UbRmsoffse, &dataCalib32, &spiStatus[0]);
-					else if(addressModbus == 0x1003) powerSingleCalib(w_UcRmsoffse, &dataCalib32, &spiStatus[0]);
-				}else __NOP();
+				dataCalib32 = (uint32_t)dataCalib16;
+				if(addressModbus == 0x1001)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(VRMS_OFFSET, w_UaRmsoffse, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
+				else if(addressModbus == 0x1002)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(VRMS_OFFSET, w_UbRmsoffse, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
+				else if(addressModbus == 0x1003)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(VRMS_OFFSET, w_UcRmsoffse, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
 			}
 			// FILTER REGISTER OFFSET CURRENT RMS
 			else if((addressModbus == 0x1004) || (addressModbus == 0x1005) || (addressModbus == 0x1006)){
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
 				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
-				if(dataCalib16 == 1){
-					dataCalib32 = powerCalculateCalib(IRMS_OFFSET, valueSensor[addressIndeks], 0);
-					if(addressModbus == 0x1004)powerSingleCalib(w_IaRmsoffse, &dataCalib32, &spiStatus[0]);
-					else if(addressModbus == 0x1005)powerSingleCalib(w_IbRmsoffse, &dataCalib32, &spiStatus[0]);
-					else if(addressModbus == 0x1006)powerSingleCalib(w_IcRmsoffse, &dataCalib32, &spiStatus[0]);
-				}else if(dataCalib16 > 1){
-					dataCalib32 = (uint32_t)dataCalib16;
-					if(addressModbus == 0x1001)powerSingleCalib(w_IaRmsoffse, &dataCalib32, &spiStatus[0]);
-					else if(addressModbus == 0x1002) powerSingleCalib(w_IbRmsoffse, &dataCalib32, &spiStatus[0]);
-					else if(addressModbus == 0x1003) powerSingleCalib(w_IcRmsoffse, &dataCalib32, &spiStatus[0]);
-				}else __NOP();
+				dataCalib32 = (uint32_t)dataCalib16;
+				if(addressModbus == 0x1004)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(IRMS_OFFSET, w_IaRmsoffse, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
+				else if(addressModbus == 0x1005)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(IRMS_OFFSET, w_IbRmsoffse, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
+				else if(addressModbus == 0x1006)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(IRMS_OFFSET, w_IcRmsoffse, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
 			}
 			// FILTER REGISTER GAIN VOLTAGE RMS
 			else if((addressModbus == 0x1007) || (addressModbus == 0x1008) || (addressModbus == 0x1009)){
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
 				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
+				dataCalib32 = (uint32_t)dataCalib16;
 				if(dataCalib16 != 0){
-					dataCalib32 = powerCalculateCalib(VRMS_GAIN, valueSensor[addressIndeks], (float)dataCalib16/100);
-					if(addressModbus == 0x1007)powerSingleCalib(w_UgainA, &dataCalib32, &spiStatus[0]);
-					else if(addressModbus == 0x1008)powerSingleCalib(w_UgainB, &dataCalib32, &spiStatus[0]);
-					else if(addressModbus == 0x1009)powerSingleCalib(w_UgainC, &dataCalib32, &spiStatus[0]);
+					if(addressModbus == 0x1007)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(VRMS_GAIN, w_UgainA, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
+					else if(addressModbus == 0x1008)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(VRMS_GAIN, w_UgainB, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
+					else if(addressModbus == 0x1009)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(VRMS_GAIN, w_UgainC, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
 				}else __NOP();
 			}
 			// FILTER REGISTER GAIN CURRENT RMS
 			else if((addressModbus == 0x100A) || (addressModbus == 0x100B) || (addressModbus == 0x100C)){
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
 				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
+				dataCalib32 = (uint32_t)dataCalib16;
 				if(addressSlave !=0){
-					dataCalib32 = powerCalculateCalib(IRMS_GAIN, valueSensor[addressIndeks], (float)dataCalib16/100);
-					if(addressModbus == 0x100A) powerSingleCalib(w_IgainA, &dataCalib32, &spiStatus[0]);
-					else if(addressModbus == 0x100B) powerSingleCalib(w_IgainB, &dataCalib32, &spiStatus[0]);
-					else if(addressModbus == 0x100C) powerSingleCalib(w_IgainC, &dataCalib32, &spiStatus[0]);
+					if(addressModbus == 0x100A)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(IRMS_GAIN, w_IgainA, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
+					else if(addressModbus == 0x100B)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(IRMS_GAIN, w_IgainB, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
+					else if(addressModbus == 0x100C)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(IRMS_GAIN, w_IgainC, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
 				}else __NOP();
 			}
+			// READING ALL SENSOR FOR CALIBRATION METER CONSTANT
+//			HAL_Delay(1000);
+//			powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 69);
+//			splitValueSensor();
+			// CALCULATE METER CONSTANT USING
+//			if(valueSensor[8] > 0)ECValA = calcMeterConstant(valueSensor[8], HFconstVal, rmsVoltageA*rmsCurrentA);
+//			if(valueSensor[9] > 0)ECValB = calcMeterConstant(valueSensor[9], HFconstVal, rmsVoltageB*rmsCurrentB);
+//			if(valueSensor[10] > 0)ECValC = calcMeterConstant(valueSensor[10], HFconstVal, rmsVoltageC*rmsCurrentC);
+
 		}
 		if(Modbus.functionCode == 0x10){
 			__NOP();
@@ -417,6 +428,15 @@ void powerCalibLoop(){
 	}else __NOP();
 }
 
+void splitValueSensor(){
+	powerActiveA = valueFloat[0];		powerActiveB = valueFloat[1];		powerActiveC = valueFloat[2];		PowerActiveCombine = valueFloat[3];
+	powerReactiveA = valueFloat[4];		powerReactiveB = valueFloat[5];		powerReactiveC = valueFloat[6];		powerReactiveCombine = valueFloat[7];
+	powerApparentA = valueFloat[8];		powerApparentB = valueFloat[9];		powerApparentC = valueFloat[10];	powerApparentCombine = valueFloat[11];
+	rmsVoltageA = valueFloat[12];		rmsVoltageB = valueFloat[13];		rmsVoltageC = valueFloat[14];		rmsVoltageVector = valueFloat[15];
+	rmsCurrentA = valueFloat[16];		rmsCurrentB = valueFloat[17];		rmsCurrentC = valueFloat[18];		rmsCurrentVector = valueFloat[19];
+	powerFactorA = valueFloat[20];		powerFactorB = valueFloat[21];		powerFactorC = valueFloat[22];		powerFactorCombine = valueFloat[23];
+	energyActiveA = valueFloat[24];		energyActiveB = valueFloat[25];		energyActiveC = valueFloat[26];		energyActiveCombine = valueFloat[27];
+}
 /* USER CODE END 4 */
 
 /**

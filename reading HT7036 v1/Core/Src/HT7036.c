@@ -6,6 +6,10 @@ extern float valueFloat[28];
 extern uint64_t powerTimerDelta;
 uint8_t dataPrint[1100];
 float HFconstVal;
+float ECValA = 0;
+float ECValB = 0;
+float ECValC = 0;
+float ECVal = 43.7;
 
 void spiDisable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);}
 void spiEnable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);}
@@ -195,15 +199,19 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 
 void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * valueFloat, uint8_t size){
 	int32_t bufferSign;
+	// DETECT EC
+//	if((ECValA == 0) || (ECValB == 0) || (ECValC == 0)) __NOP();
+//	else ECVal = (ECValA+ECValB+ECValC)/3;
+
 	for(uint8_t indeks=0;indeks<size;indeks++){
 		valueBuffer[indeks] = spiRead24(address[indeks]);
 		// GROUPING DATA POWER PARAMETER >> ???
 		if(indeks>=0 && indeks<12){
 			// FORMULA >> powerData * 2.592*10^10/(HFconst*EC*2^23)  | HFconst = 1280(def)  &  EC = 6400
 			bufferSign = unsignToSign(&valueBuffer[indeks], BIT_SIZE_24);
-			valueFloat[indeks] = (float)bufferSign * COEF_POWER(HFconstVal); // (405000)/(128*64*8388608)
+			valueFloat[indeks] = (float)bufferSign * coefPower(HFconstVal, ECVal);	//COEF_POWER(HFconstVal); // (405000)/(128*64*8388608)
 			// FORMULA >> powerdata * 2 * 2.592*10^10/(HFconst*EC*2^23)
-			if((indeks==3)||(indeks==7)||(indeks==11))valueFloat[indeks] = (float)bufferSign * 2 * COEF_POWER(HFconstVal); // (405000)/(128*64*8388608)
+			if((indeks==3)||(indeks==7)||(indeks==11))valueFloat[indeks] = (float)bufferSign * 2 * coefPower(HFconstVal, ECVal);	// (405000)/(128*64*8388608)
 		}
 		// GROUPING DATA RMS ???
 		if(indeks>=12 && indeks<20){
@@ -233,11 +241,6 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 			valueFloat[indeks] += valueFloat[indeks-38]*(powerTimerDelta/1000)/3600000;
 		}
 	}
-}
-
-void powerSingleReadSensor(uint8_t * address, uint32_t * valueBuffer, float * valueFloat){
-	int32_t bufferSign;
-
 }
 
 uint32_t powerScanValue(uint8_t address, uint32_t * addressBuffer ,uint32_t * valueBuffer, uint8_t size){
@@ -335,19 +338,24 @@ void powerSingleCalib(uint8_t addressBuffer, uint32_t * dataSet, HAL_StatusTypeD
 	powerCalibMode(DISABLE);
 }
 
-void powerSingleRecalib(uint8_t type, uint8_t addressWrite, uint32_t * dataSet, uint8_t addressRead, HAL_StatusTypeDef * status){
-	// ENABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
-	powerCalibMode(ENABLE);
-	// RESET CALIBRATION PARAMETER
-	spiWriteCalib(addressWrite, 0);
-	// DISABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
-	powerCalibMode(DISABLE);
+uint32_t powerSingleRecalib(uint8_t type, uint8_t addressWrite, uint32_t * dataSet, uint8_t addressRead, HAL_StatusTypeDef * status){
+	uint32_t dataWrite, dataRaw;
+	// RESET PARAMETER CALIBRATION
+	dataWrite = 0;
+	powerSingleCalib(addressWrite, &dataWrite, status);
+	HAL_Delay(1000);
 	// GETTING DATA SENSOR NON-CALIBRATION
-	uint32_t dataRaw = spiRead24(addressRead);
-	uint32_t dataWrite = powerCalculateCalib(type, dataRaw, (float)*dataSet/100);
-	powerCalibMode(ENABLE);
-	spiWriteCalib(addressWrite, dataWrite);
-	spiReadCalib(addressWrite);
+	dataRaw = spiRead24(addressRead);
+	if((type == VRMS_OFFSET) || (type == IRMS_OFFSET)){
+		dataWrite = powerCalculateCalib(type, dataRaw, 0);
+		if(*dataSet == 1)powerSingleCalib(addressWrite, &dataWrite, status);
+		else if(*dataSet > 1)powerSingleCalib(addressWrite, dataSet, status);
+	}
+	if((type == VRMS_GAIN) || (type == IRMS_GAIN)){
+		dataWrite = powerCalculateCalib(type, dataRaw, (float)*dataSet/100);
+		powerSingleCalib(addressWrite, &dataWrite, status);
+	}
+	return dataWrite;
 }
 
 void handleAbsolute(float * value){
@@ -365,6 +373,14 @@ void powerCalibMode(uint8_t state){
 		spiCommandSpecial(w_calib_state, BYTE_DISABLE);
 		spiCommandSpecial(w_read_calib, BYTE_DISABLE);
 	}
+}
+
+float coefPower(float hfconst, float ec){
+	return ((2.592*10000000000)/(hfconst*ec*8388608.000f));
+}
+
+float calcMeterConstant(uint32_t dataBit, float hfConst, float dataAcual){
+	return ((dataBit*2.592*10000000000)/(8388608*hfConst*dataAcual));
 }
 
 void powerDebug(){
