@@ -71,6 +71,7 @@ uint32_t valueSensor[28];
 HAL_StatusTypeDef spiStatus[256];
 extern float HFconstVal;
 extern float ECValA,ECValB,ECValC;
+uint8_t stateConfig = 0;
 
 float valueFloat[28];
 
@@ -233,6 +234,12 @@ int main(void)
 	  powerTimer = HAL_GetTick();
 	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 28);
 	  splitValueSensor();
+	  if(stateConfig){
+		  if(valueSensor[8] > 0)ECValA = calcMeterConstant(valueSensor[8], HFconstVal, rmsVoltageA*rmsCurrentA);
+		  if(valueSensor[9] > 0)ECValB = calcMeterConstant(valueSensor[9], HFconstVal, rmsVoltageB*rmsCurrentB);
+		  if(valueSensor[10] > 0)ECValC = calcMeterConstant(valueSensor[10], HFconstVal, rmsVoltageC*rmsCurrentC);
+		  stateConfig = 0;
+	  }
 	  modbusValueUpdate();
 	  powerCalibLoop();
 	  HAL_Delay(1000);
@@ -351,9 +358,9 @@ void modbusValueUpdate(){
 	}
 }
 
-// ON PROGRESS... >> indeks value sensot is invalid
 void powerCalibLoop(){
 	if(Modbus.trigState){
+		stateConfig = Modbus.trigState;
 		uint8_t addressSlave;
 		uint8_t addressIndeks;
 		uint16_t dataCalib16;
