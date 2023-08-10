@@ -89,11 +89,34 @@ float 	powerFactorA,		powerFactorB,		powerFactorC, 		powerFactorCombine;
 float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombine;
 
 //------------------------- GROUP VARIABLE MODBUS ---------------------------------
-/* NOTE
- * Group Power 			>> 4 byte Sign 		>> division 100
- * Group RMS			>> 2 byte unsgin	>> division 100
- * Gruop power factor 	>> 2 byte unsign	>> division 100
- * Group energy 		>> 4 byte unsign 	>> division 100
+/* A. NOTE
+ * 	Group Power 			>> 4 byte Sign 		>> division 100
+ * 	Group RMS				>> 2 byte unsgin	>> division 100
+ * 	Gruop power factor 		>> 2 byte unsign	>> division 100
+ * 	Group energy 			>> 4 byte unsign 	>> division 100
+ *
+ * B. MAPPING REGISTER EXISTING
+ * 	V A-N(VAB)				>> 2027
+ * 	V B-N(VBC)				>> 3029
+ * 	V C-N(VCA)				>> 3031
+ * 	I A						>> 2999
+ * 	I B						>> 3001
+ * 	I C						>> 3003
+ * 	Pow A					>> 3053
+ * 	Pow B 					>> 3055
+ * 	Pow C 					>> 3057
+ * 	Pow Tot					>> 3059
+ * 	THD V-A					>> 21329
+ * 	THD V-B					>> 21331
+ * 	THD V-C					>> 21333
+ * 	PF A					>> 3077
+ * 	PF B					>> 3079
+ * 	PF C 					>> 3081
+ * 	Reactive Energy	(VARH) 	>> 3219
+ * 	Energy (WH)				>> 3203
+ * 	V A-B 					>> 3019
+ * 	V B-C 					>> 3021
+ * 	V C-A 					>> 3023
  */
 extern MODBUS Modbus;						//  ADDRESS REGISTER VALUE POWER SENSOR
 uint16_t holdingRegisterAddress[] 	= 	{	// power register 4 byte
