@@ -72,7 +72,7 @@ HAL_StatusTypeDef spiStatus[256];
 extern float HFconstVal;
 extern float ECValA,ECValB,ECValC;
 uint8_t stateConfig = 0;
-
+uint8_t phase = PHASE_RST;
 float valueFloat[28];
 
 // POWER REGISTER
@@ -202,6 +202,7 @@ int main(void)
   MX_DMA_Init();
   MX_SPI2_Init();
   MX_USART2_UART_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
   // SETUP POWER METER
   powerMeterSetup();
@@ -235,9 +236,11 @@ int main(void)
 	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 28);
 	  splitValueSensor();
 	  if(stateConfig){
-		  if(valueSensor[8] > 0)ECValA = calcMeterConstant(valueSensor[8], HFconstVal, rmsVoltageA*rmsCurrentA);
-		  if(valueSensor[9] > 0)ECValB = calcMeterConstant(valueSensor[9], HFconstVal, rmsVoltageB*rmsCurrentB);
-		  if(valueSensor[10] > 0)ECValC = calcMeterConstant(valueSensor[10], HFconstVal, rmsVoltageC*rmsCurrentC);
+		  if((phase==PHASE_A) && (valueSensor[8]>0))ECValA = calcMeterConstant(valueSensor[8], HFconstVal, rmsVoltageA*rmsCurrentA);
+		  if((phase==PHASE_B) && (valueSensor[9]>0))ECValB = calcMeterConstant(valueSensor[9], HFconstVal, rmsVoltageB*rmsCurrentB);
+		  if((phase==PHASE_C) && (valueSensor[10]>0))ECValC = calcMeterConstant(valueSensor[10], HFconstVal, rmsVoltageC*rmsCurrentC);
+		  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 28);
+		  phase=PHASE_RST;
 		  stateConfig = 0;
 	  }
 	  modbusValueUpdate();
@@ -254,8 +257,7 @@ int main(void)
   * @brief System Clock Configuration
   * @retval None
   */
-void SystemClock_Config(void)
-{
+void SystemClock_Config(void){
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
@@ -269,8 +271,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL10;
   RCC_OscInitStruct.PLL.PREDIV = RCC_PREDIV_DIV1;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK){
     Error_Handler();
   }
 
@@ -360,7 +361,6 @@ void modbusValueUpdate(){
 
 void powerCalibLoop(){
 	if(Modbus.trigState){
-		stateConfig = Modbus.trigState;
 		uint8_t addressSlave;
 		uint8_t addressIndeks;
 		uint16_t dataCalib16;
@@ -374,7 +374,7 @@ void powerCalibLoop(){
 					16, 17, 18	// Address Write CUrrent Gain	<< 0x100A(54), 0x100B(55), 0x100C(56)
 			};
 			for(uint8_t indeks=0;indeks<12;indeks++){
-				if(addressModbus == Modbus.holdingRegisterAddress[45+indeks])addressIndeks = splitSensorIndeks[indeks];
+				if(addressModbus == Modbus.holdingRegisterAddress[57+indeks])addressIndeks = splitSensorIndeks[indeks];
 				else __NOP();
 			}
 			// FILTER REGISTER OFFSET VOLTAGE RMS
@@ -398,35 +398,28 @@ void powerCalibLoop(){
 			}
 			// FILTER REGISTER GAIN VOLTAGE RMS
 			else if((addressModbus == 0x1007) || (addressModbus == 0x1008) || (addressModbus == 0x1009)){
+				stateConfig = Modbus.trigState;
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
 				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
 				dataCalib32 = (uint32_t)dataCalib16;
 				if(dataCalib16 != 0){
-					if(addressModbus == 0x1007)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(VRMS_GAIN, w_UgainA, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
-					else if(addressModbus == 0x1008)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(VRMS_GAIN, w_UgainB, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
-					else if(addressModbus == 0x1009)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(VRMS_GAIN, w_UgainC, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
+					if(addressModbus == 0x1007){Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(VRMS_GAIN, w_UgainA, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);phase=PHASE_A;}
+					else if(addressModbus == 0x1008){Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(VRMS_GAIN, w_UgainB, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);phase=PHASE_B;}
+					else if(addressModbus == 0x1009){Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(VRMS_GAIN, w_UgainC, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);phase=PHASE_C;}
 				}else __NOP();
 			}
 			// FILTER REGISTER GAIN CURRENT RMS
 			else if((addressModbus == 0x100A) || (addressModbus == 0x100B) || (addressModbus == 0x100C)){
+				stateConfig = Modbus.trigState;
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
 				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
 				dataCalib32 = (uint32_t)dataCalib16;
 				if(addressSlave !=0){
-					if(addressModbus == 0x100A)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(IRMS_GAIN, w_IgainA, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
-					else if(addressModbus == 0x100B)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(IRMS_GAIN, w_IgainB, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
-					else if(addressModbus == 0x100C)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(IRMS_GAIN, w_IgainC, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
+					if(addressModbus == 0x100A){Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(IRMS_GAIN, w_IgainA, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);phase=PHASE_A;}
+					else if(addressModbus == 0x100B){Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(IRMS_GAIN, w_IgainB, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);phase=PHASE_B;}
+					else if(addressModbus == 0x100C){Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(IRMS_GAIN, w_IgainC, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);phase=PHASE_C;}
 				}else __NOP();
 			}
-			// READING ALL SENSOR FOR CALIBRATION METER CONSTANT
-//			HAL_Delay(1000);
-//			powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 69);
-//			splitValueSensor();
-			// CALCULATE METER CONSTANT USING
-//			if(valueSensor[8] > 0)ECValA = calcMeterConstant(valueSensor[8], HFconstVal, rmsVoltageA*rmsCurrentA);
-//			if(valueSensor[9] > 0)ECValB = calcMeterConstant(valueSensor[9], HFconstVal, rmsVoltageB*rmsCurrentB);
-//			if(valueSensor[10] > 0)ECValC = calcMeterConstant(valueSensor[10], HFconstVal, rmsVoltageC*rmsCurrentC);
-
 		}
 		if(Modbus.functionCode == 0x10){
 			__NOP();

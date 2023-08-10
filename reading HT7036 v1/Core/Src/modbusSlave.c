@@ -6,6 +6,7 @@
 #include "modbusSlave.h"
 #include "usart.h"
 #include "main.h"
+#include "HT7036.h"
 #define MODBUS_HANDLE_RESPONS 0
 
 MODBUS Modbus;
@@ -26,12 +27,14 @@ void ModbusBegin(MODBUS *modbus, UART_HandleTypeDef * huart, int trigState, uint
 }
 
 void modbusReceive(MODBUS * Modbus){
-	HAL_GPIO_WritePin(Modbus->enableGpioPort,Modbus->enableGpioPin,GPIO_PIN_RESET);
+//	HAL_GPIO_WritePin(Modbus->enableGpioPort,Modbus->enableGpioPin,GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_SET); // DDEFAULT >> LOW/RESET
 	HAL_UARTEx_ReceiveToIdle_DMA(Modbus->huart,Modbus->dataRX,SIZE_DATA);
 }
 
 void modbusTransmit(MODBUS * Modbus){
-	HAL_GPIO_WritePin(Modbus->enableGpioPort,Modbus->enableGpioPin,GPIO_PIN_SET);
+	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_RESET); // DEFAULT >> HIGH/SET
+//	HAL_GPIO_WritePin(Modbus->enableGpioPort,Modbus->enableGpioPin,GPIO_PIN_SET);
 	HAL_UART_Transmit_DMA(Modbus->huart,Modbus->dataTX,Modbus->startAddr);
 }
 
@@ -100,6 +103,7 @@ void modbusEncode(MODBUS * Modbus){
 	Modbus->dataTX[1] = Modbus->functionCode;
 	int offsetByte;
 	if(Modbus->functionCode==0x03){
+		powerDebug();
 		Modbus->dataTX[2] = Modbus->numReg+Modbus->numReg;
 		offsetByte = 3;
 		for(int indeks=0;indeks<Modbus->numReg;indeks++){

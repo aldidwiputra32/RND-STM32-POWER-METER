@@ -227,6 +227,11 @@
 #define BIT_SIZE_32		1
 #define ENABLE 			1
 #define DISABLE			0
+#define PHASE_RST		0
+#define PHASE_A			1
+#define PHASE_B			2
+#define PHASE_C			3
+
 // -------------------------------PRIVATE VARIABLE--------------------------------------
 
 void spiDisable();
