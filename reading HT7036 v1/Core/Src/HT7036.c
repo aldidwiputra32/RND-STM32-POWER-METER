@@ -205,31 +205,14 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 		valueBuffer[indeks] = spiRead24(address[indeks]);
 		// GROUPING DATA POWER PARAMETER >> ???
 		if(indeks>=0 && indeks<12){
+			if(ECVal == 0)ECVal = ECDef;
 			// FORMULA >> powerData * 2.592*10^10/(HFconst*EC*2^23)  | HFconst = 1280(def)  &  EC = 6400
 			bufferSign = unsignToSign(&valueBuffer[indeks], BIT_SIZE_24);
-			// CONVERT DATARAW TO DATA ACTUAL >> PHASE A
-			if((indeks==0) || (indeks==4) || (indeks==8)){
-				if(ECValA == 0)ECVal = ECDef;
-				else ECVal = ECValA;
-				valueFloat[indeks] = (float)bufferSign * coefPower(HFconstVal, ECVal);	//COEF_POWER(HFconstVal); // (405000)/(128*64*8388608)
-			}
-			if((indeks==1) || (indeks==5) || (indeks==9)){
-				if(ECValB == 0)ECVal = ECDef;
-				else ECVal = ECValB;
-				valueFloat[indeks] = (float)bufferSign * coefPower(HFconstVal, ECVal);	//COEF_POWER(HFconstVal); // (405000)/(128*64*8388608)
-			}
-			if((indeks==2) || (indeks==6) || (indeks==10)){
-				if(ECValC == 0)ECVal = ECDef;
-				else ECVal = ECValC;
-				valueFloat[indeks] = (float)bufferSign * coefPower(HFconstVal, ECVal);	//COEF_POWER(HFconstVal); // (405000)/(128*64*8388608)
-			}
-			if((indeks==3) || (indeks==7) || (indeks==11)){
-				if(ECValA == 0 && ECValB == 0 && ECValC == 0) ECVal = ECDef;
-				else ECVal = (ECValA+ECValB+ECValC)/3;
-				valueFloat[indeks] = (float)bufferSign * 2 * coefPower(HFconstVal, ECVal);
-			}
+			valueFloat[indeks] = (float)bufferSign * coefPower(HFconstVal, ECVal);
+			// FORMULA >> powerdata * 2 * 2.592*10^10/(HFconst*EC*2^23)
+			if((indeks==3)||(indeks==7)||(indeks==11))valueFloat[indeks] = (float)bufferSign * 2 * coefPower(HFconstVal, ECVal); // (405000)/(128*64*8388608)
 		}
-		// GROUPING DATA RMS
+		// GROUPING DATA RMS ???
 		if(indeks>=12 && indeks<20){
 			//[VRMS] FORMULA >> rmsData / 2 ^ 13
 			if(indeks<23)valueFloat[indeks] = (float)valueBuffer[indeks] / 8192;
