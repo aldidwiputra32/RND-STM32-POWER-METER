@@ -4,6 +4,7 @@
 extern uint32_t valueSensor[28];
 extern float valueFloat[28];
 extern uint64_t powerTimerDelta;
+extern uint64_t valueUint64[8];
 uint8_t dataPrint[1100];
 float HFconstVal;
 float ECValA = 0;
@@ -200,30 +201,34 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 
 void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * valueFloat, uint8_t size){
 	int32_t bufferSign;
-
+	uint64_t buffer[8];
 	for(uint8_t indeks=0;indeks<size;indeks++){
 		valueBuffer[indeks] = spiRead24(address[indeks]);
+		// GROUPING DATA RMS ???
+		if(indeks>=0 && indeks<8){
+			//[VRMS] FORMULA >> rmsData / 2 ^ 13
+			if(indeks<3)valueFloat[indeks] = (float)valueBuffer[indeks] / 8192;
+			//[VRMS COMBINE] FORMULA >> rmsData / 2 ^ 12
+			else if(indeks==3)valueFloat[indeks] = (float)valueBuffer[indeks] / 4096;
+			//[VRMS] FORMULA >> rmsData / 2 ^ 13
+			else if(indeks<7)valueFloat[indeks] = (float)valueBuffer[indeks] / 8192;
+			//[VRMS COMBINE] FORMULA >> rmsData / 2 ^ 12
+			else if(indeks==7)valueFloat[indeks] = (float)valueBuffer[indeks] / 4096;
+			//[LINE RMS] FORMULA >> rmsData / 2 ^ 13
+			else valueFloat[indeks] = (float)valueBuffer[indeks] / 8192;
+		}
 		// GROUPING DATA POWER PARAMETER >> ???
-		if(indeks>=0 && indeks<12){
+		if(indeks>=8 && indeks<20){
 			if(ECVal == 0)ECVal = ECDef;
 			// FORMULA >> powerData * 2.592*10^10/(HFconst*EC*2^23)  | HFconst = 1280(def)  &  EC = 6400
 			bufferSign = unsignToSign(&valueBuffer[indeks], BIT_SIZE_24);
 			valueFloat[indeks] = (float)bufferSign * coefPower(HFconstVal, ECVal);
 			// FORMULA >> powerdata * 2 * 2.592*10^10/(HFconst*EC*2^23)
-			if((indeks==3)||(indeks==7)||(indeks==11))valueFloat[indeks] = (float)bufferSign * 2 * coefPower(HFconstVal, ECVal); // (405000)/(128*64*8388608)
-		}
-		// GROUPING DATA RMS ???
-		if(indeks>=12 && indeks<20){
-			//[VRMS] FORMULA >> rmsData / 2 ^ 13
-			if(indeks<23)valueFloat[indeks] = (float)valueBuffer[indeks] / 8192;
-			//[VRMS COMBINE] FORMULA >> rmsData / 2 ^ 12
-			else if(indeks==23)valueFloat[indeks] = (float)valueBuffer[indeks] / 4096;
-			//[VRMS] FORMULA >> rmsData / 2 ^ 13
-			else if(indeks<27)valueFloat[indeks] = (float)valueBuffer[indeks] / 8192;
-			//[VRMS COMBINE] FORMULA >> rmsData / 2 ^ 12
-			else if(indeks==27)valueFloat[indeks] = (float)valueBuffer[indeks] / 4096;
-			//[LINE RMS] FORMULA >> rmsData / 2 ^ 13
-			else valueFloat[indeks] = (float)valueBuffer[indeks] / 8192;
+			if((indeks==11)||(indeks==15)||(indeks==19))valueFloat[indeks] = (float)bufferSign * 2 * coefPower(HFconstVal, ECVal); // (405000)/(128*64*8388608)
+			// SAMPLING DATA ACTEVE REACTIVE POWER FOR ENERGY CALCULTION
+			if((indeks-8)>=0 && (indeks-8)<8){
+				buffer[indeks-8] = valueFloat[indeks];
+			}
 		}
 		// GROUPING DATA POWER FACTOR
 		if(indeks>=20 && indeks<24){
@@ -233,11 +238,11 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 			HAL_Delay(10);
 		}
 		// GROUPING DATA ENERGY
-		if(indeks>=24 && indeks<28){
+		if(indeks>=24 && indeks<32){
 			// ABSOLUTE
-			handleAbsolute(&valueFloat[indeks-38]);
+			handleAbsolute(&buffer[indeks-24]);
 			// CALCULATION MANUAL DATA SENSOR ENERGY => power*deltaSampling/3600000
-			valueFloat[indeks] += valueFloat[indeks-38]*(powerTimerDelta/1000)/3600000;
+			valueUint64[indeks-24] += buffer[indeks-24]*(powerTimerDelta/1000)/3600; //(Wh)
 		}
 	}
 }
@@ -357,7 +362,7 @@ uint32_t powerSingleRecalib(uint8_t type, uint8_t addressWrite, uint32_t * dataS
 	return dataWrite;
 }
 
-void handleAbsolute(float * value){
+void handleAbsolute(uint64_t * value){
 	if(*value < 0){
 		*value = *value *(-1);
 	}
@@ -381,6 +386,23 @@ float coefPower(float hfconst, float ec){
 float calcMeterConstant(uint32_t dataBit, float hfConst, float dataAcual){
 	return ((dataBit*2.592*10000000000)/(8388608*hfConst*dataAcual));
 }
+
+float calcVoltDif(float val1, float val2){
+	//((V A + V B)/2)*sqr(1/2)  | 1,4142135623730950488016887242097 >> akar2 dari 2
+	return ((val1 + val2)/2*1.4142135623730950488016887242097);
+}
+
+uint32_t floatToInt32(float * data){
+	return *((uint32_t*)data);
+}
+float int32ToFloat(uint32_t * data){
+	return *((float*)data);
+}
+
+uint16_t byte64High1(uint64_t buf){return(uint16_t)((buf & 0xFFFF000000000000) >> 48);}
+uint16_t byte64High2(uint64_t buf){return(uint16_t)((buf & 0xFFFF00000000) >> 32);}
+uint16_t byte64Low1(uint64_t buf){return(uint16_t)((buf & 0xFFFF0000) >> 16);}
+uint16_t byte64Low2(uint64_t buf){return (uint16_t)((buf & 0xFFFF));}
 
 void powerDebug(){
 	sprintf(dataPrint,"\r\n=======Sampling Time %d(ms)=======\r\n",powerTimerDelta);
@@ -612,3 +634,5 @@ void powerDebug(){
 //// ENERGY REGISTER
 //float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombine,
 //		energyReactiveA,	energyReactiveB, 	energyReactiveC, 	energyReactiveCombine;
+
+

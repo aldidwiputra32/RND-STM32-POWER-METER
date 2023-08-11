@@ -251,11 +251,19 @@ void powerMultiCalib(uint8_t * addressBuffer, uint32_t * dataSet, HAL_StatusType
 void powerSingleCalib(uint8_t addressBuffer, uint32_t * dataSet, HAL_StatusTypeDef * status);
 uint32_t powerCalculateCalib(uint8_t type, uint32_t dataRaw, float dataActual);
 void powerRestoreCalib();
-void handleAbsolute(float * value);
+void handleAbsolute(uint64_t * value);
 void powerDebug();
 void powerCalibMode(uint8_t state);
 uint32_t powerSingleRecalib(uint8_t type, uint8_t addressWrite, uint32_t * dataSet, uint8_t addressRead, HAL_StatusTypeDef * status);
 float coefPower(float hfconst, float ec);
+uint32_t floatToInt32(float * data);
+float int32ToFloat(uint32_t * data);
 float calcMeterConstant(uint32_t dataBit, float hfConst, float dataAcual);
+uint16_t byte64High1(uint64_t buf);
+uint16_t byte64High2(uint64_t buf);
+uint16_t byte64Low1(uint64_t buf);
+uint16_t byte64Low2(uint64_t buf);
+float calcVoltDif(float val1, float val2);
+
 #endif
 

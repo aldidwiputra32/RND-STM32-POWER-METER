@@ -50,30 +50,32 @@
 
 //------------------------- GROUP VARIABLE POWER METER ---------------------------------
 uint8_t addrSensor[] = {
+		// RMS REGISTER >> 8 addrs
+		r_UaRms,			r_UbRms,			r_UcRms,			r_UtRms,
+		r_IaRms,			r_IbRms,			r_IcRms,			r_ItRms,
 		// POWER REGISTER >> 12 addrs
 		r_Pa,				r_Pb,				r_Pc,				r_Pt,
 		r_Qa,				r_Qb,				r_Qc,				r_Qt,
 		r_Sa,				r_Sb,				r_Sc,				r_St,
-		// RMS REGISTER >> 8 addrs
-		r_UaRms,			r_UbRms,			r_UcRms,			r_UtRms,
-		r_IaRms,			r_IbRms,			r_IcRms,			r_ItRms,
 		// POWER FACTOR REGISTER >> 4 addrs
 		r_Pfa,				r_Pfb,				r_Pfc,				r_Pft,
-		// ENERGY REGISTER >> 4 addrs
-		r_Epa,				r_Epb, 				r_Epc,				r_Ept
-		// TOTAL REGISTER >> 28
+		// ENERGY REGISTER >> 8 addrs
+		r_Epa,				r_Epb, 				r_Epc,				r_Ept,
+		r_Eqa,				r_Eqb,				r_Eqc,				r_Eqt
+		// TOTAL REGISTER >> 32
 };
 
 uint8_t sizeSensor = sizeof(addrSensor)/sizeof(addrSensor[0]);
 uint64_t powerTimer = 0;
 uint64_t powerTimerDelta = 0;
-uint32_t valueSensor[28];
+uint32_t valueSensor[32];
 HAL_StatusTypeDef spiStatus[256];
 extern float HFconstVal;
 extern float ECVal;
 uint8_t stateConfig = 0;
 uint8_t phase = PHASE_RST;
-float valueFloat[28];
+float valueFloat[32];
+uint64_t valueUint64[8];
 
 // POWER REGISTER
 float 	powerActiveA,		powerActiveB,		powerActiveC,		PowerActiveCombine,   // V x i x cos phi
@@ -96,82 +98,61 @@ float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombine;
  * 	Group energy 			>> 4 byte unsign 	>> division 100
  *
  * B. MAPPING REGISTER EXISTING
- * 	V A-N(VAB)				>> 2027
- * 	V B-N(VBC)				>> 3029
- * 	V C-N(VCA)				>> 3031
- * 	I A						>> 2999
- * 	I B						>> 3001
- * 	I C						>> 3003
- * 	Pow A					>> 3053
- * 	Pow B 					>> 3055
- * 	Pow C 					>> 3057
- * 	Pow Tot					>> 3059
- * 	THD V-A					>> 21329
- * 	THD V-B					>> 21331
- * 	THD V-C					>> 21333
- * 	PF A					>> 3077
- * 	PF B					>> 3079
- * 	PF C 					>> 3081
- * 	Reactive Energy	(VARH) 	>> 3219
- * 	Energy (WH)				>> 3203
- * 	V A-B 					>> 3019
- * 	V B-C 					>> 3021
- * 	V C-A 					>> 3023
+ * 		V A-N(VAB)				>> 3027, 3028		>> (int32_t)float32
+ * 		V B-N(VBC)				>> 3029, 3030		>> (int32_t)float32
+ * 		V C-N(VCA)				>> 3031, 3032		>> (int32_t)float32
+ * 		I A						>> 2999, 3000		>> (int32_t)float32
+ * 		I B						>> 3001, 3002		>> (int32_t)float32
+ * 		I C						>> 3003, 3004		>> (int32_t)float32
+ * 		active Pow A			>> 3053, 3054		>> (int32_t)float32
+ * 		active Pow B			>> 3055, 3056		>> (int32_t)float32
+ * 		active Pow C			>> 3057, 3058		>> (int32_t)float32
+ * 		active Pow Tot			>> 3059, 3060		>> (int32_t)float32
+ *X		THD V-A					>> 21329, 21330		>> (int32_t)float32 // total harmonic distorision (%)
+ *X		THD V-B					>> 21331, 21332		>> (int32_t)float32
+ *X		THD V-C					>> 21333, 21334		>> (int32_t)float32
+ * 		PF A					>> 3077, 3078		>> (int32_t)4Q FP PF // power factor
+ *	 	PF B					>> 3079, 3080		>> (int32_t)4Q FP PF
+ *	 	PF C 					>> 3081, 3082		>> (int32_t)4Q FP PF
+ * 		Reactive Energy	(VARH) 	>> 3219, 3220, 3221, 3222		>> (int64_t)int64	// Reactive Energy Delivered
+ * 		Energy (WH)				>> 3203, 3204, 3205, 3206		>> (int64_t)int64	// Active Energy Delivered (Into Load)
+ *	 	V A-B 					>> 3019, 3020		>> (int32_t)float32 // ((V A + V B)/2)*sqr(1/2)  | 1,4142135623730950488016887242097 >> akar2 dari 2
+ *	 	V B-C 					>> 3021, 3022		>> (int32_t)float32	//
+ *		V C-A 					>> 3023, 3024		>> (int32_t)float32
  */
-extern MODBUS Modbus;						//  ADDRESS REGISTER VALUE POWER SENSOR
-uint16_t holdingRegisterAddress[] 	= 	{	// power register 4 byte
-											0x0000,	0x0001,	0x0002, 0x0003,
-											0x0004, 0x0005, 0x0006, 0x0007,
-											0x0008, 0x0009, 0x000A, 0x000B,
-											0x000C, 0x000D, 0x000E, 0x000F,
-											0x0010, 0x0011, 0x0012, 0x0013,
-											0x0014, 0x0015, 0x0016, 0x0017,
-											// rms register 2 byte
-											0x0018, 0x0019, 0x001A, 0x001B,
-											0x001C, 0x001D, 0x001E, 0x001F,
-											// power factor register 2 byte
-											0x0020, 0x0021, 0x0022, 0x0023,
-											// energy register 4 byte
-											0x0024, 0x0025, 0x0026, 0x0027,
-											0x0028, 0x0029, 0x002A, 0x002B,
-											// parameter calibraiton
-											0x002C, 0x002D, 0x002E, 		// offset voltage ABC Phase
-											0x002F, 0x0030, 0x0031, 		// offset current ABC Phase
-											0x0032, 0x0033, 0x0034, 		// gain voltage ABC Phase
-											0x0035, 0x0036, 0x0037,			// gain current ABC Phase
-											// ADDRESS REGISTER SLAVE ID POWER SENSOR
+
+
+extern MODBUS Modbus;						//  ADDRESS REGISTER VALUE POWER SENSOR >> 92 Register
+uint16_t holdingRegisterAddress[] 	= 	{	3027,  3028,  3029,  3030,  3031,  3032, 				// [v] Vrms ABC (V)
+											3035,  3036,											// [x] Vrms Vector (V)
+											2999,  3000,  3001,  3002,  3003,  3004,				// [v] Irms ABC (A)
+											3009,  3010,											// [x] Irms Vector (A)
+											3053,  3054,  3055,  3056,  3057,  3058,  3059,  3060,	// [v] Active power ABC & Total (kW)
+											3061,  3062,  3063,  3064,  3065,  3066,  3067,  3068,	// [x] Reactive power ABC & Total (kVAR)
+											3069,  3070,  3071,  3072,  3073,  3074,  3075,  3076,	// [x] Apparent Power ABC & Total (kVA)
+											3077,  3078,  3079,  3080,  3081,  3082,				// [v] power factor ABC
+											3083,  3084,											// [x] power factor combine
+											3517,  3518,  3519,  3520,								// [x] active energy A
+											3521,  3522,  3523,  3524, 								// [x] active energy B
+											3525,  3526,  3527,  3528,								// [x] active energy C
+											3203,  3204,  3205,  3206, 								// [v] Active Energy Delivered (Into Load) Total
+											3529,  3530,  3531,  3532,								// [x] reactive energy A
+											3533,  3534,  3535,  3536,								// [x] reactive energy B
+											3537,  3538,  3539,  3540,								// [x] reactive energy C
+											3219,  3220,  3221,  3222,  							// [v] Reactive Energy Delivered Total
+											3019,  3020,  3021,  3022,  3023,  3024,				// [v] Vrms AB,BC,CA
+											21329, 21330, 21331, 21332, 21333, 21334,				// [0] total harmonic distorision (%)
+											// ADDRESS REGISTER SLAVE ID POWER SENSOR >> 1 Register
 											0X1000,
-											// ADDRESS REGISTER PARAMETER CALIBRATION POWER SENSOR
-											0x1001, 0x1002, 0x1003, 		// offset voltage ABC Phase
-											0x1004, 0x1005, 0x1006, 		// offset current ABC Phase
-											0x1007, 0x1008, 0x1009, 		// gain voltage ABC Phase
-											0x100A, 0x100B, 0x100C			// gain current ABC Phase
-										};
+											// ADDRESS REGISTER PARAMETER CALIBRATION POWER SENSOR >> 12 Register
+											0x1001, 0x1002, 0x1003, 								// offset voltage ABC Phase
+											0x1004, 0x1005, 0x1006, 								// offset current ABC Phase
+											0x1007, 0x1008, 0x1009, 								// gain voltage ABC Phase
+											0x100A, 0x100B, 0x100C									// gain current ABC Phase
+};
 											// VALUE REGISTER POWER SENSOR
-uint16_t holdingRegisterValue[]		= 	{	0x0000,	0x0000,	0x0000, 0x0000,
-											0x0000, 0x0000, 0x0000, 0x0000,
-											0x0000, 0x0000, 0x0000, 0x0000,
-											0x0000, 0x0000, 0x0000, 0x0000,
-											0x0000, 0x0000, 0x0000, 0x0000,
-											0x0000, 0x0000, 0x0000, 0x0000,
-											0x0000, 0x0000, 0x0000, 0x0000,
-											0x0000, 0x0000, 0x0000, 0x0000,
-											0x0000, 0x0000, 0x0000, 0x0000,
-											0x0000, 0x0000, 0x0000, 0x0000,
-											0x0000, 0x0000, 0x0000, 0x0000,
-											0x0000, 0x0000, 0x0000,
-											0x0000, 0x0000, 0x0000,
-											0x0000, 0x0000, 0x0000,
-											0x0000, 0x0000, 0x0000,
-											// VALUE REGISTER SLAVE ID POWER SENSOR
-											0x0000,
-											// VALUE  REGISTER PARAMETER CALIBRATION POWER SENSOR
-											0x0000, 0x0000, 0x0000, 		// offset voltage
-											0x0000, 0x0000, 0x0000, 		// offset current
-											0x0000, 0x0000, 0x0000, 		// gain voltage
-											0x0000, 0x0000, 0x0000			// gain current
-										};
-uint16_t holdingRegisterSize		= (uint16_t)sizeof(holdingRegisterAddress)/sizeof(uint16_t);
+uint16_t holdingRegisterSize = (uint16_t)sizeof(holdingRegisterAddress)/sizeof(uint16_t);
+uint16_t holdingRegisterValue[105]	= {0};
 extern uint16_t addressModbus;
 //------------------------- GROUP VARIABLE TESTING ---------------------------------
 
@@ -184,7 +165,7 @@ void serialPrint(char* text, uint8_t size){HAL_UART_Transmit(&huart2, (uint8_t*)
 void powerMeterSetup();
 uint16_t byteLow32(uint32_t buf){return (uint16_t)((buf & 0x0000FFFF));}
 uint16_t byteHigh32(uint32_t buf){return (uint16_t)((buf & 0xFFFF0000) >> 16);}
-void modbusValueUpdate();
+void modbusValueUpdateNew();
 void powerCalibLoop();
 void splitValueSensor();
 /* USER CODE END PFP */
@@ -266,7 +247,7 @@ int main(void)
 		  phase=PHASE_RST;
 		  stateConfig = 0;
 	  }
-	  modbusValueUpdate();
+	  modbusValueUpdateOld();
 	  powerCalibLoop();
 	  HAL_Delay(1000);
     /* USER CODE END WHILE */
@@ -348,7 +329,7 @@ void powerMeterSetup(){
 //	splitValueSensor();
 }
 
-void modbusValueUpdate(){
+void modbusValueUpdateNew(){
 	uint32_t bufferUnsign32;
 	int32_t bufferSign32;
 	uint16_t bufferUnsign16;
@@ -378,6 +359,49 @@ void modbusValueUpdate(){
 			bufferUnsign32 = (uint32_t)bufferSign32;
 			Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
 			Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
+		}
+	}
+}
+
+void modbusValueUpdateOld(){
+	float bufferFloat;
+	int32_t bufferUnsign16;
+	uint32_t bufferUnsign32;
+	uint64_t bufferUnsign64;
+	uint8_t address = 0;
+	for(uint8_t indeks=0; indeks<32; indeks++){
+		// RMS GROUP SENSOR >> if(indeks>=0 && indeks<8)
+		// POWER GROUP SENSOR >> if(indeks>=8 && indeks<20)
+		// POWER FACTOR GROUP SENSOR >> if(indeks>=20 && indeks<24)
+		if(indeks>=0 && indeks<24){
+			bufferUnsign32 = floatToInt32(&valueFloat[indeks]);
+			Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
+			Modbus.holdingRegisterValue[address++] = byteLow32(bufferUnsign32);
+		}
+		if(indeks>=24 && indeks<32){
+			bufferUnsign64 = valueUint64[indeks-24];
+			Modbus.holdingRegisterValue[address++] = byte64High1(bufferUnsign64);
+			Modbus.holdingRegisterValue[address++] = byte64High2(bufferUnsign64);
+			Modbus.holdingRegisterValue[address++] = byte64Low1(bufferUnsign64);
+			Modbus.holdingRegisterValue[address++] = byte64Low2(bufferUnsign64);
+		}
+		if(indeks>=32){
+			bufferFloat = calcVoltDif(rmsVoltageA, rmsVoltageB);
+			bufferUnsign32 = floatToInt32(&bufferFloat);
+			Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
+			Modbus.holdingRegisterValue[address++] = byteLow32(bufferUnsign32);
+			bufferFloat = calcVoltDif(rmsVoltageB, rmsVoltageC);
+			bufferUnsign32 = floatToInt32(&bufferFloat);
+			Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
+			Modbus.holdingRegisterValue[address++] = byteLow32(bufferUnsign32);
+			bufferFloat = calcVoltDif(rmsVoltageC, rmsVoltageA);
+			bufferUnsign32 = floatToInt32(&bufferFloat);
+			Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
+			Modbus.holdingRegisterValue[address++] = byteLow32(bufferUnsign32);
+			for(uint8_t i=0;i<3;i++){
+				Modbus.holdingRegisterValue[address++] = 0;
+				Modbus.holdingRegisterValue[address++] = 0;
+			}
 		}
 	}
 }
