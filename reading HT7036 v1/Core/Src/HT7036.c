@@ -1,8 +1,8 @@
 #include "HT7036.h"
 #include "usart.h"
 
-extern uint32_t valueSensor[28];
-extern float valueFloat[28];
+extern uint32_t valueSensor[32];
+extern float valueFloat[32];
 extern uint64_t powerTimerDelta;
 extern uint64_t valueUint64[8];
 uint8_t dataPrint[1100];
@@ -411,24 +411,6 @@ void powerDebug(){
 	// DEBUGGING VALUE >> GROUP POWER
 	serialPrint("\r\n------------Power Active------------\r\n", 40);
 	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
-				  valueFloat[0],valueSensor[0],
-				  valueFloat[1],valueSensor[1],
-				  valueFloat[2],valueSensor[2],
-				  valueFloat[3],valueSensor[3]
-	);
-	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
-	memset(dataPrint, 0, sizeof(dataPrint));
-	serialPrint("\r\n------------Power Rective-----------\r\n", 40);
-	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d),\r\nCombine=%.6f(%d)\r\n",
-				  valueFloat[4],valueSensor[4],
-				  valueFloat[5],valueSensor[5],
-				  valueFloat[6],valueSensor[6],
-				  valueFloat[7],valueSensor[7]
-	);
-	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
-	memset(dataPrint, 0, sizeof(dataPrint));
-	serialPrint("\r\n------------Power Apparent----------\r\n", 40);
-	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
 				  valueFloat[8],valueSensor[8],
 				  valueFloat[9],valueSensor[9],
 				  valueFloat[10],valueSensor[10],
@@ -436,8 +418,8 @@ void powerDebug(){
 	);
 	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
 	memset(dataPrint, 0, sizeof(dataPrint));
-	serialPrint("\r\n------------Voltage RMS-------------\r\n", 40);
-	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nVector=%.6f(%d)\r\n",
+	serialPrint("\r\n------------Power Rective-----------\r\n", 40);
+	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d),\r\nCombine=%.6f(%d)\r\n",
 				  valueFloat[12],valueSensor[12],
 				  valueFloat[13],valueSensor[13],
 				  valueFloat[14],valueSensor[14],
@@ -445,12 +427,30 @@ void powerDebug(){
 	);
 	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
 	memset(dataPrint, 0, sizeof(dataPrint));
-	serialPrint("\r\n------------Current RMS-------------\r\n", 40);
-	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nVector=%.6f(%d)\r\n",
+	serialPrint("\r\n------------Power Apparent----------\r\n", 40);
+	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
 				  valueFloat[16],valueSensor[16],
 				  valueFloat[17],valueSensor[17],
 				  valueFloat[18],valueSensor[18],
 				  valueFloat[19],valueSensor[19]
+	);
+	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+	memset(dataPrint, 0, sizeof(dataPrint));
+	serialPrint("\r\n------------Voltage RMS-------------\r\n", 40);
+	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nVector=%.6f(%d)\r\n",
+				  valueFloat[0],valueSensor[0],
+				  valueFloat[1],valueSensor[1],
+				  valueFloat[2],valueSensor[2],
+				  valueFloat[3],valueSensor[3]
+	);
+	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+	memset(dataPrint, 0, sizeof(dataPrint));
+	serialPrint("\r\n------------Current RMS-------------\r\n", 40);
+	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nVector=%.6f(%d)\r\n",
+				  valueFloat[4],valueSensor[4],
+				  valueFloat[5],valueSensor[5],
+				  valueFloat[6],valueSensor[6],
+				  valueFloat[7],valueSensor[7]
 	);
 	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
 	memset(dataPrint, 0, sizeof(dataPrint));

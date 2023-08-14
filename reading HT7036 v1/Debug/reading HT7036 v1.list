@@ -27,25 +27,25 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   ALLOC
  11 .ARM.attributes 00000028  00000000  00000000  000202d4  2**0
                   CONTENTS, READONLY
- 12 .debug_info   00012ed4  00000000  00000000  000202fc  2**0
+ 12 .debug_info   00012f4e  00000000  00000000  000202fc  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 13 .debug_abbrev 00002f44  00000000  00000000  000331d0  2**0
+ 13 .debug_abbrev 00002f58  00000000  00000000  0003324a  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 14 .debug_loc    000093a3  00000000  00000000  00036114  2**0
+ 14 .debug_loc    000093d1  00000000  00000000  000361a2  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 15 .debug_aranges 00000a78  00000000  00000000  0003f4b8  2**3
+ 15 .debug_aranges 00000a78  00000000  00000000  0003f578  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_ranges 00001278  00000000  00000000  0003ff30  2**3
+ 16 .debug_ranges 00001290  00000000  00000000  0003fff0  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_macro  00011a69  00000000  00000000  000411a8  2**0
+ 17 .debug_macro  00011a69  00000000  00000000  00041280  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_line   0001360b  00000000  00000000  00052c11  2**0
+ 18 .debug_line   00013619  00000000  00000000  00052ce9  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .debug_str    00061e4d  00000000  00000000  0006621c  2**0
+ 19 .debug_str    00061e98  00000000  00000000  00066302  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 20 .comment      00000050  00000000  00000000  000c8069  2**0
+ 20 .comment      00000050  00000000  00000000  000c819a  2**0
                   CONTENTS, READONLY
- 21 .debug_frame  000030a0  00000000  00000000  000c80bc  2**2
+ 21 .debug_frame  000030a0  00000000  00000000  000c81ec  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -7756,8 +7756,8 @@ void powerMeterSetup(){
  8003ad4:	4668      	mov	r0, sp
  8003ad6:	4a07      	ldr	r2, [pc, #28]	; (8003af4 <powerMeterSetup+0x40>)
  8003ad8:	f7ff fd44 	bl	8003564 <powerSetup>
-	powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 69);
- 8003adc:	2345      	movs	r3, #69	; 0x45
+	powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
+ 8003adc:	2320      	movs	r3, #32
  8003ade:	4a06      	ldr	r2, [pc, #24]	; (8003af8 <powerMeterSetup+0x44>)
  8003ae0:	4906      	ldr	r1, [pc, #24]	; (8003afc <powerMeterSetup+0x48>)
  8003ae2:	4807      	ldr	r0, [pc, #28]	; (8003b00 <powerMeterSetup+0x4c>)
@@ -7796,19 +7796,19 @@ void modbusValueUpdateOld(){
  8003b22:	4b26      	ldr	r3, [pc, #152]	; (8003bbc <modbusValueUpdateOld+0xb8>)
  8003b24:	18c0      	adds	r0, r0, r3
  8003b26:	f7ff ff3f 	bl	80039a8 <floatToInt32>
-			Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
+			Modbus.holdingRegisterValue[address++] = high;
  8003b2a:	1c63      	adds	r3, r4, #1
  8003b2c:	5972      	ldr	r2, [r6, r5]
  8003b2e:	b2db      	uxtb	r3, r3
  8003b30:	0061      	lsls	r1, r4, #1
 uint16_t byteHigh32(uint32_t buf){return (uint16_t)((buf & 0xFFFF0000) >> 16);}
  8003b32:	0c06      	lsrs	r6, r0, #16
-			Modbus.holdingRegisterValue[address++] = byteLow32(bufferUnsign32);
+			Modbus.holdingRegisterValue[address++] = low;
  8003b34:	3402      	adds	r4, #2
  8003b36:	005b      	lsls	r3, r3, #1
 uint16_t byteHigh32(uint32_t buf){return (uint16_t)((buf & 0xFFFF0000) >> 16);}
  8003b38:	528e      	strh	r6, [r1, r2]
-			Modbus.holdingRegisterValue[address++] = byteLow32(bufferUnsign32);
+			Modbus.holdingRegisterValue[address++] = low;
  8003b3a:	b2e4      	uxtb	r4, r4
 uint16_t byteLow32(uint32_t buf){return (uint16_t)((buf & 0x0000FFFF));}
  8003b3c:	5298      	strh	r0, [r3, r2]
@@ -8473,18 +8473,18 @@ void powerCalibLoop(){
  800402a:	6059      	str	r1, [r3, #4]
 	  powerTimer = HAL_GetTick();
  800402c:	f000 fcf6 	bl	8004a1c <HAL_GetTick>
-	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 28);
+	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
  8004030:	4e38      	ldr	r6, [pc, #224]	; (8004114 <main+0x168>)
 	  powerTimer = HAL_GetTick();
  8004032:	6065      	str	r5, [r4, #4]
-	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 28);
+	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
  8004034:	4d38      	ldr	r5, [pc, #224]	; (8004118 <main+0x16c>)
- 8004036:	231c      	movs	r3, #28
+ 8004036:	2320      	movs	r3, #32
  8004038:	0032      	movs	r2, r6
  800403a:	0029      	movs	r1, r5
 	  powerTimer = HAL_GetTick();
  800403c:	6020      	str	r0, [r4, #0]
-	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 28);
+	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
  800403e:	4837      	ldr	r0, [pc, #220]	; (800411c <main+0x170>)
  8004040:	f7ff faf8 	bl	8003634 <powerMultiReadSensor>
 	  splitValueSensor();
@@ -8554,8 +8554,8 @@ void powerCalibLoop(){
  80040c6:	f7ff fc45 	bl	8003954 <calcMeterConstant>
  80040ca:	4b1a      	ldr	r3, [pc, #104]	; (8004134 <main+0x188>)
  80040cc:	6018      	str	r0, [r3, #0]
-		  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 28);
- 80040ce:	231c      	movs	r3, #28
+		  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
+ 80040ce:	2320      	movs	r3, #32
  80040d0:	0032      	movs	r2, r6
  80040d2:	0029      	movs	r1, r5
  80040d4:	4811      	ldr	r0, [pc, #68]	; (800411c <main+0x170>)

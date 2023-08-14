@@ -88,7 +88,8 @@ float 	rmsVoltageA,		rmsVoltageB,		rmsVoltageC,		rmsVoltageVector,
 float 	powerFactorA,		powerFactorB,		powerFactorC, 		powerFactorCombine;
 
 // ENERGY REGISTER
-float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombine;
+float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombine,
+		energyReactiveA,	energyReactiveB, 	energyReactiveC,	energyReactiveCombine;
 
 //------------------------- GROUP VARIABLE MODBUS ---------------------------------
 /* A. NOTE
@@ -237,13 +238,13 @@ int main(void)
   {
 	  powerTimerDelta = HAL_GetTick() - powerTimer;
 	  powerTimer = HAL_GetTick();
-	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 28);
+	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
 	  splitValueSensor();
 	  if(stateConfig){
 		  if((phase==PHASE_A) && (valueSensor[8]>0))ECVal = calcMeterConstant(valueSensor[8], HFconstVal, rmsVoltageA*rmsCurrentA);
 		  if((phase==PHASE_B) && (valueSensor[9]>0))ECVal = calcMeterConstant(valueSensor[9], HFconstVal, rmsVoltageB*rmsCurrentB);
 		  if((phase==PHASE_C) && (valueSensor[10]>0))ECVal = calcMeterConstant(valueSensor[10], HFconstVal, rmsVoltageC*rmsCurrentC);
-		  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 28);
+		  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
 		  phase=PHASE_RST;
 		  stateConfig = 0;
 	  }
@@ -325,7 +326,7 @@ void powerMeterSetup(){
 	};
 	powerRestoreCalib();
 	powerSetup(address,addressData,spiStatus,3);
-	powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 69);
+	powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
 //	splitValueSensor();
 }
 
@@ -354,7 +355,7 @@ void modbusValueUpdateNew(){
 			Modbus.holdingRegisterValue[address++] = bufferUnsign16;
 		}
 		// GROUP ENERGY
-		if(indeks>=24 && indeks<28){
+		if(indeks>=24 && indeks<32){
 			bufferSign32 = (int32_t)(valueFloat[indeks]*100);
 			bufferUnsign32 = (uint32_t)bufferSign32;
 			Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
@@ -374,9 +375,12 @@ void modbusValueUpdateOld(){
 		// POWER GROUP SENSOR >> if(indeks>=8 && indeks<20)
 		// POWER FACTOR GROUP SENSOR >> if(indeks>=20 && indeks<24)
 		if(indeks>=0 && indeks<24){
+			uint16_t high,low;
 			bufferUnsign32 = floatToInt32(&valueFloat[indeks]);
-			Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
-			Modbus.holdingRegisterValue[address++] = byteLow32(bufferUnsign32);
+			high = byteHigh32(bufferUnsign32);
+			low = byteLow32(bufferUnsign32);
+			Modbus.holdingRegisterValue[address++] = high;
+			Modbus.holdingRegisterValue[address++] = low;
 		}
 		if(indeks>=24 && indeks<32){
 			bufferUnsign64 = valueUint64[indeks-24];
