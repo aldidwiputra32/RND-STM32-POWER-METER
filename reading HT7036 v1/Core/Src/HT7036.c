@@ -13,6 +13,11 @@ float ECValC = 0;
 float ECVal = 0;
 float ECDef = 43.7;
 
+extern float	gainVoltageA,		gainVoltageB,		gainVoltageC,
+				gainCurrentA,		gainCurrentB,		gainCurrentC,
+				offsetVoltageA, 	offsetVoltageB,		offsetVoltageC,
+				offsetCurrentA,		offsetCurrentB,		offsetCurrentC;
+
 void spiDisable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);}
 void spiEnable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);}
 
@@ -378,26 +383,16 @@ void powerCalibMode(uint8_t state){
 		spiCommandSpecial(w_read_calib, BYTE_DISABLE);
 	}
 }
-
-float coefPower(float hfconst, float ec){
-	return ((2.592*10000000000)/(hfconst*ec*8388608.000f));
-}
-
-float calcMeterConstant(uint32_t dataBit, float hfConst, float dataAcual){
-	return ((dataBit*2.592*10000000000)/(8388608*hfConst*dataAcual));
-}
-
 float calcVoltDif(float val1, float val2){
 	//((V A + V B)/2)*sqr(1/2)  | 1,4142135623730950488016887242097 >> akar2 dari 2
 	return ((val1 + val2)/2*1.4142135623730950488016887242097);
 }
-
-uint32_t floatToInt32(float * data){
-	return *((uint32_t*)data);
+float calcMeterConstant(uint32_t dataBit, float hfConst, float dataAcual){
+	return ((dataBit*2.592*10000000000)/(8388608*hfConst*dataAcual));
 }
-float int32ToFloat(uint32_t * data){
-	return *((float*)data);
-}
+float coefPower(float hfconst, float ec){return ((2.592*10000000000)/(hfconst*ec*8388608.000f));}
+uint32_t floatToInt32(float * data){return *((uint32_t*)data);}
+float int32ToFloat(uint32_t * data){return *((float*)data);}
 
 uint16_t byte64High1(uint64_t buf){return(uint16_t)((buf & 0xFFFF000000000000) >> 48);}
 uint16_t byte64High2(uint64_t buf){return(uint16_t)((buf & 0xFFFF00000000) >> 32);}
