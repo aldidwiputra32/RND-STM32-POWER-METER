@@ -28,12 +28,12 @@ void ModbusBegin(MODBUS *modbus, UART_HandleTypeDef * huart, int trigState, uint
 
 void modbusReceive(MODBUS * Modbus){
 //	HAL_GPIO_WritePin(Modbus->enableGpioPort,Modbus->enableGpioPin,GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_SET); // DDEFAULT >> LOW/RESET
+	HAL_GPIO_WritePin(Modbus->enableGpioPort,Modbus->enableGpioPin,GPIO_PIN_SET); 		// DEFAULT >> LOW/RESET
 	HAL_UARTEx_ReceiveToIdle_DMA(Modbus->huart,Modbus->dataRX,SIZE_DATA);
 }
 
 void modbusTransmit(MODBUS * Modbus){
-	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_RESET); // DEFAULT >> HIGH/SET
+	HAL_GPIO_WritePin(Modbus->enableGpioPort,Modbus->enableGpioPin,GPIO_PIN_RESET); 	// DEFAULT >> HIGH/SET
 //	HAL_GPIO_WritePin(Modbus->enableGpioPort,Modbus->enableGpioPin,GPIO_PIN_SET);
 	HAL_UART_Transmit_DMA(Modbus->huart,Modbus->dataTX,Modbus->startAddr);
 }

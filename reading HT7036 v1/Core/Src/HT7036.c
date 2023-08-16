@@ -388,7 +388,11 @@ float calcVoltDif(float val1, float val2){
 	return ((val1 + val2)/2*1.4142135623730950488016887242097);
 }
 float calcMeterConstant(uint32_t dataBit, float hfConst, float dataAcual){
-	return ((dataBit*2.592*10000000000)/(8388608*hfConst*dataAcual));
+	if(dataAcual > 0){
+		return ((dataBit*2.592*10000000000)/(8388608*hfConst*dataAcual));
+	}else{
+		return ECVal;
+	}
 }
 float coefPower(float hfconst, float ec){return ((2.592*10000000000)/(hfconst*ec*8388608.000f));}
 uint32_t floatToInt32(float * data){return *((uint32_t*)data);}
@@ -400,6 +404,9 @@ uint16_t byte64Low1(uint64_t buf){return(uint16_t)((buf & 0xFFFF0000) >> 16);}
 uint16_t byte64Low2(uint64_t buf){return (uint16_t)((buf & 0xFFFF));}
 
 void powerDebug(){
+	// ENABLE MODBUS
+	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_RESET);
+
 	sprintf(dataPrint,"\r\n=======Sampling Time %d(ms)=======\r\n",powerTimerDelta);
 	HAL_UART_Transmit(&huart2, dataPrint, 40, 1000);
 	memset(dataPrint, 0, sizeof(dataPrint));
@@ -467,6 +474,16 @@ void powerDebug(){
 		  );
 	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
 	memset(dataPrint, 0, sizeof(dataPrint));
+	serialPrint("\r\n------------Else Sensor-----------\r\n", 40);
+	sprintf(dataPrint,"EC=%.6f\r\n",
+				  ECVal
+		  );
+	HAL_UART_Transmit(&huart2, dataPrint, 20, 100);
+	memset(dataPrint, 0, sizeof(dataPrint));
+
+
+	// DISABLE MODBUS
+	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_SET);
 }
 // SETUP CALIB
 /* Dataframe

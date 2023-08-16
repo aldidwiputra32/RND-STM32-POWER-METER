@@ -72,6 +72,7 @@ uint32_t valueSensor[32];
 HAL_StatusTypeDef spiStatus[256];
 extern float HFconstVal;
 extern float ECVal;
+extern float ECDef;
 uint8_t stateConfig = 0;
 uint8_t phase = PHASE_RST;
 float valueFloat[32];
@@ -98,6 +99,8 @@ float	gainVoltageA = 1,	gainVoltageB = 1,	gainVoltageC = 1,
 float 	offsetVoltageA = 0, offsetVoltageB = 0,	offsetVoltageC = 0,
 		offsetCurrentA = 0,	offsetCurrentB = 0,	offsetCurrentC = 0,
 		offsetVoltage = 0,	offsetCurrent = 0;
+
+uint32_t powerApparentBitA,	powerApparentBitB,	powerApparentBitC;
 
 //------------------------- GROUP VARIABLE MODBUS ---------------------------------
 /* A. NOTE
@@ -157,16 +160,16 @@ uint16_t holdingRegisterAddress[] 	= 	{	3027,  3028,  3029,  3030,  3031,  3032,
 											0x1001, 0x1002, 0x1003, 								// offset voltage ABC Phase
 											0x1004, 0x1005, 0x1006, 								// offset current ABC Phase
 											0x1007, 0x1008, 0x1009, 								// gain voltage ABC Phase
-											0x100A, 0x100B, 0x100C									// gain current ABC Phase
+											0x100A, 0x100B, 0x100C,									// gain current ABC Phase
 											// ADDRESS REGISTER PARAMETER CALIBRATION POWER SENSOR FOR USER >> 12 Register
-//											0x2001, 0x2002, 0x2003, 								// offset voltage ABC Phase
-//											0x2004, 0x2005, 0x2006, 								// offset current ABC Phase
-//											0x2007, 0x2008, 0x2009, 								// gain voltage ABC Phase
-//											0x200A, 0x200B, 0x200C									// gain current ABC Phase
+											0x2001, 0x2002, 0x2003, 								// offset voltage ABC Phase
+											0x2004, 0x2005, 0x2006, 								// offset current ABC Phase
+											0x2007, 0x2008, 0x2009, 								// gain voltage ABC Phase
+											0x200A, 0x200B, 0x200C									// gain current ABC Phase
 };
 											// VALUE REGISTER POWER SENSOR
 uint16_t holdingRegisterSize = (uint16_t)sizeof(holdingRegisterAddress)/sizeof(uint16_t);
-uint16_t holdingRegisterValue[105]	= {0};
+uint16_t holdingRegisterValue[117]	= {0};
 extern uint16_t addressModbus;
 //------------------------- GROUP VARIABLE TESTING ---------------------------------
 
@@ -180,6 +183,7 @@ void powerMeterSetup();
 uint16_t byteLow32(uint32_t buf){return (uint16_t)((buf & 0x0000FFFF));}
 uint16_t byteHigh32(uint32_t buf){return (uint16_t)((buf & 0xFFFF0000) >> 16);}
 void modbusValueUpdateNew();
+void modbusValueUpdateOld();
 void powerCalibLoop();
 void powerSplitValue();
 void powerHandleCalib();
@@ -260,15 +264,19 @@ int main(void)
 	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
 	  powerSplitValue();
 
+	  // CALCULATE METER CONSTANT
+	  if(powerApparentBitA > 10)ECVal = calcMeterConstant(powerApparentBitA, HFconstVal, rmsVoltageA*rmsCurrentA);
+	  else if(powerApparentBitB > 10)ECVal = calcMeterConstant(powerApparentBitB, HFconstVal, rmsVoltageB*rmsCurrentB);
+	  else if(powerApparentBitC > 10)ECVal = calcMeterConstant(powerApparentBitC, HFconstVal, rmsVoltageC*rmsCurrentC);
+	  else ECVal = ECDef;
+
 	  if(stateConfig){
-		  if((phase==PHASE_A) && (valueSensor[8]>0))ECVal = calcMeterConstant(powerApparentA, HFconstVal, rmsVoltageA*rmsCurrentA);
-		  if((phase==PHASE_B) && (valueSensor[9]>0))ECVal = calcMeterConstant(powerApparentB, HFconstVal, rmsVoltageB*rmsCurrentB);
-		  if((phase==PHASE_C) && (valueSensor[10]>0))ECVal = calcMeterConstant(powerApparentC, HFconstVal, rmsVoltageC*rmsCurrentC);
 		  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
 		  powerSplitValue();
 		  phase=PHASE_RST;
 		  stateConfig = 0;
 	  }
+
 	  modbusValueUpdateOld();
 	  powerCalibLoop();
 	  HAL_Delay(1000);
@@ -450,6 +458,7 @@ void powerCalibLoop(){
 				if(addressModbus == Modbus.holdingRegisterAddress[93+indeks])addressIndeks = splitSensorIndeks[indeks];
 				else __NOP();
 			}
+
 			// --------------------------------------------------CALIBRATION HT7036 FOR SUPER USER------------------------------------------------------------------
 			// FILTER REGISTER OFFSET VOLTAGE RMS
 			if((addressModbus == 0x1001) || (addressModbus == 0x1002) || (addressModbus == 0x1003)){
@@ -494,42 +503,43 @@ void powerCalibLoop(){
 					else if(addressModbus == 0x100C){Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(IRMS_GAIN, w_IgainC, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);phase=PHASE_C;}
 				}else __NOP();
 			}
+
 			// --------------------------------------------------CALIBRATION STM32 FOR USER------------------------------------------------------------------
 			// FILTER REGISTER OFFSET VOLTAGE RMS
 			else if ((addressModbus == 0x2001) || (addressModbus == 0x2002) || (addressModbus == 0x2003)){
 				stateConfig = Modbus.trigState;
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
 				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
-				if(addressModbus == 0x2001){offsetVoltageA = (float)dataCalib16/100;phase=PHASE_A;}
-				if(addressModbus == 0x2002){offsetVoltageB = (float)dataCalib16/100;phase=PHASE_B;}
-				if(addressModbus == 0x2003){offsetVoltageC = (float)dataCalib16/100;phase=PHASE_C;}
+				if(addressModbus == 0x2001){offsetVoltageA = (float)dataCalib16/1000;phase=PHASE_A;}
+				if(addressModbus == 0x2002){offsetVoltageB = (float)dataCalib16/1000;phase=PHASE_B;}
+				if(addressModbus == 0x2003){offsetVoltageC = (float)dataCalib16/1000;phase=PHASE_C;}
 			}
 			// FILTER REGISTER OFFSET CURRENT RMS
 			else if ((addressModbus == 0x2004) || (addressModbus == 0x2005) || (addressModbus == 0x2006)){
 				stateConfig = Modbus.trigState;
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
 				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
-				if(addressModbus == 0x2004){offsetCurrentA = (float)dataCalib16/100;phase=PHASE_A;}
-				if(addressModbus == 0x2005){offsetCurrentB = (float)dataCalib16/100;phase=PHASE_B;}
-				if(addressModbus == 0x2006){offsetCurrentC = (float)dataCalib16/100;phase=PHASE_C;}
+				if(addressModbus == 0x2004){offsetCurrentA = (float)dataCalib16/1000;phase=PHASE_A;}
+				if(addressModbus == 0x2005){offsetCurrentB = (float)dataCalib16/1000;phase=PHASE_B;}
+				if(addressModbus == 0x2006){offsetCurrentC = (float)dataCalib16/1000;phase=PHASE_C;}
 			}
 			// FILTER REGISTER GAIN VOLTAGE RMS
 			else if ((addressModbus == 0x2007) || (addressModbus == 0x2008) || (addressModbus == 0x2009)){
 				stateConfig = Modbus.trigState;
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
 				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
-				if(addressModbus == 0x2007){gainVoltageA = (float)dataCalib16/100;phase=PHASE_A;}
-				if(addressModbus == 0x2008){gainVoltageB = (float)dataCalib16/100;phase=PHASE_B;}
-				if(addressModbus == 0x2009){gainVoltageC = (float)dataCalib16/100;phase=PHASE_C;}
+				if(addressModbus == 0x2007){gainVoltageA = (float)dataCalib16/1000;phase=PHASE_A;}
+				if(addressModbus == 0x2008){gainVoltageB = (float)dataCalib16/1000;phase=PHASE_B;}
+				if(addressModbus == 0x2009){gainVoltageC = (float)dataCalib16/1000;phase=PHASE_C;}
 			}
 			// FILTER REGISTER GAIN CURRENT RMS
 			else if ((addressModbus == 0x200A) || (addressModbus == 0x200B) || (addressModbus == 0x200C)){
 				stateConfig = Modbus.trigState;
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
 				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
-				if(addressModbus == 0x200A){gainCurrentA = (float)dataCalib16/100;phase=PHASE_A;}
-				if(addressModbus == 0x200B){gainCurrentB = (float)dataCalib16/100;phase=PHASE_B;}
-				if(addressModbus == 0x200C){gainCurrentC = (float)dataCalib16/100;phase=PHASE_C;}
+				if(addressModbus == 0x200A){gainCurrentA = (float)dataCalib16/1000;phase=PHASE_A;}
+				if(addressModbus == 0x200B){gainCurrentB = (float)dataCalib16/1000;phase=PHASE_B;}
+				if(addressModbus == 0x200C){gainCurrentC = (float)dataCalib16/1000;phase=PHASE_C;}
 			}
 		}
 		if(Modbus.functionCode == 0x10){
@@ -549,6 +559,8 @@ void powerSplitValue(){
 	energyActiveA = valueFloat[24];		energyActiveB = valueFloat[25];		energyActiveC = valueFloat[26];		energyActiveCombine = valueFloat[27];
 	energyReactiveA = valueFloat[28];	energyReactiveB = valueFloat[29];	energyReactiveC = valueFloat[30];	energyReactiveCombine = valueFloat[31];
 
+	powerApparentBitA = valueSensor[16];powerApparentBitB = valueSensor[17];powerApparentBitC = valueSensor[18];
+
 	powerHandleCalib();
 }
 
@@ -556,35 +568,46 @@ void powerHandleCalib(){
 	if(phase != PHASE_RST){
 		// CALIB PHASE A
 		if(phase == PHASE_A){
-			gainVoltage = gainVoltageA;
-			gainCurrent = gainCurrentA;
-			offsetCurrent = offsetCurrentA;
-			offsetVoltage = offsetVoltageA;
+			if(addressModbus == 0x2001)offsetVoltage = offsetVoltageA;
+			if(addressModbus == 0x2004)offsetCurrent = offsetCurrentA;
+			if(addressModbus == 0x2007)gainVoltage = gainVoltageA;
+			if(addressModbus == 0x200A)gainCurrent = gainCurrentA;
 		}
 		// CALIB PHASE B
 		if(phase == PHASE_B){
-			gainVoltage = gainVoltageB;
-			gainCurrent = gainCurrentB;
-			offsetCurrent = offsetCurrentB;
-			offsetVoltage = offsetVoltageB;
+			if(addressModbus == 0x2002)offsetVoltage = offsetVoltageB;
+			if(addressModbus == 0x2005)offsetCurrent = offsetCurrentB;
+			if(addressModbus == 0x2008)gainVoltage = gainVoltageB;
+			if(addressModbus == 0x200B)gainCurrent = gainCurrentB;
 		}
 		// CALIB PHASE C
 		if(phase == PHASE_C){
-			gainVoltage = gainVoltageC;
-			gainCurrent = gainCurrentC;
-			offsetCurrent = offsetCurrentC;
-			offsetVoltage = offsetVoltageC;
+			if(addressModbus == 0x2003)offsetVoltage = offsetVoltageC;
+			if(addressModbus == 0x2006)offsetCurrent = offsetCurrentC;
+			if(addressModbus == 0x2009)gainVoltage = gainVoltageC;
+			if(addressModbus == 0x200C)gainCurrent = gainCurrentC;
 		}
 	}
 	// CALIBRAITION VOLTAGE
-	rmsVoltageA = rmsVoltageA*gainVoltage + offsetCurrent;
-	rmsVoltageB = rmsVoltageB*gainVoltage + offsetCurrent;
-	rmsVoltageC = rmsVoltageC*gainVoltage + offsetCurrent;
+	rmsVoltageA = rmsVoltageA*gainVoltage + offsetVoltage;
+	rmsVoltageB = rmsVoltageB*gainVoltage + offsetVoltage;
+	rmsVoltageC = rmsVoltageC*gainVoltage + offsetVoltage;
 
 	// CALIBRATION CURRENT
 	rmsCurrentA = rmsCurrentA*gainCurrent + offsetCurrent;
 	rmsCurrentB = rmsCurrentB*gainCurrent + offsetCurrent;
 	rmsCurrentC = rmsCurrentC*gainCurrent + offsetCurrent;
+
+	// MODIFY BEGIN
+	valueFloat[0] = rmsVoltageA;
+	valueFloat[1] = rmsVoltageB;
+	valueFloat[2] = rmsVoltageC;
+
+	valueFloat[4] = rmsCurrentA;
+	valueFloat[5] = rmsCurrentB;
+	valueFloat[6] = rmsCurrentC;
+	// MODIFY END
+
 }
 /* USER CODE END 4 */
 
