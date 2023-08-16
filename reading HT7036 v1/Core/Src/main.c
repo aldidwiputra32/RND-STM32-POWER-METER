@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "dma.h"
+#include "i2c.h"
 #include "spi.h"
 #include "usart.h"
 #include "gpio.h"
@@ -27,6 +28,7 @@
 /* USER CODE BEGIN Includes */
 #include "HT7036.h"
 #include "modbusSlave.h"
+#include "ee24xx.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -226,6 +228,7 @@ int main(void)
   MX_SPI2_Init();
   MX_USART2_UART_Init();
   MX_SPI1_Init();
+  MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
   // SETUP POWER METER
   powerMeterSetup();
@@ -247,12 +250,24 @@ int main(void)
 		  MODBUS_En_Pin
   );
   // START MODBUS HANDLE
-  valueSensor[0] = spiRead24(deviceId);
-
-  valueSensor[1] = powerCalculateCalib(IRMS_GAIN, 22978, 0.11);
-
-
   modbusReceive(&Modbus);
+
+  // INIT EEPROM EXTERNAL
+  ee24_init(&hi2c2, 0, 0, 0);
+
+  // TESTIN EEPROM EXTERNAL
+  uint64_t dataWrite = 0x123456789;
+  uint64_t dataRead1 = 0;
+  uint8_t dataRead[8];
+  ee24_write(0, (uint8_t*)&dataWrite, sizeof(dataWrite), 100);
+  HAL_Delay(100);
+  ee24_read(0, (uint8_t*)&dataRead[0], sizeof(dataRead[0]), 100);
+  ee24_read(1, (uint8_t*)&dataRead[1], sizeof(dataRead[1]), 100);
+  ee24_read(2, (uint8_t*)&dataRead[2], sizeof(dataRead[2]), 100);
+  ee24_read(3, (uint8_t*)&dataRead[3], sizeof(dataRead[3]), 100);
+  ee24_read(4, (uint8_t*)&dataRead[4], sizeof(dataRead[4]), 100);
+
+  ee24_read(0, (uint8_t*)&dataRead1,sizeof(dataRead1), 100);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -291,7 +306,8 @@ int main(void)
   * @brief System Clock Configuration
   * @retval None
   */
-void SystemClock_Config(void){
+void SystemClock_Config(void)
+{
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
@@ -305,7 +321,8 @@ void SystemClock_Config(void){
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL10;
   RCC_OscInitStruct.PLL.PREDIV = RCC_PREDIV_DIV1;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK){
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
     Error_Handler();
   }
 

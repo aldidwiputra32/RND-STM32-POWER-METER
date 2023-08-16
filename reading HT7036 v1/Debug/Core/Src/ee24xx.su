@@ -1,0 +1,5 @@
+../Core/Src/ee24xx.c:24:6:ee24_init	16	static
+../Core/Src/ee24xx.c:32:6:ee24_isConnected	8	static
+../Core/Src/ee24xx.c:41:6:ee24_read	40	static
+../Core/Src/ee24xx.c:72:6:ee24_write	48	static
+../Core/Src/ee24xx.c:130:6:ee24_eraseChip	48	static
