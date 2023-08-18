@@ -29,6 +29,8 @@
 #include "HT7036.h"
 #include "modbusSlave.h"
 #include "ee24xx.h"
+
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -78,7 +80,7 @@ extern float ECDef;
 uint8_t stateConfig = 0;
 uint8_t phase = PHASE_RST;
 float valueFloat[32];
-uint64_t valueUint64[8];
+extern uint64_t valueUint64[8];
 
 // POWER REGISTER
 float 	powerActiveA,		powerActiveB,		powerActiveC,		PowerActiveCombine,   // V x i x cos phi
@@ -135,7 +137,6 @@ uint32_t powerApparentBitA,	powerApparentBitB,	powerApparentBitC;
  *		V C-A 					>> 3023, 3024		>> (int32_t)float32
  */
 
-
 extern MODBUS Modbus;						//  ADDRESS REGISTER VALUE POWER SENSOR >> 92 Register
 uint16_t holdingRegisterAddress[] 	= 	{	3027,  3028,  3029,  3030,  3031,  3032, 				// [v] Vrms ABC (V)
 											3035,  3036,											// [x] Vrms Vector (V)
@@ -173,7 +174,35 @@ uint16_t holdingRegisterAddress[] 	= 	{	3027,  3028,  3029,  3030,  3031,  3032,
 uint16_t holdingRegisterSize = (uint16_t)sizeof(holdingRegisterAddress)/sizeof(uint16_t);
 uint16_t holdingRegisterValue[117]	= {0};
 extern uint16_t addressModbus;
-//------------------------- GROUP VARIABLE TESTING ---------------------------------
+//------------------------- GROUP VARIABLE EEPROM EXTERNAL 8K ---------------------------------
+/* NOTE
+ * Have 64 pages each 16 bytes, and single address have 1 byte
+ * Mapping Address EEPROM External
+ * ------------------group sensor---------------------
+ * 0 >> active energy A (8 byte)
+ * 8 >> active energy B (8 byte)
+ * 16 >> active energy C (8 byte)
+ * 24 >> reactive energy A (8 byte)
+ * 32 >> reactive energy A (8 byte)
+ * 40 >> reactive energy A (8 byte)
+ * --------------group calibration---------------------
+ * 48 >> offset Voltage super User (2 byte) >> HT7036
+ * 50 >> offset current super user (2 byte) >> HT7036
+ * 52 >> gain voltage super user (2 byte) >> HT7036
+ * 54 >> gain current super user (2 byte) >> HT7036
+ * 56 >> offset Voltage User (2 byte) >> STM32
+ * 58 >> offset current user (2 byte) >> STM32
+ * 60 >> gain voltage user (2 byte) >> STM32
+ * 62 >> gain current user (2 byte) >> STM32
+ * -------------schema write and read------------------
+ * encode buffer(grouping data) >> 64 byte
+ * decode buffer(split data)
+ * data Frame buffer(type:uint16_t) in EEPROM >> Based on table "group sensor & group calibration"
+ */
+
+uint32_t high = 0;
+  uint32_t low = 1234;
+  uint64_t data64 = 0;
 
 /* USER CODE END PV */
 
@@ -189,6 +218,7 @@ void modbusValueUpdateOld();
 void powerCalibLoop();
 void powerSplitValue();
 void powerHandleCalib();
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -255,19 +285,24 @@ int main(void)
   // INIT EEPROM EXTERNAL
   ee24_init(&hi2c2, 0, 0, 0);
 
-  // TESTIN EEPROM EXTERNAL
-  uint64_t dataWrite = 0x123456789;
-  uint64_t dataRead1 = 0;
-  uint8_t dataRead[8];
-  ee24_write(0, (uint8_t*)&dataWrite, sizeof(dataWrite), 100);
-  HAL_Delay(100);
-  ee24_read(0, (uint8_t*)&dataRead[0], sizeof(dataRead[0]), 100);
-  ee24_read(1, (uint8_t*)&dataRead[1], sizeof(dataRead[1]), 100);
-  ee24_read(2, (uint8_t*)&dataRead[2], sizeof(dataRead[2]), 100);
-  ee24_read(3, (uint8_t*)&dataRead[3], sizeof(dataRead[3]), 100);
-  ee24_read(4, (uint8_t*)&dataRead[4], sizeof(dataRead[4]), 100);
+  double dataTest = 1.2345;
 
-  ee24_read(0, (uint8_t*)&dataRead1,sizeof(dataRead1), 100);
+  data64 = dataTest;
+//  data64 = uint32ToUint64(high, low);
+//  uint64_t dataTest[8] = {0,0,0,0,0,0,0,0};
+//  uint32_t bufferTest[4] = {632,1264,1896,2528};
+//  uint64_t timeTest = 2;
+//  uint64_t bufferTest1 = 0;
+//  dataTest[0] = bufferTest1 + (bufferTest[0]*(timeTest/1000.00f)/3600.00f * 100000.00f); //(Wh)
+//  bufferTest1++;
+//  dataTest[1] = bufferTest1 + (bufferTest[1]*(timeTest/1000.00f)/3600.00f * 100000.00f); //(Wh)
+//  bufferTest1++;
+//  dataTest[2] = bufferTest1 + (bufferTest[2]*(timeTest/1000.00f)/3600.00f * 100000.00f); //(Wh)
+//  bufferTest1++;
+//  dataTest[3] = bufferTest1 + (bufferTest[3]*(timeTest/1000.00f)/3600.00f * 100000.00f); //(Wh)
+//  bufferTest1++;
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -294,6 +329,7 @@ int main(void)
 
 	  modbusValueUpdateOld();
 	  powerCalibLoop();
+	  powerDebug();
 	  HAL_Delay(1000);
     /* USER CODE END WHILE */
 
@@ -420,13 +456,14 @@ void modbusValueUpdateOld(){
 		// RMS GROUP SENSOR >> if(indeks>=0 && indeks<8)
 		// POWER GROUP SENSOR >> if(indeks>=8 && indeks<20)
 		// POWER FACTOR GROUP SENSOR >> if(indeks>=20 && indeks<24)
+		// ENERGY GROUOP SENSOR >> if(indeks>=24 && indeks<32)
 		if(indeks>=0 && indeks<24){
-			uint16_t high,low;
+			uint16_t byteHigh,byteLow;
 			bufferUnsign32 = floatToInt32(&valueFloat[indeks]);
-			high = byteHigh32(bufferUnsign32);
-			low = byteLow32(bufferUnsign32);
-			Modbus.holdingRegisterValue[address++] = high;
-			Modbus.holdingRegisterValue[address++] = low;
+			byteHigh = byteHigh32(bufferUnsign32);
+			byteLow = byteLow32(bufferUnsign32);
+			Modbus.holdingRegisterValue[address++] = byteHigh;
+			Modbus.holdingRegisterValue[address++] = byteLow;
 		}
 		if(indeks>=24 && indeks<32){
 			bufferUnsign64 = valueUint64[indeks-24];
@@ -435,6 +472,8 @@ void modbusValueUpdateOld(){
 			Modbus.holdingRegisterValue[address++] = byte64Low1(bufferUnsign64);
 			Modbus.holdingRegisterValue[address++] = byte64Low2(bufferUnsign64);
 		}
+		// VOLTAGE DIFFERENTIAL GROUP
+		// TOTAL HARMONIC DISTORTION
 		if(indeks>=32){
 			bufferFloat = calcVoltDif(rmsVoltageA, rmsVoltageB);
 			bufferUnsign32 = floatToInt32(&bufferFloat);
@@ -624,8 +663,8 @@ void powerHandleCalib(){
 	valueFloat[5] = rmsCurrentB;
 	valueFloat[6] = rmsCurrentC;
 	// MODIFY END
-
 }
+
 /* USER CODE END 4 */
 
 /**

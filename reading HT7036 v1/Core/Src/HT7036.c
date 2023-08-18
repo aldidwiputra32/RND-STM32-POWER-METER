@@ -1,10 +1,11 @@
 #include "HT7036.h"
 #include "usart.h"
+#include <stdio.h>
 
 extern uint32_t valueSensor[32];
 extern float valueFloat[32];
 extern uint64_t powerTimerDelta;
-extern uint64_t valueUint64[8];
+uint64_t valueUint64[8];
 uint8_t dataPrint[1100];
 float HFconstVal;
 float ECValA = 0;
@@ -12,6 +13,9 @@ float ECValB = 0;
 float ECValC = 0;
 float ECVal = 0;
 float ECDef = 43.7;
+float bufferEnergy[8];
+double bufferEnergySUM[8];
+uint64_t energyModbus[8];
 
 extern float	gainVoltageA,		gainVoltageB,		gainVoltageC,
 				gainCurrentA,		gainCurrentB,		gainCurrentC,
@@ -206,7 +210,7 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 
 void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * valueFloat, uint8_t size){
 	int32_t bufferSign;
-	uint64_t buffer[8];
+	uint8_t stateEnergy = 1;
 	for(uint8_t indeks=0;indeks<size;indeks++){
 		valueBuffer[indeks] = spiRead24(address[indeks]);
 		// GROUPING DATA RMS ???
@@ -222,7 +226,7 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 			//[LINE RMS] FORMULA >> rmsData / 2 ^ 13
 			else valueFloat[indeks] = (float)valueBuffer[indeks] / 8192;
 		}
-		// GROUPING DATA POWER PARAMETER >> ???
+		// GROUPING DATA POWER PARAMETER >> solved
 		if(indeks>=8 && indeks<20){
 			if(ECVal == 0)ECVal = ECDef;
 			// FORMULA >> powerData * 2.592*10^10/(HFconst*EC*2^23)  | HFconst = 1280(def)  &  EC = 6400
@@ -232,7 +236,7 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 			if((indeks==11)||(indeks==15)||(indeks==19))valueFloat[indeks] = (float)bufferSign * 2 * coefPower(HFconstVal, ECVal); // (405000)/(128*64*8388608)
 			// SAMPLING DATA ACTEVE REACTIVE POWER FOR ENERGY CALCULTION
 			if((indeks-8)>=0 && (indeks-8)<8){
-				buffer[indeks-8] = valueFloat[indeks];
+				bufferEnergy[indeks-8] = valueFloat[indeks];
 			}
 		}
 		// GROUPING DATA POWER FACTOR
@@ -244,12 +248,16 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 		}
 		// GROUPING DATA ENERGY
 		if(indeks>=24 && indeks<32){
-			// ABSOLUTE
-			handleAbsolute(&buffer[indeks-24]);
-			// CALCULATION MANUAL DATA SENSOR ENERGY => power*deltaSampling/3600000
-			valueUint64[indeks-24] += buffer[indeks-24]*(powerTimerDelta/1000)/3600; //(Wh)
+			handleAbsolute(&bufferEnergy[indeks-24]);
+			// CALCULATION MANUAL DATA SENSOR ENERGY => power*deltaSampling/3600000 >> all value must be uin64_t type variable
+			bufferEnergySUM[indeks-24] += (double)((float)bufferEnergy[indeks-24]*((float)powerTimerDelta/1000.00f)/3600.00f);  // watt hour
+			memcpy(&energyModbus[indeks-24], &bufferEnergySUM[indeks-24],sizeof(bufferEnergySUM[indeks-24]));
 		}
 	}
+}
+
+uint64_t uint32ToUint64(uint32_t high, uint32_t low){
+	return (((uint64_t)high<<32) | (uint64_t)low);
 }
 
 uint32_t powerScanValue(uint8_t address, uint32_t * addressBuffer ,uint32_t * valueBuffer, uint8_t size){
@@ -367,7 +375,7 @@ uint32_t powerSingleRecalib(uint8_t type, uint8_t addressWrite, uint32_t * dataS
 	return dataWrite;
 }
 
-void handleAbsolute(uint64_t * value){
+void handleAbsolute(double * value){
 	if(*value < 0){
 		*value = *value *(-1);
 	}
@@ -466,14 +474,32 @@ void powerDebug(){
 	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
 	memset(dataPrint, 0, sizeof(dataPrint));
 	serialPrint("\r\n------------Energy Active-----------\r\n", 40);
-	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
-				  valueFloat[24],valueSensor[24],
-				  valueFloat[25],valueSensor[25],
-				  valueFloat[26],valueSensor[26],
-				  valueFloat[27],valueSensor[27]
+	sprintf(dataPrint,"A=%0.6f(%lu)\r\nB=%0.6f(%lu)\r\nC=%0.6f(%lu)\r\nCombine=%0.6f(%lu)\r\n",
+				  bufferEnergySUM[0],energyModbus[24],
+				  bufferEnergySUM[1],energyModbus[25],
+				  bufferEnergySUM[2],energyModbus[26],
+				  bufferEnergySUM[3],energyModbus[27]
 		  );
 	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
 	memset(dataPrint, 0, sizeof(dataPrint));
+	serialPrint("\r\n------------Energy Reactive-----------\r\n", 40);
+	sprintf(dataPrint,"A=%0.6f(%lu)\r\nB=%0.6f(%lu)\r\nC=%0.6f(%lu)\r\nCombine=%0.6f(%lu)\r\n",
+				  bufferEnergySUM[4],energyModbus[28],
+				  bufferEnergySUM[5],energyModbus[29],
+				  bufferEnergySUM[6],energyModbus[30],
+				  bufferEnergySUM[7],energyModbus[31]
+		  );
+	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+	memset(dataPrint, 0, sizeof(dataPrint));
+//	serialPrint("\r\n------------Energy Buffer-----------\r\n", 40);
+//	sprintf(dataPrint,"A=%0.6f(%0.6f)\r\nB=%0.6f(%0.6f)\r\nC=%0.6f(%0.6f)\r\nCombine=%0.6f(%0.6f)\r\n",
+//				  bufferEnergy32[0],bufferEnergy32[1],
+//				  bufferEnergy32[2],bufferEnergy32[3],
+//				  bufferEnergy32[4],bufferEnergy32[5],
+//				  bufferEnergy32[6],bufferEnergy32[7]
+//		  );
+//	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+//	memset(dataPrint, 0, sizeof(dataPrint));
 	serialPrint("\r\n------------Else Sensor-----------\r\n", 40);
 	sprintf(dataPrint,"EC=%.6f\r\n",
 				  ECVal

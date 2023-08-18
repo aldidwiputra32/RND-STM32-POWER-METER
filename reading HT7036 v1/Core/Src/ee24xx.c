@@ -141,3 +141,52 @@ bool ee24_eraseChip(void)
   return true;
 }
 
+// MODIFY BEGIN
+
+//void memoryVirtualWrite(uint64_t data, uint32_t startAddr, uint32_t endAddr){
+//	uint64_t value = 0;
+//	while(1){
+//		memorySingleRead(flashAddrVirtual, &value);
+//		if(value == 0xffffffffffffffff){
+//			HAL_StatusTypeDef status;
+//			HAL_FLASH_Unlock();
+//			status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, flashAddrVirtual, data);
+//			HAL_FLASH_Lock();
+//			if(status == HAL_OK){
+//				break;
+//			}
+//		}else{
+//			flashAddrVirtual += 4;
+//			if(flashAddrVirtual > endAddr - 7 ){ // size per address 8 byte (DoubleWord)
+//				memoryReset(startAddr,endAddr);
+//				flashAddrVirtual = startAddr;
+//			}
+//		}
+//	}
+//}
+//
+//void memoryVirtualRead(uint32_t startAddr, uint32_t startAddrVirtual, uint64_t * data, uint8_t number){
+//	uint32_t startAddrScan = startAddr;
+//	uint64_t tresholdAddr = 0;
+//	while(1){
+//		// GET DATA FROM FLASH MEMORY
+////		memorySingleRead(startAddrScan, &tresholdAddr);// flashValue = *(uint32_t *)startAddrScan;
+//		// SCAN DATA FROM FLASH ADDRESS
+//		if(tresholdAddr == 0xffffffffffffffff){
+//			// GET LAST ADDRESS WRITED
+//			flashAddrVirtual = startAddrScan - 8*number + 8*startAddrVirtual;
+//			if(flashAddrVirtual < startAddr){
+//				*data = NULL_DATA;
+//				flashAddrVirtual = startAddr;
+//			}else{
+//				// GET DATA FROM FLASH MEMORY
+//				memorySingleRead(flashAddrVirtual, data); // *data = *(uint32_t *)startAddr;
+//			}
+//			break;
+//		}else{
+//			startAddrScan += 4;
+//		}
+//	}
+//}
+
+// MODIFY END
