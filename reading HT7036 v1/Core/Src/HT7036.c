@@ -22,6 +22,9 @@ extern float	gainVoltageA,		gainVoltageB,		gainVoltageC,
 				offsetVoltageA, 	offsetVoltageB,		offsetVoltageC,
 				offsetCurrentA,		offsetCurrentB,		offsetCurrentC;
 
+extern uint16_t offsetVolt_ht7036,	offsetCurr_ht7036,	gainVolt_ht7036,	gainCurr_ht7036,
+				offsetVolt_stm32,	offsetCurr_stm32,	gainVolt_stm32,		gainCurr_stm32;
+
 void spiDisable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);}
 void spiEnable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);}
 
@@ -256,10 +259,6 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 	}
 }
 
-uint64_t uint32ToUint64(uint32_t high, uint32_t low){
-	return (((uint64_t)high<<32) | (uint64_t)low);
-}
-
 uint32_t powerScanValue(uint8_t address, uint32_t * addressBuffer ,uint32_t * valueBuffer, uint8_t size){
 	uint32_t value = 0;
 	for(uint8_t indeks=0;indeks<size;indeks++){
@@ -406,10 +405,47 @@ float coefPower(float hfconst, float ec){return ((2.592*10000000000)/(hfconst*ec
 uint32_t floatToInt32(float * data){return *((uint32_t*)data);}
 float int32ToFloat(uint32_t * data){return *((float*)data);}
 
+// SPLIT BYTE
 uint16_t byte64High1(uint64_t buf){return(uint16_t)((buf & 0xFFFF000000000000) >> 48);}
 uint16_t byte64High2(uint64_t buf){return(uint16_t)((buf & 0xFFFF00000000) >> 32);}
 uint16_t byte64Low1(uint64_t buf){return(uint16_t)((buf & 0xFFFF0000) >> 16);}
 uint16_t byte64Low2(uint64_t buf){return (uint16_t)((buf & 0xFFFF));}
+uint8_t byte16Low(uint16_t buf){return (uint8_t)((buf & 0x00FF));}
+uint8_t byte16High(uint16_t buf){return (uint8_t)((buf & 0xFF00) >> 8);}
+void uint64ToUint8(uint8_t * buffer, uint64_t data){
+	buffer[0] = byte16High(byte64High1(data));
+	buffer[1] = byte16Low(byte64High1(data));
+	buffer[2] = byte16High(byte64High2(data));
+	buffer[3] = byte16Low(byte64High2(data));
+	buffer[4] = byte16High(byte64Low1(data));
+	buffer[5] = byte16Low(byte64Low1(data));
+	buffer[6] = byte16High(byte64Low2(data));
+	buffer[7] = byte16Low(byte64Low2(data));
+}
+
+void uint8Touint64(uint64_t * buffer, uint8_t * data){
+	uint64_t buffer64;
+	uint32_t buffer32;
+	uint16_t buffer16;
+
+	buffer16 = uint8ToUint16(data[0], data[1]);
+	buffer64 = (uint64_t)buffer16 << 48;
+	buffer16 = uint8ToUint16(data[2], data[3]);
+	buffer64 = buffer64 | ((uint64_t)buffer16 << 32);
+	buffer16 = uint8ToUint16(data[4], data[5]);
+	buffer64 = buffer64 | ((uint64_t)buffer16 << 16);
+	buffer16 = uint8ToUint16(data[6], data[7]);
+	buffer64 = buffer64 | (uint64_t)(buffer16);
+
+	*buffer = buffer64;
+}
+
+// PACK BYTE
+uint64_t uint32ToUint64(uint32_t high, uint32_t low){return (((uint64_t)high<<32) | (uint64_t)low);}
+uint32_t uint16ToUint32(uint16_t high, uint16_t low){return((uint32_t)high<<16 | (uint32_t)low);}
+uint16_t uint8ToUint16(uint8_t high, uint8_t low){return ((uint16_t)high<<8 | (uint16_t)low);}
+
+
 
 void powerDebug(){
 	// ENABLE MODBUS
@@ -672,5 +708,3 @@ void powerDebug(){
 //// ENERGY REGISTER
 //float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombine,
 //		energyReactiveA,	energyReactiveB, 	energyReactiveC, 	energyReactiveCombine;
-
-

@@ -266,5 +266,13 @@ uint16_t byte64Low2(uint64_t buf);
 float calcVoltDif(float val1, float val2);
 uint64_t uint32ToUint64(uint32_t high, uint32_t low);
 
-#endif
+uint8_t byte16Low(uint16_t buf);
+uint8_t byte16High(uint16_t buf);
+void uint64ToUint8(uint8_t * buffer, uint64_t data);
 
+uint64_t uint32ToUint64(uint32_t high, uint32_t low);
+uint32_t uint16ToUint32(uint16_t high, uint16_t low);
+uint16_t uint8ToUint16(uint8_t high, uint8_t low);
+void uint8Touint64(uint64_t * buffer, uint8_t * data);
+
+#endif

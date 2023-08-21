@@ -21,6 +21,10 @@ static bool ee_wp_en = 0;
 static GPIO_TypeDef* ee_wp_gpiox;
 static uint16_t ee_wp_pin;
 
+// MODIFY BEGIN
+static uint16_t ee24AddrVirtual=0;
+// MODIFY END
+
 void ee24_init(I2C_HandleTypeDef* hi2c, bool wp_en, GPIO_TypeDef* wp_gpio, uint16_t wp_pin)
 {
     ee_hi2c = *hi2c;
@@ -143,7 +147,32 @@ bool ee24_eraseChip(void)
 
 // MODIFY BEGIN
 
-//void memoryVirtualWrite(uint64_t data, uint32_t startAddr, uint32_t endAddr){
+uint8_t ee24VirtualWrite(uint8_t data, uint16_t startAddr, uint16_t endAddr){
+	uint8_t statusFunc = 0; // 0 = error, 1 = success, 2 = triggered clear eeprom
+	uint8_t statusWrite = 0;
+	uint8_t value = 0;
+	while(1){
+		ee24_read(ee24AddrVirtual, (uint8_t*)&value, sizeof(value), 100);
+		if(value == 0xFF){
+			statusWrite = ee24_write(ee24AddrVirtual, (uint8_t*)&data, sizeof(data), 100);
+			if(statusWrite){
+				statusFunc = 1;
+				break;
+			}else{
+				statusFunc = 0;
+				break;
+			}
+		}else{
+			ee24AddrVirtual += 1;
+			if(ee24AddrVirtual > endAddr){
+				statusFunc = 2;
+				ee24AddrVirtual = startAddr;
+				ee24_eraseChip();
+				break;
+			}
+		}
+	}
+	return statusFunc;
 //	uint64_t value = 0;
 //	while(1){
 //		memorySingleRead(flashAddrVirtual, &value);
@@ -163,30 +192,71 @@ bool ee24_eraseChip(void)
 //			}
 //		}
 //	}
-//}
-//
-//void memoryVirtualRead(uint32_t startAddr, uint32_t startAddrVirtual, uint64_t * data, uint8_t number){
-//	uint32_t startAddrScan = startAddr;
-//	uint64_t tresholdAddr = 0;
-//	while(1){
-//		// GET DATA FROM FLASH MEMORY
-////		memorySingleRead(startAddrScan, &tresholdAddr);// flashValue = *(uint32_t *)startAddrScan;
-//		// SCAN DATA FROM FLASH ADDRESS
-//		if(tresholdAddr == 0xffffffffffffffff){
-//			// GET LAST ADDRESS WRITED
-//			flashAddrVirtual = startAddrScan - 8*number + 8*startAddrVirtual;
-//			if(flashAddrVirtual < startAddr){
-//				*data = NULL_DATA;
-//				flashAddrVirtual = startAddr;
-//			}else{
-//				// GET DATA FROM FLASH MEMORY
-//				memorySingleRead(flashAddrVirtual, data); // *data = *(uint32_t *)startAddr;
-//			}
-//			break;
-//		}else{
-//			startAddrScan += 4;
-//		}
-//	}
-//}
+}
 
-// MODIFY END
+uint8_t ee24VirtualRead(uint8_t * data, uint16_t startAddr, uint16_t endAddr, uint16_t address){
+	uint8_t statusRead = 0; // 0 = error, 1 = success
+	uint16_t startAddrScan = startAddr;
+	uint8_t valueBuffer = 0;
+	uint8_t valueBuffer1 = 0;
+	while(1){
+		ee24_read(startAddrScan, (uint8_t*)&valueBuffer, sizeof(valueBuffer), 100);
+		if(valueBuffer == 0xFF){
+			ee24AddrVirtual = startAddrScan - 64 + address;
+			if(ee24AddrVirtual < startAddr){
+				*data = 0xFFFF; // NULL Data
+				ee24AddrVirtual = startAddr;
+				statusRead = 0;
+			}else{
+				ee24_read(ee24AddrVirtual, (uint8_t*)data, sizeof(uint8_t), 100);
+				valueBuffer1 = *data;
+				statusRead = 1;
+			}
+			break;
+		}else{
+			startAddrScan += 1;
+			if(startAddrScan > endAddr){
+				statusRead = 0;
+				break;
+			}
+		}
+	}
+	return statusRead;
+}
+
+//
+//uint8_t dataAll[512];
+//ee24_eraseChip();
+//for(;;);
+//ee24_read(0, (uint8_t*)dataAll, sizeof(dataAll), 1000);
+//
+//for(int indeks=0;indeks<32;indeks++)ee24VirtualRead(&eepromBufferRead[indeks], 0, 1024, indeks);
+//
+//uint8_t dataPrint[500];
+//HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_RESET);
+//serialPrint("\r\n------------READ EEPROM-----------\r\n", 40);
+//sprintf(dataPrint,"\r\n0[%d], 1[%d], 2[%d], 3[%d], 4[%d]\r\n, 5[%d], 6[%d], 7[%d], 8[%d], 9[%d]\r\n, 10[%d], 11[%d], 12[%d], 13[%d], 14[%d]\r\n, 15[%d], 16[%d], 17[%d], 18[%d], 19[%d]\r\n, 20[%d], 21[%d], 22[%d], 23[%d], 24[%d]\r\n, 25[%d], 26[%d], 27[%d], 28[%d], 29[%d]\r\n, 30[%d], 31[%d]\r\n",
+//				  eepromBufferRead[0],eepromBufferRead[1],eepromBufferRead[2],eepromBufferRead[3],
+//				  eepromBufferRead[4],eepromBufferRead[5],eepromBufferRead[6],eepromBufferRead[7],
+//				  eepromBufferRead[8],eepromBufferRead[9],eepromBufferRead[10],eepromBufferRead[11],
+//				  eepromBufferRead[12],eepromBufferRead[13],eepromBufferRead[14],eepromBufferRead[15],
+//				  eepromBufferRead[16],eepromBufferRead[17],eepromBufferRead[18],eepromBufferRead[19],
+//				  eepromBufferRead[20],eepromBufferRead[21],eepromBufferRead[22],eepromBufferRead[23],
+//				  eepromBufferRead[24],eepromBufferRead[25],eepromBufferRead[26],eepromBufferRead[27],
+//				  eepromBufferRead[28],eepromBufferRead[29],eepromBufferRead[30],eepromBufferRead[31]
+//);
+//HAL_UART_Transmit(&huart2, dataPrint, 500, 1000);
+//HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_SET);
+//memset(dataPrint, 0, sizeof(dataPrint));
+//
+//for(int indeks=0;indeks<32;indeks++)eepromBufferWrite[indeks]=indeks;
+//uint8_t gain = 0;
+//
+//for(;;){
+//	  gain += 1;
+//	  for(int indeks=0;indeks<32;indeks++){
+//		  eepromBufferWrite[indeks]=indeks+gain;
+//		  ee24VirtualWrite(eepromBufferWrite[indeks], 0, 1024);
+//	  }
+//	  HAL_Delay(5000);
+//}

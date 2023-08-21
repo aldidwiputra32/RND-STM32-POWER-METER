@@ -70,8 +70,8 @@ uint8_t addrSensor[] = {
 };
 
 uint8_t sizeSensor = sizeof(addrSensor)/sizeof(addrSensor[0]);
-uint64_t powerTimer = 0;
-uint64_t powerTimerDelta = 0;
+uint32_t powerTimer = 0;
+uint32_t powerTimerDelta = 0;
 uint32_t valueSensor[32];
 HAL_StatusTypeDef spiStatus[256];
 extern float HFconstVal;
@@ -96,6 +96,9 @@ float 	powerFactorA,		powerFactorB,		powerFactorC, 		powerFactorCombine;
 float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombine,
 		energyReactiveA,	energyReactiveB, 	energyReactiveC,	energyReactiveCombine;
 
+uint64_t 	energyActiveA_uint,		energyActiveB_uint, 		energyActiveC_uint,		energyActiveCombine_uint,
+			energyReactiveA_uint,	energyReactiveB_uint, 		energyReactiveC_uint,	energyReactiveCombine_uint;
+
 float	gainVoltageA = 1,	gainVoltageB = 1,	gainVoltageC = 1,
 		gainCurrentA = 1,	gainCurrentB = 1,	gainCurrentC = 1,
 		gainVoltage = 1,	gainCurrent = 1;
@@ -103,6 +106,9 @@ float	gainVoltageA = 1,	gainVoltageB = 1,	gainVoltageC = 1,
 float 	offsetVoltageA = 0, offsetVoltageB = 0,	offsetVoltageC = 0,
 		offsetCurrentA = 0,	offsetCurrentB = 0,	offsetCurrentC = 0,
 		offsetVoltage = 0,	offsetCurrent = 0;
+
+uint16_t offsetVolt_ht7036,	offsetCurr_ht7036,	gainVolt_ht7036,	gainCurr_ht7036,
+		 offsetVolt_stm32,	offsetCurr_stm32,	gainVolt_stm32,		gainCurr_stm32;
 
 uint32_t powerApparentBitA,	powerApparentBitB,	powerApparentBitC;
 
@@ -168,12 +174,18 @@ uint16_t holdingRegisterAddress[] 	= 	{	3027,  3028,  3029,  3030,  3031,  3032,
 											0x2001, 0x2002, 0x2003, 								// offset voltage ABC Phase
 											0x2004, 0x2005, 0x2006, 								// offset current ABC Phase
 											0x2007, 0x2008, 0x2009, 								// gain voltage ABC Phase
-											0x200A, 0x200B, 0x200C									// gain current ABC Phase
+											0x200A, 0x200B, 0x200C,									// gain current ABC Phase
+											// [RAW DATA] ADDRESS REGISTER PARAMETER CALIBRATION POWER SENSOR FOR SUPER USER >> 12 Register
+											0x3001,		 											// offset Voltage super User
+											0x3002, 												// offset current super user (2 byte) >> HT7036
+											0x3003, 												// gain voltage super user (2 byte) >> HT7036
+											0x3004													// gain current super user (2 byte) >> HT7036
 };
 											// VALUE REGISTER POWER SENSOR
 uint16_t holdingRegisterSize = (uint16_t)sizeof(holdingRegisterAddress)/sizeof(uint16_t);
-uint16_t holdingRegisterValue[117]	= {0};
+uint16_t holdingRegisterValue[121]	= {0};
 extern uint16_t addressModbus;
+
 //------------------------- GROUP VARIABLE EEPROM EXTERNAL 8K ---------------------------------
 /* NOTE
  * Have 64 pages each 16 bytes, and single address have 1 byte
@@ -197,12 +209,18 @@ extern uint16_t addressModbus;
  * -------------schema write and read------------------
  * encode buffer(grouping data) >> 64 byte
  * decode buffer(split data)
- * data Frame buffer(type:uint16_t) in EEPROM >> Based on table "group sensor & group calibration"
+ * data Frame buffer(type:uint8_t[64 indeks array]) in EEPROM >> Based on table "group sensor & group calibration"
  */
 
+uint8_t eepromBufferRead[64];
+uint8_t eepromBufferWrite[64];
+uint32_t eepromTimerDelta = 0;
+uint32_t eepromTimer = 0;
+
 uint32_t high = 0;
-  uint32_t low = 1234;
-  uint64_t data64 = 0;
+uint32_t low = 1234;
+uint64_t data64 = 0;
+uint16_t test16;
 
 /* USER CODE END PV */
 
@@ -211,6 +229,22 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 void serialPrint(char* text, uint8_t size){HAL_UART_Transmit(&huart2, (uint8_t*)text, size, 100);}
 void powerMeterSetup();
+void eepromEncode(
+			uint64_t energyActiveA,			// indeks 0 - 7
+			uint64_t energyActiveB,			// indeks 8 - 15
+			uint64_t energyActiveC,			// indeks 16 - 23
+			uint64_t energyReactiveA,		// indeks 24 - 31
+			uint64_t energyReactiveB,		// indeks 32 - 39
+			uint64_t energyReactiveC,		// indeks 40 - 47
+			uint16_t offsetVolt_ht7036,		// indeks 48 - 49
+			uint16_t offsetCurr_ht7036,		// indeks 50 - 51
+			uint16_t gainVolt_ht7036,		// indeks 52 - 53
+			uint16_t gainCurr_ht7036,		// indeks 54 - 55
+			uint16_t offsetVolt_stm32,		// indeks 56 - 57
+			uint16_t offsetCurr_stm32,		// indeks 58 - 59
+			uint16_t gainVolt_stm32,		// indeks 60 - 62
+			uint16_t gainCurr_stm32			// indeks 62 - 63
+);
 uint16_t byteLow32(uint32_t buf){return (uint16_t)((buf & 0x0000FFFF));}
 uint16_t byteHigh32(uint32_t buf){return (uint16_t)((buf & 0xFFFF0000) >> 16);}
 void modbusValueUpdateNew();
@@ -218,6 +252,7 @@ void modbusValueUpdateOld();
 void powerCalibLoop();
 void powerSplitValue();
 void powerHandleCalib();
+void eepromLoop();
 
 /* USER CODE END PFP */
 
@@ -263,8 +298,8 @@ int main(void)
   // SETUP POWER METER
   powerMeterSetup();
 
-  // INITIAL TIMER SAMPLING POWER
-  powerTimer = HAL_GetTick();
+  // INITIAL TIMER SAMPLING POWER & EEPROM
+  powerTimer = eepromTimer = HAL_GetTick();
 
   // MODBUS SETUP
   ModbusBegin(
@@ -285,22 +320,13 @@ int main(void)
   // INIT EEPROM EXTERNAL
   ee24_init(&hi2c2, 0, 0, 0);
 
-  double dataTest = 1.2345;
 
-  data64 = dataTest;
-//  data64 = uint32ToUint64(high, low);
-//  uint64_t dataTest[8] = {0,0,0,0,0,0,0,0};
-//  uint32_t bufferTest[4] = {632,1264,1896,2528};
-//  uint64_t timeTest = 2;
-//  uint64_t bufferTest1 = 0;
-//  dataTest[0] = bufferTest1 + (bufferTest[0]*(timeTest/1000.00f)/3600.00f * 100000.00f); //(Wh)
-//  bufferTest1++;
-//  dataTest[1] = bufferTest1 + (bufferTest[1]*(timeTest/1000.00f)/3600.00f * 100000.00f); //(Wh)
-//  bufferTest1++;
-//  dataTest[2] = bufferTest1 + (bufferTest[2]*(timeTest/1000.00f)/3600.00f * 100000.00f); //(Wh)
-//  bufferTest1++;
-//  dataTest[3] = bufferTest1 + (bufferTest[3]*(timeTest/1000.00f)/3600.00f * 100000.00f); //(Wh)
-//  bufferTest1++;
+  uint64_t test64;
+  uint8_t test8[8] = {0,0,0,0,7,91,205,21};
+
+  test16 = uint8ToUint16(test8[0], test8[1]);
+  uint8Touint64(&test64, test8);
+
 
 
   /* USER CODE END 2 */
@@ -320,16 +346,10 @@ int main(void)
 	  else if(powerApparentBitC > 10)ECVal = calcMeterConstant(powerApparentBitC, HFconstVal, rmsVoltageC*rmsCurrentC);
 	  else ECVal = ECDef;
 
-	  if(stateConfig){
-		  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
-		  powerSplitValue();
-		  phase=PHASE_RST;
-		  stateConfig = 0;
-	  }
-
+	  eepromLoop();
 	  modbusValueUpdateOld();
 	  powerCalibLoop();
-	  powerDebug();
+//	  powerDebug();
 	  HAL_Delay(1000);
     /* USER CODE END WHILE */
 
@@ -497,7 +517,7 @@ void modbusValueUpdateOld(){
 
 void powerCalibLoop(){
 	if(Modbus.trigState){
-		uint8_t addressSlave;
+		uint16_t addressSlave;
 		uint8_t addressIndeks;
 		uint16_t dataCalib16;
 		uint32_t dataCalib32;
@@ -522,18 +542,22 @@ void powerCalibLoop(){
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
 				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
 				dataCalib32 = (uint32_t)dataCalib16;
-				if(addressModbus == 0x1001)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(VRMS_OFFSET, w_UaRmsoffse, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
-				else if(addressModbus == 0x1002)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(VRMS_OFFSET, w_UbRmsoffse, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
-				else if(addressModbus == 0x1003)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(VRMS_OFFSET, w_UcRmsoffse, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
+				// GET ADDRESS REGISTER PARAMETER CALIBRATION [RAW DATA]
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x3001, Modbus.holdingRegisterSize);
+				if(addressModbus == 0x1001)offsetVolt_ht7036 = Modbus.holdingRegisterValue[addressSlave] = powerSingleRecalib(VRMS_OFFSET, w_UaRmsoffse, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
+				else if(addressModbus == 0x1002)offsetVolt_ht7036 = Modbus.holdingRegisterValue[addressSlave] = powerSingleRecalib(VRMS_OFFSET, w_UbRmsoffse, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
+				else if(addressModbus == 0x1003)offsetVolt_ht7036 = Modbus.holdingRegisterValue[addressSlave] = powerSingleRecalib(VRMS_OFFSET, w_UcRmsoffse, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
 			}
 			// FILTER REGISTER OFFSET CURRENT RMS
 			else if((addressModbus == 0x1004) || (addressModbus == 0x1005) || (addressModbus == 0x1006)){
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
 				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
 				dataCalib32 = (uint32_t)dataCalib16;
-				if(addressModbus == 0x1004)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(IRMS_OFFSET, w_IaRmsoffse, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
-				else if(addressModbus == 0x1005)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(IRMS_OFFSET, w_IbRmsoffse, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
-				else if(addressModbus == 0x1006)Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(IRMS_OFFSET, w_IcRmsoffse, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
+				// GET ADDRESS REGISTER PARAMETER CALIBRATION [RAW DATA]
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x3002, Modbus.holdingRegisterSize);
+				if(addressModbus == 0x1004)offsetCurr_ht7036 = Modbus.holdingRegisterValue[addressSlave] = powerSingleRecalib(IRMS_OFFSET, w_IaRmsoffse, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
+				else if(addressModbus == 0x1005)offsetCurr_ht7036 = Modbus.holdingRegisterValue[addressSlave] = powerSingleRecalib(IRMS_OFFSET, w_IbRmsoffse, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
+				else if(addressModbus == 0x1006)offsetCurr_ht7036 = Modbus.holdingRegisterValue[addressSlave] = powerSingleRecalib(IRMS_OFFSET, w_IcRmsoffse, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);
 			}
 			// FILTER REGISTER GAIN VOLTAGE RMS
 			else if((addressModbus == 0x1007) || (addressModbus == 0x1008) || (addressModbus == 0x1009)){
@@ -541,10 +565,12 @@ void powerCalibLoop(){
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
 				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
 				dataCalib32 = (uint32_t)dataCalib16;
+				// GET ADDRESS REGISTER PARAMETER CALIBRATION [RAW DATA]
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x3003, Modbus.holdingRegisterSize);
 				if(dataCalib16 != 0){
-					if(addressModbus == 0x1007){Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(VRMS_GAIN, w_UgainA, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);phase=PHASE_A;}
-					else if(addressModbus == 0x1008){Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(VRMS_GAIN, w_UgainB, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);phase=PHASE_B;}
-					else if(addressModbus == 0x1009){Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(VRMS_GAIN, w_UgainC, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);phase=PHASE_C;}
+					if(addressModbus == 0x1007){gainVolt_ht7036 = Modbus.holdingRegisterValue[addressSlave] = powerSingleRecalib(VRMS_GAIN, w_UgainA, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);phase=PHASE_A;}
+					else if(addressModbus == 0x1008){gainVolt_ht7036 = Modbus.holdingRegisterValue[addressSlave] = powerSingleRecalib(VRMS_GAIN, w_UgainB, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);phase=PHASE_B;}
+					else if(addressModbus == 0x1009){gainVolt_ht7036 = Modbus.holdingRegisterValue[addressSlave] = powerSingleRecalib(VRMS_GAIN, w_UgainC, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);phase=PHASE_C;}
 				}else __NOP();
 			}
 			// FILTER REGISTER GAIN CURRENT RMS
@@ -553,10 +579,12 @@ void powerCalibLoop(){
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
 				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
 				dataCalib32 = (uint32_t)dataCalib16;
+				// GET ADDRESS REGISTER PARAMETER CALIBRATION [RAW DATA]
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x3004, Modbus.holdingRegisterSize);
 				if(addressSlave !=0){
-					if(addressModbus == 0x100A){Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(IRMS_GAIN, w_IgainA, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);phase=PHASE_A;}
-					else if(addressModbus == 0x100B){Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(IRMS_GAIN, w_IgainB, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);phase=PHASE_B;}
-					else if(addressModbus == 0x100C){Modbus.holdingRegisterValue[addressSlave-13] = powerSingleRecalib(IRMS_GAIN, w_IgainC, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);phase=PHASE_C;}
+					if(addressModbus == 0x100A){gainCurr_ht7036 = Modbus.holdingRegisterValue[addressSlave] = powerSingleRecalib(IRMS_GAIN, w_IgainA, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);phase=PHASE_A;}
+					else if(addressModbus == 0x100B){gainCurr_ht7036 = Modbus.holdingRegisterValue[addressSlave] = powerSingleRecalib(IRMS_GAIN, w_IgainB, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);phase=PHASE_B;}
+					else if(addressModbus == 0x100C){gainCurr_ht7036 = Modbus.holdingRegisterValue[addressSlave] = powerSingleRecalib(IRMS_GAIN, w_IgainC, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0]);phase=PHASE_C;}
 				}else __NOP();
 			}
 
@@ -565,7 +593,7 @@ void powerCalibLoop(){
 			else if ((addressModbus == 0x2001) || (addressModbus == 0x2002) || (addressModbus == 0x2003)){
 				stateConfig = Modbus.trigState;
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
-				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
+				offsetVolt_stm32 = dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
 				if(addressModbus == 0x2001){offsetVoltageA = (float)dataCalib16/1000;phase=PHASE_A;}
 				if(addressModbus == 0x2002){offsetVoltageB = (float)dataCalib16/1000;phase=PHASE_B;}
 				if(addressModbus == 0x2003){offsetVoltageC = (float)dataCalib16/1000;phase=PHASE_C;}
@@ -574,7 +602,7 @@ void powerCalibLoop(){
 			else if ((addressModbus == 0x2004) || (addressModbus == 0x2005) || (addressModbus == 0x2006)){
 				stateConfig = Modbus.trigState;
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
-				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
+				offsetCurr_stm32 = dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
 				if(addressModbus == 0x2004){offsetCurrentA = (float)dataCalib16/1000;phase=PHASE_A;}
 				if(addressModbus == 0x2005){offsetCurrentB = (float)dataCalib16/1000;phase=PHASE_B;}
 				if(addressModbus == 0x2006){offsetCurrentC = (float)dataCalib16/1000;phase=PHASE_C;}
@@ -583,7 +611,7 @@ void powerCalibLoop(){
 			else if ((addressModbus == 0x2007) || (addressModbus == 0x2008) || (addressModbus == 0x2009)){
 				stateConfig = Modbus.trigState;
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
-				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
+				gainVolt_stm32 = dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
 				if(addressModbus == 0x2007){gainVoltageA = (float)dataCalib16/1000;phase=PHASE_A;}
 				if(addressModbus == 0x2008){gainVoltageB = (float)dataCalib16/1000;phase=PHASE_B;}
 				if(addressModbus == 0x2009){gainVoltageC = (float)dataCalib16/1000;phase=PHASE_C;}
@@ -592,7 +620,7 @@ void powerCalibLoop(){
 			else if ((addressModbus == 0x200A) || (addressModbus == 0x200B) || (addressModbus == 0x200C)){
 				stateConfig = Modbus.trigState;
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
-				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
+				gainCurr_stm32 = dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
 				if(addressModbus == 0x200A){gainCurrentA = (float)dataCalib16/1000;phase=PHASE_A;}
 				if(addressModbus == 0x200B){gainCurrentB = (float)dataCalib16/1000;phase=PHASE_B;}
 				if(addressModbus == 0x200C){gainCurrentC = (float)dataCalib16/1000;phase=PHASE_C;}
@@ -603,6 +631,164 @@ void powerCalibLoop(){
 		}else __NOP();
 		Modbus.trigState = 0;
 	}else __NOP();
+}
+
+void eepromLoad(){
+	uint8_t indeksAddress = 0;
+	uint8_t buffer8[8];
+	// GET DATA FROM EEPROM EXTERNAL
+	for(uint8_t indeks=0;indeks<64;indeks++)ee24VirtualRead(&eepromBufferRead[indeks], 0, 1024, indeks);
+	// DECODE DATA
+	for(uint8_t indeks=0;indeks<64;indeks++){
+		// DECODE ACTIVE ENERGY PHASE A >> valueuint64 [0];
+		if(indeks>=0 && indeks<8)buffer8[indeks] = eepromBufferRead[indeks];
+		if(indeks == 7)uint8Touint64(&energyActiveA, buffer8);
+		indeksAddress = 0;
+		// DECODE ACTIVE ENERGY PHASE B
+		if(indeks>=8 && indeks<16)buffer[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks == 15)uint8Touint64(&energyActiveB_uint, buffer8);
+		indeksAddress = 0;
+		// DECODE ACTIVE ENERGY PHASE C
+		if(indeks>=16 && indeks<24)buffer[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks == 23)uint8Touint64(&energyActiveC_uint, buffer8);
+		indeksAddress = 0;
+		// DECODE REACTIVE ENERGY PHASE A
+		if(indeks>=24 && indeks<32)buffer[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks == 31)uint8Touint64(&energyReactiveA_uint, buffer8);
+		indeksAddress = 0;
+		// DECODE REACRIVE ENERGY PHASE B
+		if(indeks>=32 && indeks<40)buffer[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks == 39)uint8Touint64(&energyReactiveB_uint, buffer8);
+		indeksAddress = 0;
+		// DECODE REACTIVE ENERGY PHASE C
+		if(indeks>=40 && indeks<48)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks == 47)uint8Touint64(&energyReactiveC_uint, buffer8);
+		indeksAddress = 0;
+		// DECODE OFFSET VOLTAGE SUPER USER [HT7036]
+		if(indeks >= 48 && indek<50)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks == 49)offsetVolt_ht7036 = uint8ToUint16(buffer8[0], buffer8[1]);
+		// DECODE OFFSET CURRENT SUPER USER [HT7036]
+
+		// DECODE GAIN VOLTAGE SUPER USER [HT7036]
+		// DECODE GAIN CURRANT SUPER USER [HT7036]
+		// DECODE OFFSET VOLTAGEUSER [STM32]
+		// DECODE OFFSET CURRENT USER [STM32]
+		// DECODE GAIN VOLTAGE USER [STM32]
+		// DECODE GAIN CURRANT USER [STM32]
+
+
+	}
+}
+
+void eepromLoop(){
+	eepromTimerDelta = HAL_GetTick() - eepromTimer;
+	if(stateConfig || (eepromTimerDelta > 5000)){
+		eepromTimer = HAL_GetTick();
+
+		// RE-READING POWER METER FOR NEW CONFIG
+		powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
+		powerSplitValue();
+		phase=PHASE_RST;
+		stateConfig = 0;
+
+		// ENCODE DATA & WRITE EEPROM
+		eepromEncode(
+				energyActiveA,		energyActiveB,		energyActiveC,
+				energyReactiveA,	energyReactiveB,	energyReactiveC,
+				offsetVolt_ht7036,	offsetCurr_ht7036,	gainVolt_ht7036,	gainCurr_ht7036,
+				offsetVolt_stm32,	offsetCurr_stm32,	gainVolt_stm32,		gainCurr_stm32
+		);
+		for(uint8_t indeks1=0;indeks1<64;indeks1++){
+			if(ee24VirtualWrite(eepromBufferWrite[indeks1], 0, 1024) == TRIG_CLEAR){
+				for(uint8_t indeks2=0;indeks2<64;indeks2++)ee24VirtualWrite(eepromBufferWrite[indeks2], 0, 1024);
+				break;
+			}
+		}
+	}
+}
+
+/* ------------------group sensor---------------------
+* 0 >> active energy A (8 byte)
+* 8 >> active energy B (8 byte)
+* 16 >> active energy C (8 byte)
+* 24 >> reactive energy A (8 byte)
+* 32 >> reactive energy A (8 byte)
+* 40 >> reactive energy A (8 byte)
+* --------------group calibration---------------------
+* 48 >> offset Voltage super User (2 byte) >> HT7036
+* 50 >> offset current super user (2 byte) >> HT7036
+* 52 >> gain voltage super user (2 byte) >> HT7036
+* 54 >> gain current super user (2 byte) >> HT7036
+* 56 >> offset Voltage User (2 byte) >> STM32
+* 58 >> offset current user (2 byte) >> STM32
+* 60 >> gain voltage user (2 byte) >> STM32
+* 62 >> gain current user (2 byte) >> STM32
+*/
+void eepromEncode(
+			uint64_t energyActiveA,			// indeks 0 - 7
+			uint64_t energyActiveB,			// indeks 8 - 15
+			uint64_t energyActiveC,			// indeks 16 - 23
+			uint64_t energyReactiveA,		// indeks 24 - 31
+			uint64_t energyReactiveB,		// indeks 32 - 39
+			uint64_t energyReactiveC,		// indeks 40 - 47
+			uint16_t offsetVolt_ht7036,		// indeks 48 - 49
+			uint16_t offsetCurr_ht7036,		// indeks 50 - 51
+			uint16_t gainVolt_ht7036,		// indeks 52 - 53
+			uint16_t gainCurr_ht7036,		// indeks 54 - 55
+			uint16_t offsetVolt_stm32,		// indeks 56 - 57
+			uint16_t offsetCurr_stm32,		// indeks 58 - 59
+			uint16_t gainVolt_stm32,		// indeks 60 - 62
+			uint16_t gainCurr_stm32			// indeks 62 - 63
+		){
+	uint8_t buffer8[8];
+	uint8_t indeksBuffer=0;
+	// ENCCODE ENERGY ACTIVE A
+	uint64ToUint8(buffer8, energyActiveA);
+	for(uint8_t indeks=0;indeks<8;indeks++){eepromBufferWrite[indeks] = buffer8[indeksBuffer++];}
+	// ENCCODE ENERGY ACTIVE B
+	uint64ToUint8(buffer8, energyActiveB);
+	indeksBuffer = 0;
+	for(uint8_t indeks=8;indeks<16;indeks++){eepromBufferWrite[indeks] = buffer8[indeksBuffer++];}
+	// ENCCODE ENERGY ACTIVE C
+	uint64ToUint8(buffer8, energyActiveC);
+	indeksBuffer = 0;
+	for(uint8_t indeks=16;indeks<24;indeks++){eepromBufferWrite[indeks] = buffer8[indeksBuffer++];}
+	// ENCCODE ENERGY REACTIVE A
+	uint64ToUint8(buffer8, energyReactiveA);
+	indeksBuffer = 0;
+	for(uint8_t indeks=24;indeks<32;indeks++){eepromBufferWrite[indeks] = buffer8[indeksBuffer++];}
+	// ENCCODE ENERGY REACTIVE B
+	uint64ToUint8(buffer8, energyReactiveB);
+	indeksBuffer = 0;
+	for(uint8_t indeks=32;indeks<40;indeks++){eepromBufferWrite[indeks] = buffer8[indeksBuffer++];}
+	// ENCCODE ENERGY REACTIVE C
+	uint64ToUint8(buffer8, energyReactiveC);
+	indeksBuffer = 0;
+	for(uint8_t indeks=40;indeks<48;indeks++){eepromBufferWrite[indeks] = buffer8[indeksBuffer++];}
+	// ENCODE OFFSET VOLT HT3036
+	eepromBufferWrite[48] = byte16High(offsetVolt_ht7036);
+	eepromBufferWrite[49] = byte16Low(offsetVolt_ht7036);
+	// ENCODE OFFSET CURRENT  HT3036
+	eepromBufferWrite[50] = byte16High(offsetCurr_ht7036);
+	eepromBufferWrite[51] = byte16Low(offsetCurr_ht7036);
+	// ENCODE GAIN VOLT HT3036
+	eepromBufferWrite[52] = byte16High(gainVolt_ht7036);
+	eepromBufferWrite[53] = byte16Low(gainVolt_ht7036);
+	// ENCODE GAIN CURRENT  HT3036
+	eepromBufferWrite[54] = byte16High(gainCurr_ht7036);
+	eepromBufferWrite[55] = byte16Low(gainCurr_ht7036);
+	// ENCODE OFFSET VOLT STM32
+	eepromBufferWrite[56] = byte16High(offsetVolt_stm32);
+	eepromBufferWrite[57] = byte16Low(offsetVolt_stm32);
+	// ENCODE OFFSET CURRENT STM32
+	eepromBufferWrite[58] = byte16High(offsetCurr_stm32);
+	eepromBufferWrite[59] = byte16Low(offsetCurr_stm32);
+	// ENCODE GAIN VOLT STM32
+	eepromBufferWrite[60] = byte16High(gainVolt_stm32);
+	eepromBufferWrite[61] = byte16Low(gainVolt_stm32);
+	// ENCODE GAIN CURRENT  STM32
+	eepromBufferWrite[62] = byte16High(gainCurr_stm32);
+	eepromBufferWrite[63] = byte16Low(gainCurr_stm32);
 }
 
 void powerSplitValue(){
