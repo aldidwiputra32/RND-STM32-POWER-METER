@@ -642,7 +642,7 @@ void eepromLoad(){
 	for(uint8_t indeks=0;indeks<64;indeks++){
 		// DECODE ACTIVE ENERGY PHASE A >> valueuint64 [0];
 		if(indeks>=0 && indeks<8)buffer8[indeks] = eepromBufferRead[indeks];
-		if(indeks == 7)uint8Touint64(&energyActiveA, buffer8);
+		if(indeks == 7){uint8Touint64(&energyActiveA, buffer8);
 		indeksAddress = 0;
 		// DECODE ACTIVE ENERGY PHASE B
 		if(indeks>=8 && indeks<16)buffer[indeksAddress++] = eepromBufferRead[indeks];
@@ -665,16 +665,37 @@ void eepromLoad(){
 		if(indeks == 47)uint8Touint64(&energyReactiveC_uint, buffer8);
 		indeksAddress = 0;
 		// DECODE OFFSET VOLTAGE SUPER USER [HT7036]
-		if(indeks >= 48 && indek<50)buffer8[indeksAddress++] = eepromBufferRead[indeks];
-		if(indeks == 49)offsetVolt_ht7036 = uint8ToUint16(buffer8[0], buffer8[1]);
+		if(indeks>=48 && indek<50)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks==49)offsetVolt_ht7036 = uint8ToUint16(buffer8[0], buffer8[1]);
+		indeksAddress = 0;
 		// DECODE OFFSET CURRENT SUPER USER [HT7036]
-
+		if(indeks>=50 && indeks<52)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks==51)offsetCurr_ht7036 = uint8ToUint16(buffer8[0], buffer8[1]);
+		indeksAddress = 0;
 		// DECODE GAIN VOLTAGE SUPER USER [HT7036]
+		if(indeks>=52 && indeks<54)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks==53)gainVolt_ht7036 = uint8ToUint16(buffer8[0], buffer8[1]);
+		indeksAddress = 0;
 		// DECODE GAIN CURRANT SUPER USER [HT7036]
+		if(indeks>=54 && indeks<56)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks==55)gainCurr_ht7036 = uint8ToUint16(buffer8[0], buffer8[1]);
+		indeksAddress = 0;
 		// DECODE OFFSET VOLTAGEUSER [STM32]
+		if(indeks>=56 && indeks<58)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks==57)offsetVolt_stm32 = uint8ToUint16(buffer8[0], buffer8[1]);
+		indeksAddress = 0;
 		// DECODE OFFSET CURRENT USER [STM32]
+		if(indeks>=58 && indeks<60)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks==57)offsetCurr_stm32 = uint8ToUint16(buffer8[0], buffer8[1]);
+		indeksAddress = 0;
 		// DECODE GAIN VOLTAGE USER [STM32]
+		if(indeks>=60 && indeks<62)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks==61)gainVolt_stm32 = uint8ToUint16(buffer8[0], buffer8[1]);
+		indeksAddress = 0;
 		// DECODE GAIN CURRANT USER [STM32]
+		if(indeks>=62 && indeks<64)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks==63)gainCurr_stm32 = uint8ToUint16(buffer8[0], buffer8[1]);
+		indeksAddress = 0;
 
 
 	}
