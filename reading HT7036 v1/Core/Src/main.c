@@ -70,8 +70,8 @@ uint8_t addrSensor[] = {
 };
 
 uint8_t sizeSensor = sizeof(addrSensor)/sizeof(addrSensor[0]);
-uint32_t powerTimer = 0;
-uint32_t powerTimerDelta = 0;
+uint64_t powerTimer = 0;
+uint64_t powerTimerDelta = 0;
 uint32_t valueSensor[32];
 HAL_StatusTypeDef spiStatus[256];
 extern float HFconstVal;
@@ -96,6 +96,9 @@ float 	powerFactorA,		powerFactorB,		powerFactorC, 		powerFactorCombine;
 float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombine,
 		energyReactiveA,	energyReactiveB, 	energyReactiveC,	energyReactiveCombine;
 
+extern uint64_t energyModbus[8];
+extern double bufferEnergySUM[8];
+
 uint64_t 	energyActiveA_uint,		energyActiveB_uint, 		energyActiveC_uint,		energyActiveCombine_uint,
 			energyReactiveA_uint,	energyReactiveB_uint, 		energyReactiveC_uint,	energyReactiveCombine_uint;
 
@@ -111,6 +114,8 @@ uint16_t offsetVolt_ht7036,	offsetCurr_ht7036,	gainVolt_ht7036,	gainCurr_ht7036,
 		 offsetVolt_stm32,	offsetCurr_stm32,	gainVolt_stm32,		gainCurr_stm32;
 
 uint32_t powerApparentBitA,	powerApparentBitB,	powerApparentBitC;
+
+
 
 //------------------------- GROUP VARIABLE MODBUS ---------------------------------
 /* A. NOTE
@@ -221,6 +226,7 @@ uint32_t high = 0;
 uint32_t low = 1234;
 uint64_t data64 = 0;
 uint16_t test16;
+uint8_t test1024[1024];
 
 /* USER CODE END PV */
 
@@ -253,6 +259,7 @@ void powerCalibLoop();
 void powerSplitValue();
 void powerHandleCalib();
 void eepromLoop();
+void eepromLoad();
 
 /* USER CODE END PFP */
 
@@ -295,6 +302,11 @@ int main(void)
   MX_SPI1_Init();
   MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
+
+  // INIT & LOADING DATA FROM EEPROM EXTERNAL
+  ee24_init(&hi2c2, 0, 0, 0);
+  eepromLoad();
+
   // SETUP POWER METER
   powerMeterSetup();
 
@@ -317,17 +329,6 @@ int main(void)
   // START MODBUS HANDLE
   modbusReceive(&Modbus);
 
-  // INIT EEPROM EXTERNAL
-  ee24_init(&hi2c2, 0, 0, 0);
-
-
-  uint64_t test64;
-  uint8_t test8[8] = {0,0,0,0,7,91,205,21};
-
-  test16 = uint8ToUint16(test8[0], test8[1]);
-  uint8Touint64(&test64, test8);
-
-
 
   /* USER CODE END 2 */
 
@@ -349,7 +350,7 @@ int main(void)
 	  eepromLoop();
 	  modbusValueUpdateOld();
 	  powerCalibLoop();
-//	  powerDebug();
+	  powerDebug();
 	  HAL_Delay(1000);
     /* USER CODE END WHILE */
 
@@ -642,63 +643,111 @@ void eepromLoad(){
 	for(uint8_t indeks=0;indeks<64;indeks++){
 		// DECODE ACTIVE ENERGY PHASE A >> valueuint64 [0];
 		if(indeks>=0 && indeks<8)buffer8[indeks] = eepromBufferRead[indeks];
-		if(indeks == 7){uint8Touint64(&energyActiveA, buffer8);
-		indeksAddress = 0;
+		if(indeks == 7){
+			uint8Touint64(&energyActiveA_uint, buffer8);
+			if(energyActiveA_uint == 0)energyActiveA_uint = ENERGY_ACTIVE_A_DEF;
+			indeksAddress = 0;
+		}
 		// DECODE ACTIVE ENERGY PHASE B
-		if(indeks>=8 && indeks<16)buffer[indeksAddress++] = eepromBufferRead[indeks];
-		if(indeks == 15)uint8Touint64(&energyActiveB_uint, buffer8);
-		indeksAddress = 0;
+		if(indeks>=8 && indeks<16)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks == 15){
+			uint8Touint64(&energyActiveB_uint, buffer8);
+			if(energyActiveB_uint == 0)energyActiveB_uint = ENERGY_ACTIVE_B_DEF;
+			indeksAddress = 0;
+		}
 		// DECODE ACTIVE ENERGY PHASE C
-		if(indeks>=16 && indeks<24)buffer[indeksAddress++] = eepromBufferRead[indeks];
-		if(indeks == 23)uint8Touint64(&energyActiveC_uint, buffer8);
-		indeksAddress = 0;
+		if(indeks>=16 && indeks<24)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks == 23){
+			uint8Touint64(&energyActiveC_uint, buffer8);
+			if(energyActiveC_uint == 0)energyActiveC_uint = ENERGY_ACTIVE_C_DEF;
+			indeksAddress = 0;
+		}
 		// DECODE REACTIVE ENERGY PHASE A
-		if(indeks>=24 && indeks<32)buffer[indeksAddress++] = eepromBufferRead[indeks];
-		if(indeks == 31)uint8Touint64(&energyReactiveA_uint, buffer8);
-		indeksAddress = 0;
+		if(indeks>=24 && indeks<32)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks == 31){
+			uint8Touint64(&energyReactiveA_uint, buffer8);
+			if(energyReactiveA_uint == 0)energyReactiveA_uint = ENERGY_REACTIVE_A_DEF;
+			indeksAddress = 0;
+		}
 		// DECODE REACRIVE ENERGY PHASE B
-		if(indeks>=32 && indeks<40)buffer[indeksAddress++] = eepromBufferRead[indeks];
-		if(indeks == 39)uint8Touint64(&energyReactiveB_uint, buffer8);
-		indeksAddress = 0;
+		if(indeks>=32 && indeks<40)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks == 39){
+			uint8Touint64(&energyReactiveB_uint, buffer8);
+			if(energyReactiveB_uint == 0)energyReactiveB_uint = ENERGY_REACTIVE_B_DEF;
+			indeksAddress = 0;
+		}
 		// DECODE REACTIVE ENERGY PHASE C
 		if(indeks>=40 && indeks<48)buffer8[indeksAddress++] = eepromBufferRead[indeks];
-		if(indeks == 47)uint8Touint64(&energyReactiveC_uint, buffer8);
-		indeksAddress = 0;
+		if(indeks == 47){
+			uint8Touint64(&energyReactiveC_uint, buffer8);
+			if(energyReactiveC_uint == 0)energyReactiveC_uint = ENERGY_REACTIVE_C_DEF;
+			indeksAddress = 0;
+		}
 		// DECODE OFFSET VOLTAGE SUPER USER [HT7036]
-		if(indeks>=48 && indek<50)buffer8[indeksAddress++] = eepromBufferRead[indeks];
-		if(indeks==49)offsetVolt_ht7036 = uint8ToUint16(buffer8[0], buffer8[1]);
-		indeksAddress = 0;
+		if(indeks>=48 && indeks<50)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks==49){
+			offsetVolt_ht7036 = uint8ToUint16(buffer8[0], buffer8[1]);
+			if(offsetVolt_ht7036 == 0)offsetVolt_ht7036 = OFFSET_VOLT_HT_DEF;
+			indeksAddress = 0;
+		}
 		// DECODE OFFSET CURRENT SUPER USER [HT7036]
 		if(indeks>=50 && indeks<52)buffer8[indeksAddress++] = eepromBufferRead[indeks];
-		if(indeks==51)offsetCurr_ht7036 = uint8ToUint16(buffer8[0], buffer8[1]);
-		indeksAddress = 0;
+		if(indeks==51){
+			offsetCurr_ht7036 = uint8ToUint16(buffer8[0], buffer8[1]);
+			if(offsetCurr_ht7036 == 0)offsetCurr_ht7036 = OFFSET_CURR_HT_DEF;
+			indeksAddress = 0;
+		}
 		// DECODE GAIN VOLTAGE SUPER USER [HT7036]
 		if(indeks>=52 && indeks<54)buffer8[indeksAddress++] = eepromBufferRead[indeks];
-		if(indeks==53)gainVolt_ht7036 = uint8ToUint16(buffer8[0], buffer8[1]);
-		indeksAddress = 0;
+		if(indeks==53){
+			gainVolt_ht7036 = uint8ToUint16(buffer8[0], buffer8[1]);
+			if(gainVolt_ht7036 == 0)gainVolt_ht7036 = GAIN_VOLT_HT_DEF;
+			indeksAddress = 0;
+		}
 		// DECODE GAIN CURRANT SUPER USER [HT7036]
 		if(indeks>=54 && indeks<56)buffer8[indeksAddress++] = eepromBufferRead[indeks];
-		if(indeks==55)gainCurr_ht7036 = uint8ToUint16(buffer8[0], buffer8[1]);
-		indeksAddress = 0;
-		// DECODE OFFSET VOLTAGEUSER [STM32]
+		if(indeks==55){
+			gainCurr_ht7036 = uint8ToUint16(buffer8[0], buffer8[1]);
+			if(gainCurr_ht7036 == 0)gainCurr_ht7036 = GAIN_CURR_HT_DEF;
+			indeksAddress = 0;
+		}
+		// DECODE OFFSET VOLTAGE USER [STM32]
 		if(indeks>=56 && indeks<58)buffer8[indeksAddress++] = eepromBufferRead[indeks];
-		if(indeks==57)offsetVolt_stm32 = uint8ToUint16(buffer8[0], buffer8[1]);
-		indeksAddress = 0;
+		if(indeks==57){
+			offsetVolt_stm32 = uint8ToUint16(buffer8[0], buffer8[1]);
+			if(offsetVolt_stm32 == 0)offsetVolt_stm32 = OFFSET_VOLT_STM_DEF;
+			indeksAddress = 0;
+		}
 		// DECODE OFFSET CURRENT USER [STM32]
 		if(indeks>=58 && indeks<60)buffer8[indeksAddress++] = eepromBufferRead[indeks];
-		if(indeks==57)offsetCurr_stm32 = uint8ToUint16(buffer8[0], buffer8[1]);
-		indeksAddress = 0;
+		if(indeks==59){
+			offsetCurr_stm32 = uint8ToUint16(buffer8[0], buffer8[1]);
+			if(offsetCurr_stm32 == 0)offsetCurr_stm32 = OFFSET_CURR_STM_DEF;
+			indeksAddress = 0;}
 		// DECODE GAIN VOLTAGE USER [STM32]
 		if(indeks>=60 && indeks<62)buffer8[indeksAddress++] = eepromBufferRead[indeks];
-		if(indeks==61)gainVolt_stm32 = uint8ToUint16(buffer8[0], buffer8[1]);
-		indeksAddress = 0;
+		if(indeks==61){
+			gainVolt_stm32 = uint8ToUint16(buffer8[0], buffer8[1]);
+			if(gainVolt_stm32 == 0)gainVolt_stm32 = GAIN_VOLT_STM_DEF;
+			indeksAddress = 0;
+		}
 		// DECODE GAIN CURRANT USER [STM32]
 		if(indeks>=62 && indeks<64)buffer8[indeksAddress++] = eepromBufferRead[indeks];
-		if(indeks==63)gainCurr_stm32 = uint8ToUint16(buffer8[0], buffer8[1]);
-		indeksAddress = 0;
-
-
+		if(indeks==63){
+			gainCurr_stm32 = uint8ToUint16(buffer8[0], buffer8[1]);
+			if(gainCurr_stm32 == 0)gainCurr_stm32 = GAIN_CURR_STM_DEF;
+			indeksAddress = 0;
+		}
 	}
+	// SYNCRON FROM DATA EEPROM TO BUFFER ARRAY
+	bufferEnergySUM[0] = (double)energyActiveA_uint;
+	bufferEnergySUM[1] = (double)energyActiveB_uint;
+	bufferEnergySUM[2] = (double)energyActiveC_uint;
+	bufferEnergySUM[3] = (double)(energyActiveA_uint+energyActiveB_uint+energyActiveC_uint);
+	bufferEnergySUM[4] = (double)energyReactiveA_uint;
+	bufferEnergySUM[5] = (double)energyReactiveB_uint;
+	bufferEnergySUM[6] = (double)energyReactiveC_uint;
+	bufferEnergySUM[7] = (double)(energyReactiveA_uint+energyReactiveB_uint+energyReactiveC_uint);
 }
 
 void eepromLoop(){
@@ -714,10 +763,10 @@ void eepromLoop(){
 
 		// ENCODE DATA & WRITE EEPROM
 		eepromEncode(
-				energyActiveA,		energyActiveB,		energyActiveC,
-				energyReactiveA,	energyReactiveB,	energyReactiveC,
-				offsetVolt_ht7036,	offsetCurr_ht7036,	gainVolt_ht7036,	gainCurr_ht7036,
-				offsetVolt_stm32,	offsetCurr_stm32,	gainVolt_stm32,		gainCurr_stm32
+				energyActiveA_uint,		energyActiveB_uint,		energyActiveC_uint,
+				energyReactiveA_uint,	energyReactiveB_uint,	energyReactiveC_uint,
+				offsetVolt_ht7036,		offsetCurr_ht7036,		gainVolt_ht7036,		gainCurr_ht7036,
+				offsetVolt_stm32,		offsetCurr_stm32,		gainVolt_stm32,			gainCurr_stm32
 		);
 		for(uint8_t indeks1=0;indeks1<64;indeks1++){
 			if(ee24VirtualWrite(eepromBufferWrite[indeks1], 0, 1024) == TRIG_CLEAR){
@@ -813,16 +862,19 @@ void eepromEncode(
 }
 
 void powerSplitValue(){
-	rmsVoltageA = valueFloat[0];		rmsVoltageB = valueFloat[1];		rmsVoltageC = valueFloat[2];		rmsVoltageVector = valueFloat[3];
-	rmsCurrentA = valueFloat[4];		rmsCurrentB = valueFloat[5];		rmsCurrentC = valueFloat[6];		rmsCurrentVector = valueFloat[7];
-	powerActiveA = valueFloat[8];		powerActiveB = valueFloat[9];		powerActiveC = valueFloat[10];		PowerActiveCombine = valueFloat[11];
-	powerReactiveA = valueFloat[12];	powerReactiveB = valueFloat[13];	powerReactiveC = valueFloat[14];	powerReactiveCombine = valueFloat[15];
-	powerApparentA = valueFloat[16];	powerApparentB = valueFloat[17];	powerApparentC = valueFloat[18];	powerApparentCombine = valueFloat[19];
-	powerFactorA = valueFloat[20];		powerFactorB = valueFloat[21];		powerFactorC = valueFloat[22];		powerFactorCombine = valueFloat[23];
-	energyActiveA = valueFloat[24];		energyActiveB = valueFloat[25];		energyActiveC = valueFloat[26];		energyActiveCombine = valueFloat[27];
-	energyReactiveA = valueFloat[28];	energyReactiveB = valueFloat[29];	energyReactiveC = valueFloat[30];	energyReactiveCombine = valueFloat[31];
+	rmsVoltageA = valueFloat[0];			rmsVoltageB = valueFloat[1];			rmsVoltageC = valueFloat[2];		rmsVoltageVector = valueFloat[3];
+	rmsCurrentA = valueFloat[4];			rmsCurrentB = valueFloat[5];			rmsCurrentC = valueFloat[6];		rmsCurrentVector = valueFloat[7];
+	powerActiveA = valueFloat[8];			powerActiveB = valueFloat[9];			powerActiveC = valueFloat[10];		PowerActiveCombine = valueFloat[11];
+	powerReactiveA = valueFloat[12];		powerReactiveB = valueFloat[13];		powerReactiveC = valueFloat[14];	powerReactiveCombine = valueFloat[15];
+	powerApparentA = valueFloat[16];		powerApparentB = valueFloat[17];		powerApparentC = valueFloat[18];	powerApparentCombine = valueFloat[19];
+	powerFactorA = valueFloat[20];			powerFactorB = valueFloat[21];			powerFactorC = valueFloat[22];		powerFactorCombine = valueFloat[23];
+	energyActiveA = valueFloat[24];			energyActiveB = valueFloat[25];			energyActiveC = valueFloat[26];		energyActiveCombine = valueFloat[27];
+	energyReactiveA = valueFloat[28];		energyReactiveB = valueFloat[29];		energyReactiveC = valueFloat[30];	energyReactiveCombine = valueFloat[31];
 
-	powerApparentBitA = valueSensor[16];powerApparentBitB = valueSensor[17];powerApparentBitC = valueSensor[18];
+	energyActiveA_uint = energyModbus[0];	energyActiveB_uint = energyModbus[1];	energyActiveC_uint = energyModbus[2];
+	energyReactiveA_uint = energyModbus[4];	energyReactiveB_uint = energyModbus[5];	energyReactiveC_uint = energyModbus[6];
+
+	powerApparentBitA = valueSensor[16];	powerApparentBitB = valueSensor[17];	powerApparentBitC = valueSensor[18];
 
 	powerHandleCalib();
 }

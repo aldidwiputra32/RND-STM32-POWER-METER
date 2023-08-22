@@ -15,6 +15,7 @@ float ECVal = 0;
 float ECDef = 43.7;
 float bufferEnergy[8];
 double bufferEnergySUM[8];
+double bufferEnergyOffset[8];
 uint64_t energyModbus[8];
 
 extern float	gainVoltageA,		gainVoltageB,		gainVoltageC,
@@ -253,8 +254,8 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 		if(indeks>=24 && indeks<32){
 			handleAbsolute(&bufferEnergy[indeks-24]);
 			// CALCULATION MANUAL DATA SENSOR ENERGY => power*deltaSampling/3600000 >> all value must be uin64_t type variable
-			bufferEnergySUM[indeks-24] += (double)((float)bufferEnergy[indeks-24]*((float)powerTimerDelta/1000.00f)/3600.00f);  // watt hour
-			memcpy(&energyModbus[indeks-24], &bufferEnergySUM[indeks-24],sizeof(bufferEnergySUM[indeks-24]));
+			bufferEnergySUM[indeks-24] += (double)(bufferEnergy[indeks-24]*((float)powerTimerDelta/1000.00f)/3600.00f)*10000;  // watt hour
+			energyModbus[indeks-24] = (uint64_t)bufferEnergySUM[indeks-24];
 		}
 	}
 }
@@ -374,7 +375,7 @@ uint32_t powerSingleRecalib(uint8_t type, uint8_t addressWrite, uint32_t * dataS
 	return dataWrite;
 }
 
-void handleAbsolute(double * value){
+void handleAbsolute(float * value){
 	if(*value < 0){
 		*value = *value *(-1);
 	}
@@ -511,19 +512,19 @@ void powerDebug(){
 	memset(dataPrint, 0, sizeof(dataPrint));
 	serialPrint("\r\n------------Energy Active-----------\r\n", 40);
 	sprintf(dataPrint,"A=%0.6f(%lu)\r\nB=%0.6f(%lu)\r\nC=%0.6f(%lu)\r\nCombine=%0.6f(%lu)\r\n",
-				  bufferEnergySUM[0],energyModbus[24],
-				  bufferEnergySUM[1],energyModbus[25],
-				  bufferEnergySUM[2],energyModbus[26],
-				  bufferEnergySUM[3],energyModbus[27]
+				  bufferEnergySUM[0],energyModbus[0],
+				  bufferEnergySUM[1],energyModbus[1],
+				  bufferEnergySUM[2],energyModbus[2],
+				  bufferEnergySUM[3],energyModbus[3]
 		  );
 	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
 	memset(dataPrint, 0, sizeof(dataPrint));
 	serialPrint("\r\n------------Energy Reactive-----------\r\n", 40);
 	sprintf(dataPrint,"A=%0.6f(%lu)\r\nB=%0.6f(%lu)\r\nC=%0.6f(%lu)\r\nCombine=%0.6f(%lu)\r\n",
-				  bufferEnergySUM[4],energyModbus[28],
-				  bufferEnergySUM[5],energyModbus[29],
-				  bufferEnergySUM[6],energyModbus[30],
-				  bufferEnergySUM[7],energyModbus[31]
+				  bufferEnergySUM[4],energyModbus[4],
+				  bufferEnergySUM[5],energyModbus[5],
+				  bufferEnergySUM[6],energyModbus[6],
+				  bufferEnergySUM[7],energyModbus[7]
 		  );
 	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
 	memset(dataPrint, 0, sizeof(dataPrint));

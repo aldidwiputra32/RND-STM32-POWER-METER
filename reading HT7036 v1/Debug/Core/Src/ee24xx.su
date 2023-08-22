@@ -4,4 +4,4 @@
 ../Core/Src/ee24xx.c:76:6:ee24_write	48	static
 ../Core/Src/ee24xx.c:134:6:ee24_eraseChip	48	static
 ../Core/Src/ee24xx.c:150:9:ee24VirtualWrite	32	static
-../Core/Src/ee24xx.c:197:9:ee24VirtualRead	40	static
+../Core/Src/ee24xx.c:197:9:ee24VirtualRead	1048	static

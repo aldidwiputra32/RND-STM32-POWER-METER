@@ -1,4 +1,5 @@
 #include "ee24xx.h"
+#include "main.h"
 
 #if (_EEPROM_USE_FREERTOS == 1)
 #include "cmsis_os.h"
@@ -173,35 +174,16 @@ uint8_t ee24VirtualWrite(uint8_t data, uint16_t startAddr, uint16_t endAddr){
 		}
 	}
 	return statusFunc;
-//	uint64_t value = 0;
-//	while(1){
-//		memorySingleRead(flashAddrVirtual, &value);
-//		if(value == 0xffffffffffffffff){
-//			HAL_StatusTypeDef status;
-//			HAL_FLASH_Unlock();
-//			status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, flashAddrVirtual, data);
-//			HAL_FLASH_Lock();
-//			if(status == HAL_OK){
-//				break;
-//			}
-//		}else{
-//			flashAddrVirtual += 4;
-//			if(flashAddrVirtual > endAddr - 7 ){ // size per address 8 byte (DoubleWord)
-//				memoryReset(startAddr,endAddr);
-//				flashAddrVirtual = startAddr;
-//			}
-//		}
-//	}
 }
 
 uint8_t ee24VirtualRead(uint8_t * data, uint16_t startAddr, uint16_t endAddr, uint16_t address){
 	uint8_t statusRead = 0; // 0 = error, 1 = success
 	uint16_t startAddrScan = startAddr;
-	uint8_t valueBuffer = 0;
+	uint8_t valueBuffer[1024];
 	uint8_t valueBuffer1 = 0;
+	ee24_read(startAddrScan, (uint8_t*)valueBuffer, sizeof(valueBuffer), 100);
 	while(1){
-		ee24_read(startAddrScan, (uint8_t*)&valueBuffer, sizeof(valueBuffer), 100);
-		if(valueBuffer == 0xFF){
+		if(valueBuffer[startAddrScan] == 0xFF){
 			ee24AddrVirtual = startAddrScan - 64 + address;
 			if(ee24AddrVirtual < startAddr){
 				*data = 0xFFFF; // NULL Data
@@ -224,6 +206,28 @@ uint8_t ee24VirtualRead(uint8_t * data, uint16_t startAddr, uint16_t endAddr, ui
 	return statusRead;
 }
 
+
+void ee24Debug(){
+	uint8_t eepromBuffer[1024];
+	uint8_t dataPrint[300];
+	ee24_read(0, (uint8_t*)eepromBuffer, sizeof(eepromBuffer), 1000);
+	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port, MODBUS_En_Pin, GPIO_PIN_RESET);
+	sprintf(dataPrint,"\r\n=======EEPROM DEBUG=======\r\n");
+	HAL_UART_Transmit(&huart2, dataPrint, 40, 1000);
+	memset(dataPrint, 0, sizeof(dataPrint));
+	for(uint8_t indeks=0;indeks<128;indeks++){
+		uint8_t da
+		sprintf(dataPrint,"%d[%d], %d[%d], %d[%d], %d[%d], %d[%d], %d[%d], %d[%d], %d[%d]\r\n",
+				indeks++, indeks++, indeks++, indeks++, indeks++, indeks++, indeks++, indeks++
+		);
+		HAL_UART_Transmit(&huart2, &dataPrint, 30, 1000);
+		memset(dataPrint, 0, sizeof(dataPrint));
+	}
+
+}
+
+
+//----------------------------------------------------NOTE-----------------------------------------------------------------
 //
 //uint8_t dataAll[512];
 //ee24_eraseChip();
@@ -260,3 +264,19 @@ uint8_t ee24VirtualRead(uint8_t * data, uint16_t startAddr, uint16_t endAddr, ui
 //	  }
 //	  HAL_Delay(5000);
 //}
+//  for(;;){
+//	  eepromEncode(
+//			  test16++,test16++,test16++,test16++,test16++,test16++,test16++,
+//			  test16++,test16++,test16++,test16++,test16++,	test16++,test16++
+//	  );
+//	  for(uint8_t indeks1=0;indeks1<64;indeks1++){
+//		if(ee24VirtualWrite(eepromBufferWrite[indeks1], 0, 1024) == TRIG_CLEAR){
+//			for(uint8_t indeks2=0;indeks2<64;indeks2++)ee24VirtualWrite(eepromBufferWrite[indeks2], 0, 1024);
+//			break;
+//		}
+//	  }
+//
+//	  HAL_Delay(1000);
+//	  ee24_read(0, (uint8_t*)test1024,sizeof(test1024), 1000);
+//
+//  }
