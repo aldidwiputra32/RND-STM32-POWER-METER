@@ -304,6 +304,7 @@ int main(void)
 
   // INIT & LOADING DATA FROM EEPROM EXTERNAL
   ee24_init(&hi2c2, 0, 0, 0);
+
   eepromLoad();
 
   // SETUP POWER METER
@@ -631,9 +632,20 @@ void powerCalibLoop(){
 				if(addressModbus == 0x200C){gainCurrentC = (float)dataCalib16/1000;phase=PHASE_C;}
 			}
 		}
-		if(Modbus.functionCode == 0x10){
-			__NOP();
-		}else __NOP();
+//		if(Modbus.functionCode == 0x10){
+//			// --------------------------------------------------HANDLE RESET VALUE REGISTER[ENERGY]------------------------------------------------------------------
+//			// ACTIVE ENERGY
+//			if((addressModbus == 3517) || (addressModbus == 3521) || (addressModbus == 3525) || (addressModbus == 3203)){
+//				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
+//				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
+//
+//
+//			}
+//			// REACTIVE ENERGY
+//			if((addressModbus == 3529) || (addressModbus == 3533) || (addressModbus == 3537) || (addressModbus == 3219)){
+//
+//			}
+//		}else __NOP();
 		Modbus.trigState = 0;
 	}else __NOP();
 }
