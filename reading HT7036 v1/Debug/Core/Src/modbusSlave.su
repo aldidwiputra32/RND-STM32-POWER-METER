@@ -12,7 +12,7 @@
 ../Core/Src/modbusSlave.c:188:10:bytePack	0	static
 ../Core/Src/modbusSlave.c:190:6:modbusException	24	static
 ../Core/Src/modbusSlave.c:252:10:modbusGetIndeks	8	static
-../Core/Src/modbusSlave.c:98:6:modbusEncode	40	static
+../Core/Src/modbusSlave.c:98:6:modbusEncode	48	static
 ../Core/Src/modbusSlave.c:202:9:modbusCheck	16	static
 ../Core/Src/modbusSlave.c:239:9:modbusGetParam	8	static
 ../Core/Src/modbusSlave.c:40:6:HAL_UARTEx_RxEventCallback	8	static

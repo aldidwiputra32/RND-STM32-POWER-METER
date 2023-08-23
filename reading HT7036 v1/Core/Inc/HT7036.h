@@ -238,14 +238,14 @@
 #define ENERGY_REACTIVE_A_DEF	0
 #define ENERGY_REACTIVE_B_DEF	0
 #define ENERGY_REACTIVE_C_DEF	0
-#define OFFSET_VOLT_HT_DEF		0
-#define OFFSET_CURR_HT_DEF		0
-#define GAIN_VOLT_HT_DEF		0
-#define GAIN_CURR_HT_DEF		0
+#define OFFSET_VOLT_HT_DEF		8
+#define OFFSET_CURR_HT_DEF		7
+#define GAIN_VOLT_HT_DEF		62011
+#define GAIN_CURR_HT_DEF		33487
 #define OFFSET_VOLT_STM_DEF		0
 #define OFFSET_CURR_STM_DEF		0
-#define GAIN_VOLT_STM_DEF		0
-#define GAIN_CURR_STM_DEF		0
+#define GAIN_VOLT_STM_DEF		1000
+#define GAIN_CURR_STM_DEF		1000
 
 // -------------------------------PRIVATE VARIABLE--------------------------------------
 
@@ -269,7 +269,7 @@ void powerRestoreCalib();
 void handleAbsolute(float * value);
 void powerDebug();
 void powerCalibMode(uint8_t state);
-uint32_t powerSingleRecalib(uint8_t type, uint8_t addressWrite, uint32_t * dataSet, uint8_t addressRead, HAL_StatusTypeDef * status);
+uint32_t powerSingleRecalib(uint8_t type, uint8_t addressWrite, uint32_t * dataSet, uint8_t addressRead, HAL_StatusTypeDef * status, uint32_t dataOld);
 float coefPower(float hfconst, float ec);
 uint32_t floatToInt32(float * data);
 float int32ToFloat(uint32_t * data);

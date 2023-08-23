@@ -1,7 +1,7 @@
-../Core/Src/ee24xx.c:28:6:ee24_init	16	static
-../Core/Src/ee24xx.c:36:6:ee24_isConnected	8	static
-../Core/Src/ee24xx.c:45:6:ee24_read	40	static
-../Core/Src/ee24xx.c:76:6:ee24_write	48	static
-../Core/Src/ee24xx.c:134:6:ee24_eraseChip	48	static
-../Core/Src/ee24xx.c:150:9:ee24VirtualWrite	32	static
-../Core/Src/ee24xx.c:197:9:ee24VirtualRead	1048	static
+../Core/Src/ee24xx.c:30:6:ee24_init	16	static
+../Core/Src/ee24xx.c:38:6:ee24_isConnected	8	static
+../Core/Src/ee24xx.c:47:6:ee24_read	40	static
+../Core/Src/ee24xx.c:78:6:ee24_write	48	static
+../Core/Src/ee24xx.c:136:6:ee24_eraseChip	48	static
+../Core/Src/ee24xx.c:152:9:ee24VirtualWrite	32	static
+../Core/Src/ee24xx.c:180:9:ee24VirtualRead	1048	static

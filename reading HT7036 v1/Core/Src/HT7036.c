@@ -23,8 +23,23 @@ extern float	gainVoltageA,		gainVoltageB,		gainVoltageC,
 				offsetVoltageA, 	offsetVoltageB,		offsetVoltageC,
 				offsetCurrentA,		offsetCurrentB,		offsetCurrentC;
 
-extern uint16_t offsetVolt_ht7036,	offsetCurr_ht7036,	gainVolt_ht7036,	gainCurr_ht7036,
-				offsetVolt_stm32,	offsetCurr_stm32,	gainVolt_stm32,		gainCurr_stm32;
+extern uint64_t energyActiveA_uint;
+extern uint64_t energyActiveB_uint;
+extern uint64_t energyActiveC_uint;
+extern uint64_t energyActiveCombine_uint;
+extern uint64_t energyReactiveA_uint;
+extern uint64_t energyReactiveB_uint;
+extern uint64_t energyReactiveC_uint;
+extern uint64_t energyReactiveCombine_uint;
+
+extern uint16_t offsetVolt_ht7036;
+extern uint16_t offsetCurr_ht7036;
+extern uint16_t gainVolt_ht7036;
+extern uint16_t gainCurr_ht7036;
+extern uint16_t offsetVolt_stm32;
+extern uint16_t offsetCurr_stm32;
+extern uint16_t gainVolt_stm32;
+extern uint16_t gainCurr_stm32;
 
 void spiDisable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);}
 void spiEnable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);}
@@ -254,7 +269,7 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 		if(indeks>=24 && indeks<32){
 			handleAbsolute(&bufferEnergy[indeks-24]);
 			// CALCULATION MANUAL DATA SENSOR ENERGY => power*deltaSampling/3600000 >> all value must be uin64_t type variable
-			bufferEnergySUM[indeks-24] += (double)(bufferEnergy[indeks-24]*((float)powerTimerDelta/1000.00f)/3600.00f)*10000;  // watt hour
+			bufferEnergySUM[indeks-24] += (double)(bufferEnergy[indeks-24]*((float)powerTimerDelta/1000.00f)/3600.00f);  // watt hour
 			energyModbus[indeks-24] = (uint64_t)bufferEnergySUM[indeks-24];
 		}
 	}
@@ -355,8 +370,8 @@ void powerSingleCalib(uint8_t addressBuffer, uint32_t * dataSet, HAL_StatusTypeD
 	powerCalibMode(DISABLE);
 }
 
-uint32_t powerSingleRecalib(uint8_t type, uint8_t addressWrite, uint32_t * dataSet, uint8_t addressRead, HAL_StatusTypeDef * status){
-	uint32_t dataWrite, dataRaw;
+uint32_t powerSingleRecalib(uint8_t type, uint8_t addressWrite, uint32_t * dataSet, uint8_t addressRead, HAL_StatusTypeDef * status, uint32_t dataOld){
+	uint32_t dataWrite, dataRaw, buffer32;
 	// RESET PARAMETER CALIBRATION
 	dataWrite = 0;
 	powerSingleCalib(addressWrite, &dataWrite, status);
@@ -364,13 +379,19 @@ uint32_t powerSingleRecalib(uint8_t type, uint8_t addressWrite, uint32_t * dataS
 	// GETTING DATA SENSOR NON-CALIBRATION
 	dataRaw = spiRead24(addressRead);
 	if((type == VRMS_OFFSET) || (type == IRMS_OFFSET)){
-		dataWrite = powerCalculateCalib(type, dataRaw, 0);
-		if(*dataSet == 1)powerSingleCalib(addressWrite, &dataWrite, status);
-		else if(*dataSet > 1)powerSingleCalib(addressWrite, dataSet, status);
+		buffer32 = powerCalculateCalib(type, dataRaw, 0);
+		if(buffer32 != 0xffffffff){
+			dataWrite = buffer32;
+			if(*dataSet == 1)powerSingleCalib(addressWrite, &dataWrite, status);
+			else if(*dataSet > 1)powerSingleCalib(addressWrite, dataSet, status);
+		}else dataWrite = dataOld;
 	}
 	if((type == VRMS_GAIN) || (type == IRMS_GAIN)){
-		dataWrite = powerCalculateCalib(type, dataRaw, (float)*dataSet/100);
-		powerSingleCalib(addressWrite, &dataWrite, status);
+		buffer32 = powerCalculateCalib(type, dataRaw, (float)*dataSet/100);
+		if(buffer32 != 0xffffffff){
+			dataWrite = buffer32;
+			powerSingleCalib(addressWrite, &dataWrite, status);
+		}else dataWrite = dataOld;
 	}
 	return dataWrite;
 }
@@ -528,22 +549,23 @@ void powerDebug(){
 		  );
 	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
 	memset(dataPrint, 0, sizeof(dataPrint));
-//	serialPrint("\r\n------------Energy Buffer-----------\r\n", 40);
-//	sprintf(dataPrint,"A=%0.6f(%0.6f)\r\nB=%0.6f(%0.6f)\r\nC=%0.6f(%0.6f)\r\nCombine=%0.6f(%0.6f)\r\n",
-//				  bufferEnergy32[0],bufferEnergy32[1],
-//				  bufferEnergy32[2],bufferEnergy32[3],
-//				  bufferEnergy32[4],bufferEnergy32[5],
-//				  bufferEnergy32[6],bufferEnergy32[7]
-//		  );
-//	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
-//	memset(dataPrint, 0, sizeof(dataPrint));
+	serialPrint("\r\n------------READING EEPROM------------\r\n", 50);
+	sprintf(dataPrint,"\r\nact A=%lu\r\nact B=%lu\r\nact C=%lu\r\nrea A=%lu\r\nrea B=%lu\r\nrea C=%luoffVolt_HT=%d\r\noffcurrHT=%d\r\ngaivoltHT=%d\r\ngaicurrHT=%d\r\noffVolST=%d\r\noffCurrST=%d\r\ngaiVoltST=%d\r\ngaiCurrST=%d\r\n",
+			energyActiveA_uint,		energyActiveB_uint,		energyActiveC_uint,
+			energyReactiveA_uint,	energyReactiveB_uint,	energyReactiveC_uint,
+			offsetVolt_ht7036,		offsetCurr_ht7036,
+			gainVolt_ht7036,		gainCurr_ht7036,
+			offsetVolt_stm32,		offsetCurr_stm32,
+			gainVolt_stm32,			gainCurr_stm32
+	);
+	HAL_UART_Transmit(&huart2, dataPrint, 500, 100);
+	memset(dataPrint, 0, sizeof(dataPrint));
 	serialPrint("\r\n------------Else Sensor-----------\r\n", 40);
 	sprintf(dataPrint,"EC=%.6f\r\n",
 				  ECVal
 		  );
 	HAL_UART_Transmit(&huart2, dataPrint, 20, 100);
 	memset(dataPrint, 0, sizeof(dataPrint));
-
 
 	// DISABLE MODBUS
 	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_SET);

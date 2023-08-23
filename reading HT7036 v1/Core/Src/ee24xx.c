@@ -1,5 +1,6 @@
 #include "ee24xx.h"
 #include "main.h"
+#include "usart.h"
 
 #if (_EEPROM_USE_FREERTOS == 1)
 #include "cmsis_os.h"
@@ -206,29 +207,43 @@ uint8_t ee24VirtualRead(uint8_t * data, uint16_t startAddr, uint16_t endAddr, ui
 	return statusRead;
 }
 
-
-void ee24Debug(){
-	uint8_t eepromBuffer[1024];
-	uint8_t dataPrint[300];
-	ee24_read(0, (uint8_t*)eepromBuffer, sizeof(eepromBuffer), 1000);
-	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port, MODBUS_En_Pin, GPIO_PIN_RESET);
-	sprintf(dataPrint,"\r\n=======EEPROM DEBUG=======\r\n");
-	HAL_UART_Transmit(&huart2, dataPrint, 40, 1000);
-	memset(dataPrint, 0, sizeof(dataPrint));
-	for(uint8_t indeks=0;indeks<128;indeks++){
-		uint8_t da
-		sprintf(dataPrint,"%d[%d], %d[%d], %d[%d], %d[%d], %d[%d], %d[%d], %d[%d], %d[%d]\r\n",
-				indeks++, indeks++, indeks++, indeks++, indeks++, indeks++, indeks++, indeks++
-		);
-		HAL_UART_Transmit(&huart2, &dataPrint, 30, 1000);
-		memset(dataPrint, 0, sizeof(dataPrint));
-	}
-
-}
-
-
 //----------------------------------------------------NOTE-----------------------------------------------------------------
-//
+
+// FOR DEBUGGING EEPROM
+//HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_RESET);
+//serialPrint("\r\n------------READING EEPROM------------\r\n", 40);
+//uint8_t dataPrint[500];
+//sprintf(dataPrint,"act A=%d\r\nact B=%d\r\nact C=%d\r\nrea A=%d\r\nrea B=%d\r\nrea C=%doffVolt_HT=%d\r\noffcurrHT=%d\r\ngaivoltHT=%d\r\ngaicurrHT=%d\r\noffVolST=%d\r\noffCurrST=%d\r\ngaiVoltST=%d\r\ngaiCurrST=%d\r\n",
+//		energyActiveA_uint,		energyActiveB_uint,		energyActiveC_uint,
+//		energyReactiveA_uint,	energyReactiveB_uint,	energyReactiveC_uint,
+//		offsetVolt_ht7036,		offsetCurr_ht7036,
+//		gainVolt_ht7036,		gainCurr_ht7036,
+//		offsetVolt_stm32,		offsetCurr_stm32,
+//		gainVolt_stm32,			gainCurr_stm32
+//);
+//HAL_UART_Transmit(&huart2, dataPrint, 500, 100);
+//memset(dataPrint, 0, sizeof(dataPrint));
+//HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_SET);
+
+//void ee24Debug(){
+//	uint8_t eepromBuffer[1024];
+//	uint8_t dataPrint[300];
+//	ee24_read(0, (uint8_t*)eepromBuffer, sizeof(eepromBuffer), 1000);
+//	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port, MODBUS_En_Pin, GPIO_PIN_RESET);
+//	sprintf(dataPrint,"\r\n=======EEPROM DEBUG=======\r\n");
+//	HAL_UART_Transmit(&huart2, &dataPrint, 40, 1000);
+//	memset(dataPrint, 0, sizeof(dataPrint));
+//	uint8_t indeks1 = 0;
+//	for(uint8_t indeks=0;indeks<128;indeks++){
+//		sprintf(dataPrint,"%d[%d], %d[%d], %d[%d], %d[%d], %d[%d], %d[%d], %d[%d], %d[%d]\r\n",
+//				indeks1, eepromBuffer[indeks1++], indeks1, eepromBuffer[indeks1++], indeks1, eepromBuffer[indeks1++], indeks1, eepromBuffer[indeks1++],
+//				indeks1, eepromBuffer[indeks1++], indeks1, eepromBuffer[indeks1++], indeks1, eepromBuffer[indeks1++], indeks1, eepromBuffer[indeks1++]
+//		);
+//		HAL_UART_Transmit(&huart2, &dataPrint, 30, 1000);
+//		memset(dataPrint, 0, sizeof(dataPrint));
+//	}
+//	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port, MODBUS_En_Pin, GPIO_PIN_SET);
+//}
 //uint8_t dataAll[512];
 //ee24_eraseChip();
 //for(;;);
@@ -279,4 +294,4 @@ void ee24Debug(){
 //	  HAL_Delay(1000);
 //	  ee24_read(0, (uint8_t*)test1024,sizeof(test1024), 1000);
 //
-//  }
+//  }s
