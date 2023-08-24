@@ -1,4 +1,4 @@
-../Core/Src/modbusSlave.c:15:6:ModbusBegin	16	static
+../Core/Src/modbusSlave.c:15:6:ModbusBegin	20	static
 ../Core/Src/modbusSlave.c:28:6:modbusReceive	8	static
 ../Core/Src/modbusSlave.c:34:6:modbusTransmit	8	static
 ../Core/Src/modbusSlave.c:58:6:HAL_UART_TxCpltCallback	8	static

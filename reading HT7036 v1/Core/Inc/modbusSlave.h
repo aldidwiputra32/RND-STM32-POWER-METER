@@ -48,7 +48,7 @@ uint8_t byteLow(uint16_t buf);
 uint16_t modbusGetIndeks(uint16_t * arr, uint16_t data, uint16_t size);
 void ModbusEncodeAddCRC(MODBUS * Modbus, uint8_t * data, uint8_t size);
 void modbusEncodeAssemble(uint8_t * data, uint8_t * indeksTarget, uint8_t * value, int size);
-void ModbusBegin(MODBUS *modbus, UART_HandleTypeDef * huart, int trigState, uint8_t slaveAddrSlave, uint8_t slaveAddrSlaveSecond, uint16_t * holdingRegisterAddress, uint16_t * holdingRegisterValue, uint16_t * holdingRegisterSize, GPIO_TypeDef * gpioPort, uint16_t gpioPin);
+void ModbusBegin(MODBUS *modbus, UART_HandleTypeDef * huart, int trigState, uint8_t slaveAddrSlave, uint8_t slaveAddrSlaveSecond, uint16_t * holdingRegisterAddress, uint16_t * holdingRegisterValue, uint16_t holdingRegisterSize, GPIO_TypeDef * gpioPort, uint16_t gpioPin);
 void modbusReceive(MODBUS * Modbus);
 void modbusTransmit(MODBUS * Modbus);
 int modbusHandlSetSlaveAddr(MODBUS * Modbus);

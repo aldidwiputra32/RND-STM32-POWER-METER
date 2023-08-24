@@ -5,7 +5,6 @@
 extern uint32_t valueSensor[32];
 extern float valueFloat[32];
 extern uint64_t powerTimerDelta;
-uint64_t valueUint64[8];
 uint8_t dataPrint[1100];
 float HFconstVal;
 float ECValA = 0;
@@ -22,6 +21,7 @@ extern float	gainVoltageA,		gainVoltageB,		gainVoltageC,
 				gainCurrentA,		gainCurrentB,		gainCurrentC,
 				offsetVoltageA, 	offsetVoltageB,		offsetVoltageC,
 				offsetCurrentA,		offsetCurrentB,		offsetCurrentC;
+extern float 	rmsVoltageAB,		rmsVoltageBC,		rmsVoltageCA;
 
 extern uint64_t energyActiveA_uint;
 extern uint64_t energyActiveB_uint;
@@ -510,6 +510,14 @@ void powerDebug(){
 				  valueFloat[1],valueSensor[1],
 				  valueFloat[2],valueSensor[2],
 				  valueFloat[3],valueSensor[3]
+	);
+	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+	memset(dataPrint, 0, sizeof(dataPrint));
+	serialPrint("\r\n------------Voltage RMS DIF-------------\r\n", 40);
+	sprintf(dataPrint,"AB=%.6f\r\nBC=%.6f\r\nCA=%.6F\r\n",
+				  rmsVoltageAB,
+				  rmsVoltageBC,
+				  rmsVoltageCA
 	);
 	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
 	memset(dataPrint, 0, sizeof(dataPrint));

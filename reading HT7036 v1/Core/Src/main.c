@@ -80,7 +80,6 @@ extern float ECDef;
 uint8_t stateConfig = 0;
 uint8_t phase = PHASE_RST;
 float valueFloat[32];
-extern uint64_t valueUint64[8];
 
 // POWER REGISTER
 float 	powerActiveA,		powerActiveB,		powerActiveC,		PowerActiveCombine,   // V x i x cos phi
@@ -95,6 +94,8 @@ float 	powerFactorA,		powerFactorB,		powerFactorC, 		powerFactorCombine;
 // ENERGY REGISTER
 float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombine,
 		energyReactiveA,	energyReactiveB, 	energyReactiveC,	energyReactiveCombine;
+
+float 	rmsVoltageAB,		rmsVoltageBC,		rmsVoltageCA;
 
 extern uint64_t energyModbus[8];
 extern double bufferEnergySUM[8];
@@ -187,7 +188,8 @@ uint16_t holdingRegisterAddress[] 	= 	{	3027,  3028,  3029,  3030,  3031,  3032,
 											0x3004													// gain current super user (2 byte) >> HT7036
 };
 											// VALUE REGISTER POWER SENSOR
-uint16_t holdingRegisterSize = (uint16_t)sizeof(holdingRegisterAddress)/sizeof(uint16_t);
+//uint16_t holdingRegisterSize = (uint16_t)sizeof(holdingRegisterAddress)/sizeof(uint16_t);
+uint16_t holdingRegisterSize = 121;
 uint16_t holdingRegisterValue[121]	= {0};
 extern uint16_t addressModbus;
 
@@ -303,6 +305,22 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   // INIT & LOADING DATA FROM EEPROM EXTERNAL
+  // MODBUS SETUP
+  ModbusBegin(
+		  &Modbus,
+		  &huart2,
+		  0,
+		  0x00,
+		  0x01,
+		  holdingRegisterAddress,
+		  holdingRegisterValue,
+		  holdingRegisterSize,
+		  MODBUS_En_GPIO_Port,
+		  MODBUS_En_Pin
+  );
+  // START MODBUS HANDLE
+  modbusReceive(&Modbus);
+
   ee24_init(&hi2c2, 0, 0, 0);
 
   eepromLoad();
@@ -313,21 +331,6 @@ int main(void)
   // INITIAL TIMER SAMPLING POWER & EEPROM
   powerTimer = eepromTimer = HAL_GetTick();
 
-  // MODBUS SETUP
-  ModbusBegin(
-		  &Modbus,
-		  &huart2,
-		  0,
-		  0x00,
-		  0x01,
-		  holdingRegisterAddress,
-		  holdingRegisterValue,
-		  &holdingRegisterSize,
-		  MODBUS_En_GPIO_Port,
-		  MODBUS_En_Pin
-  );
-  // START MODBUS HANDLE
-  modbusReceive(&Modbus);
 
   /* USER CODE END 2 */
 
@@ -417,15 +420,19 @@ void powerMeterSetup(){
 			  w_IgainC
 	};
 	uint32_t addressData[] = {
+			  // OFFSET CURRENT HT7036
 			  offsetCurr_ht7036,
 			  offsetCurr_ht7036,
 			  offsetCurr_ht7036,
+			  // GAIN CURRENT HT7036
 			  offsetVolt_ht7036,
 			  offsetVolt_ht7036,
 			  offsetVolt_ht7036,
+			  // GAIN VOLTAGE HT7036
 			  gainVolt_ht7036,
 			  gainVolt_ht7036,
 			  gainVolt_ht7036,
+			  // GAIN CURRENT HT7036
 			  gainCurr_ht7036,
 			  gainCurr_ht7036,
 			  gainCurr_ht7036,
@@ -490,32 +497,30 @@ void modbusValueUpdateOld(){
 			Modbus.holdingRegisterValue[address++] = byteLow;
 		}
 		if(indeks>=24 && indeks<32){
-			bufferUnsign64 = valueUint64[indeks-24];
+			bufferUnsign64 = energyModbus[indeks-24];
 			Modbus.holdingRegisterValue[address++] = byte64High1(bufferUnsign64);
 			Modbus.holdingRegisterValue[address++] = byte64High2(bufferUnsign64);
 			Modbus.holdingRegisterValue[address++] = byte64Low1(bufferUnsign64);
 			Modbus.holdingRegisterValue[address++] = byte64Low2(bufferUnsign64);
 		}
-		// VOLTAGE DIFFERENTIAL GROUP
-		// TOTAL HARMONIC DISTORTION
-		if(indeks>=32){
-			bufferFloat = calcVoltDif(rmsVoltageA, rmsVoltageB);
-			bufferUnsign32 = floatToInt32(&bufferFloat);
-			Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
-			Modbus.holdingRegisterValue[address++] = byteLow32(bufferUnsign32);
-			bufferFloat = calcVoltDif(rmsVoltageB, rmsVoltageC);
-			bufferUnsign32 = floatToInt32(&bufferFloat);
-			Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
-			Modbus.holdingRegisterValue[address++] = byteLow32(bufferUnsign32);
-			bufferFloat = calcVoltDif(rmsVoltageC, rmsVoltageA);
-			bufferUnsign32 = floatToInt32(&bufferFloat);
-			Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
-			Modbus.holdingRegisterValue[address++] = byteLow32(bufferUnsign32);
-			for(uint8_t i=0;i<3;i++){
-				Modbus.holdingRegisterValue[address++] = 0;
-				Modbus.holdingRegisterValue[address++] = 0;
-			}
-		}
+	}
+	// VOLTAGE DIFFERENTIAL GROUP
+	// TOTAL HARMONIC DISTORTION
+	rmsVoltageAB = bufferFloat = calcVoltDif(rmsVoltageA, rmsVoltageB);
+	bufferUnsign32 = floatToInt32(&bufferFloat);
+	Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
+	Modbus.holdingRegisterValue[address++] = byteLow32(bufferUnsign32);
+	rmsVoltageBC = bufferFloat = calcVoltDif(rmsVoltageB, rmsVoltageC);
+	bufferUnsign32 = floatToInt32(&bufferFloat);
+	Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
+	Modbus.holdingRegisterValue[address++] = byteLow32(bufferUnsign32);
+	rmsVoltageCA = bufferFloat = calcVoltDif(rmsVoltageC, rmsVoltageA);
+	bufferUnsign32 = floatToInt32(&bufferFloat);
+	Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
+	Modbus.holdingRegisterValue[address++] = byteLow32(bufferUnsign32);
+	for(uint8_t i=0;i<3;i++){
+		Modbus.holdingRegisterValue[address++] = 0;
+		Modbus.holdingRegisterValue[address++] = 0;
 	}
 }
 
@@ -632,20 +637,62 @@ void powerCalibLoop(){
 				if(addressModbus == 0x200C){gainCurrentC = (float)dataCalib16/1000;phase=PHASE_C;}
 			}
 		}
-//		if(Modbus.functionCode == 0x10){
-//			// --------------------------------------------------HANDLE RESET VALUE REGISTER[ENERGY]------------------------------------------------------------------
-//			// ACTIVE ENERGY
-//			if((addressModbus == 3517) || (addressModbus == 3521) || (addressModbus == 3525) || (addressModbus == 3203)){
-//				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
-//				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
-//
-//
-//			}
-//			// REACTIVE ENERGY
-//			if((addressModbus == 3529) || (addressModbus == 3533) || (addressModbus == 3537) || (addressModbus == 3219)){
-//
-//			}
-//		}else __NOP();
+		// --------------------------------------------------HANDLE RESET VALUE REGISTER[ENERGY]------------------------------------------------------------------
+		if(Modbus.functionCode == 0x10){
+			// GETTING DATA ENERGY
+			uint16_t buffer16[4],addressModbusBuffer,addressSlaveArray[4];
+			uint64_t buffer64;
+			if((addressModbus == 3517) || (addressModbus == 3521) || (addressModbus == 3525) || (addressModbus == 3203) || (addressModbus == 3529) || (addressModbus == 3533) || (addressModbus == 3537) || (addressModbus == 3219)){
+				stateConfig = Modbus.trigState;
+				addressModbusBuffer = addressModbus;
+				for(uint8_t i=0;i<4;i++){
+					addressSlaveArray[i] = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbusBuffer+i, Modbus.holdingRegisterSize);
+					buffer16[i] = Modbus.holdingRegisterValue[addressSlaveArray[i]];
+				}
+				uint8_t buffer8[8] = {
+						byte16High(buffer16[0]),
+						byte16Low(buffer16[0]),
+						byte16High(buffer16[1]),
+						byte16Low(buffer16[1]),
+						byte16High(buffer16[2]),
+						byte16Low(buffer16[2]),
+						byte16High(buffer16[3]),
+						byte16Low(buffer16[3]),
+				};
+				uint8Touint64(&buffer64, buffer8);
+
+
+				HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_RESET);
+				uint8_t print[100];
+				sprintf(print,"\r\nbuffer64:%lu\r\n",buffer64);
+				HAL_UART_Transmit(&huart2, print, 30, 100);
+				HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_SET);
+
+
+				// ACTIVE ENERGY
+				if(addressModbus == 3517){energyActiveA_uint = buffer64; bufferEnergySUM[0] = (double)energyActiveA_uint;}
+				if(addressModbus == 3521){energyActiveB_uint = buffer64; bufferEnergySUM[1] = (double)energyActiveB_uint;}
+				if(addressModbus == 3525){energyActiveC_uint = buffer64; bufferEnergySUM[2] =  (double)energyActiveC_uint;}
+				if(addressModbus == 3203){
+					energyActiveA_uint = (uint64_t)buffer64/3; bufferEnergySUM[0] = (double)energyActiveA_uint;
+					energyActiveB_uint = (uint64_t)buffer64/3; bufferEnergySUM[1] = (double)energyActiveB_uint;
+					energyActiveC_uint = (uint64_t)buffer64/3; bufferEnergySUM[2] = (double)energyActiveC_uint;
+					energyActiveCombine_uint = energyActiveA_uint + energyActiveB_uint + energyActiveC_uint;
+					bufferEnergySUM[3] = (double)energyActiveCombine_uint;
+				}
+				// 	REACTIVE ENERGY
+				if(addressModbus == 3529){energyReactiveA_uint = buffer64;bufferEnergySUM[4] = (double)energyReactiveA_uint;}
+				if(addressModbus == 3533){energyReactiveB_uint = buffer64; bufferEnergySUM[5] = (double)energyReactiveB_uint;}
+				if(addressModbus == 3537){energyReactiveC_uint = buffer64; bufferEnergySUM[6] = (double)energyReactiveC_uint;}
+				if(addressModbus == 3219){
+					energyReactiveA_uint = (uint64_t)buffer64/3; bufferEnergySUM[4] = (double)energyReactiveA_uint;
+					energyReactiveB_uint = (uint64_t)buffer64/3; bufferEnergySUM[5] = (double)energyReactiveB_uint;
+					energyReactiveC_uint = (uint64_t)buffer64/3; bufferEnergySUM[6] = (double)energyReactiveC_uint;
+					energyReactiveCombine_uint = energyReactiveA_uint + energyReactiveB_uint + energyReactiveC_uint;
+					bufferEnergySUM[7] = (double)energyReactiveCombine_uint;
+				}
+			}
+		}else __NOP();
 		Modbus.trigState = 0;
 	}else __NOP();
 }
@@ -769,8 +816,33 @@ void eepromLoad(){
 	offsetCurrent = (float)offsetCurr_stm32/1000;
 	gainVoltage = (float)gainVolt_stm32/1000;
 	gainCurrent = (float)gainCurr_stm32/1000;
+	// SYNCRON FROM DATA EEPROM TO MODBUS REGISTER
+	uint16_t addressSlave[3];
+	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x3001, Modbus.holdingRegisterSize);		// offset Voltage HT7036
+	Modbus.holdingRegisterValue[addressSlave[0]] = offsetVolt_ht7036;
+	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x3002, Modbus.holdingRegisterSize);		// offset Current HT7036
+	Modbus.holdingRegisterValue[addressSlave[0]] = offsetCurr_ht7036;
+	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x3003, Modbus.holdingRegisterSize);		// gain Voltage HT7036
+	Modbus.holdingRegisterValue[addressSlave[0]] = gainVolt_ht7036;
+	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x3004, Modbus.holdingRegisterSize);		// gain Current HT7036
+	Modbus.holdingRegisterValue[addressSlave[0]] = gainCurr_ht7036;
+	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x2001, Modbus.holdingRegisterSize);		// offset Voltage STM32
+	addressSlave[1] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x2002, Modbus.holdingRegisterSize);
+	addressSlave[2] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x2003, Modbus.holdingRegisterSize);
+	Modbus.holdingRegisterValue[addressSlave[0]] = Modbus.holdingRegisterValue[addressSlave[1]] = Modbus.holdingRegisterValue[addressSlave[2]] = offsetVolt_stm32;
+	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x2004, Modbus.holdingRegisterSize);		// offset Current STM32
+	addressSlave[1] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x2005, Modbus.holdingRegisterSize);
+	addressSlave[2] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x2006, Modbus.holdingRegisterSize);
+	Modbus.holdingRegisterValue[addressSlave[0]] = Modbus.holdingRegisterValue[addressSlave[1]] = Modbus.holdingRegisterValue[addressSlave[2]] = offsetCurr_stm32;
+	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x2007, Modbus.holdingRegisterSize);		// gain Voltage STM32
+	addressSlave[1] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x2008, Modbus.holdingRegisterSize);
+	addressSlave[2] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x2009, Modbus.holdingRegisterSize);
+	Modbus.holdingRegisterValue[addressSlave[0]] = Modbus.holdingRegisterValue[addressSlave[1]] = Modbus.holdingRegisterValue[addressSlave[2]] = gainVolt_stm32;
+	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x200A, Modbus.holdingRegisterSize);		// gain Current STM32
+	addressSlave[1] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x200B, Modbus.holdingRegisterSize);
+	addressSlave[2] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x200C, Modbus.holdingRegisterSize);
+	Modbus.holdingRegisterValue[addressSlave[0]] = Modbus.holdingRegisterValue[addressSlave[1]] = Modbus.holdingRegisterValue[addressSlave[2]] = gainCurr_stm32;
 
-//	powerDebug();
 }
 
 void eepromLoop(){
