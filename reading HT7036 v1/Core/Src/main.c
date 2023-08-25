@@ -647,7 +647,7 @@ void powerCalibLoop(){
 				addressModbusBuffer = addressModbus;
 				for(uint8_t i=0;i<4;i++){
 					addressSlaveArray[i] = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbusBuffer+i, Modbus.holdingRegisterSize);
-					buffer16[i] = Modbus.holdingRegisterValue[addressSlaveArray[i]];
+					buffer16[i] = Modbus.holdingRegisterValueRX[addressSlaveArray[i]];
 				}
 				uint8_t buffer8[8] = {
 						byte16High(buffer16[0]),
@@ -660,14 +660,6 @@ void powerCalibLoop(){
 						byte16Low(buffer16[3]),
 				};
 				uint8Touint64(&buffer64, buffer8);
-
-
-				HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_RESET);
-				uint8_t print[100];
-				sprintf(print,"\r\nbuffer64:%lu\r\n",buffer64);
-				HAL_UART_Transmit(&huart2, print, 30, 100);
-				HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_SET);
-
 
 				// ACTIVE ENERGY
 				if(addressModbus == 3517){energyActiveA_uint = buffer64; bufferEnergySUM[0] = (double)energyActiveA_uint;}

@@ -5,11 +5,11 @@ main.c:368:6:SystemClock_Config	3
 main.c:446:6:modbusValueUpdateNew	6
 main.c:480:6:modbusValueUpdateOld	4
 main.c:527:6:powerCalibLoop	52
-main.c:700:6:eepromLoad	50
-main.c:893:6:eepromEncode	1
-main.c:978:6:powerHandleCalib	17
-main.c:960:6:powerSplitValue	1
+main.c:692:6:eepromLoad	50
+main.c:885:6:eepromEncode	1
+main.c:970:6:powerHandleCalib	17
+main.c:952:6:powerSplitValue	1
 main.c:403:6:powerMeterSetup	1
-main.c:848:6:eepromLoop	3
+main.c:840:6:eepromLoop	3
 main.c:277:5:main	4
-main.c:1029:6:Error_Handler	1
+main.c:1021:6:Error_Handler	1

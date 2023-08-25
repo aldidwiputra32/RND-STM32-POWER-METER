@@ -34,6 +34,7 @@ typedef struct{
 	uint16_t holdingRegisterSize;
 	GPIO_TypeDef * enableGpioPort;
 	uint16_t enableGpioPin;
+	uint16_t * holdingRegisterValueRX;
 }MODBUS;
 
 //CALLBACK FUNCTION UART
@@ -48,7 +49,7 @@ uint8_t byteLow(uint16_t buf);
 uint16_t modbusGetIndeks(uint16_t * arr, uint16_t data, uint16_t size);
 void ModbusEncodeAddCRC(MODBUS * Modbus, uint8_t * data, uint8_t size);
 void modbusEncodeAssemble(uint8_t * data, uint8_t * indeksTarget, uint8_t * value, int size);
-void ModbusBegin(MODBUS *modbus, UART_HandleTypeDef * huart, int trigState, uint8_t slaveAddrSlave, uint8_t slaveAddrSlaveSecond, uint16_t * holdingRegisterAddress, uint16_t * holdingRegisterValue, uint16_t holdingRegisterSize, GPIO_TypeDef * gpioPort, uint16_t gpioPin);
+void ModbusBegin(MODBUS *modbus, UART_HandleTypeDef * huart, int trigState, uint8_t slaveAddrSlave, uint8_t slaveAddrSlaveSecond, uint16_t * holdingRegisterAddress, uint16_t * holdingRegisterValue, uint16_t * holdingRegisterSize, GPIO_TypeDef * gpioPort, uint16_t gpioPin);
 void modbusReceive(MODBUS * Modbus);
 void modbusTransmit(MODBUS * Modbus);
 int modbusHandlSetSlaveAddr(MODBUS * Modbus);
@@ -58,4 +59,5 @@ void modbusException(MODBUS * Modbus, uint8_t exceptionCode);
 uint8_t modbusGetParam(MODBUS * Modbus);
 void modbusEncode(MODBUS * Modbus);
 uint16_t bytePack(uint8_t dataHigh, uint8_t dataLow);
+void testing(MODBUS * Modbus);
 #endif

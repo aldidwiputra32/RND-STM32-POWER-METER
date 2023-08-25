@@ -1,5 +1,5 @@
 Core/Src/modbusSlave.o: ../Core/Src/modbusSlave.c \
- ../Core/Inc/modbusSlave.h ../Core/Inc/main.h \
+ ../Core/Src/modbusSlave.h ../Core/Inc/main.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h \
  ../Core/Inc/stm32f0xx_hal_conf.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_rcc.h \
@@ -29,9 +29,9 @@ Core/Src/modbusSlave.o: ../Core/Src/modbusSlave.c \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_spi_ex.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h \
- ../Core/Inc/usart.h ../Core/Inc/usart.h ../Core/Inc/main.h \
- ../Core/Inc/HT7036.h ../Core/Inc/spi.h
-../Core/Inc/modbusSlave.h:
+ ../Core/Inc/usart.h ../Core/Inc/main.h ../Core/Inc/HT7036.h \
+ ../Core/Inc/spi.h
+../Core/Src/modbusSlave.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h:
 ../Core/Inc/stm32f0xx_hal_conf.h:
@@ -62,7 +62,6 @@ Core/Src/modbusSlave.o: ../Core/Src/modbusSlave.c \
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_spi_ex.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h:
-../Core/Inc/usart.h:
 ../Core/Inc/usart.h:
 ../Core/Inc/main.h:
 ../Core/Inc/HT7036.h:

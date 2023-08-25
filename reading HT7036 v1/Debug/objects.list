@@ -1,3 +1,4 @@
+"./Core/Src/ButtonInterface.o"
 "./Core/Src/HT7036.o"
 "./Core/Src/dma.o"
 "./Core/Src/ee24xx.o"

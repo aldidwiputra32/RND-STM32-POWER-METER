@@ -8,11 +8,13 @@
 #include "main.h"
 #include "HT7036.h"
 #define MODBUS_HANDLE_RESPONS 0
+
 MODBUS Modbus;
 extern triggerTX;
 uint16_t addressModbus;
+uint16_t holdingRegisterValueRX[256];
 
-void ModbusBegin(MODBUS *modbus, UART_HandleTypeDef * huart, int trigState, uint8_t slaveAddrSlave, uint8_t slaveAddrSlaveSecond, uint16_t * holdingRegisterAddress, uint16_t * holdingRegisterValue, uint16_t holdingRegisterSize, GPIO_TypeDef * gpioPort, uint16_t gpioPin){
+void ModbusBegin(MODBUS *modbus, UART_HandleTypeDef * huart, int trigState, uint8_t slaveAddrSlave, uint8_t slaveAddrSlaveSecond, uint16_t * holdingRegisterAddress, uint16_t * holdingRegisterValue, uint16_t * holdingRegisterSize, GPIO_TypeDef * gpioPort, uint16_t gpioPin){
 	modbus->trigState = trigState;
 	modbus->huart = huart;
 	modbus->huartInstance = huart->Instance;
@@ -23,6 +25,7 @@ void ModbusBegin(MODBUS *modbus, UART_HandleTypeDef * huart, int trigState, uint
 	modbus->holdingRegisterSize = holdingRegisterSize;
 	modbus->enableGpioPort = gpioPort;
 	modbus->enableGpioPin = gpioPin;
+	modbus->holdingRegisterValueRX = holdingRegisterValueRX;
 }
 
 void modbusReceive(MODBUS * Modbus){
@@ -142,7 +145,7 @@ void modbusEncode(MODBUS * Modbus){
 		offsetByte = 7;
 		for(int indeks=0;indeks<Modbus->numReg;indeks++){
 			address = modbusGetIndeks(Modbus->holdingRegisterAddress, startAddressBuffer+indeks, Modbus->holdingRegisterSize);
-			Modbus->holdingRegisterValue[address] = bytePack(Modbus->dataRX[offsetByte++],Modbus->dataRX[offsetByte++]);
+			Modbus->holdingRegisterValueRX[indeks] = Modbus->holdingRegisterValue[address] = bytePack(Modbus->dataRX[offsetByte++],Modbus->dataRX[offsetByte++]);
 		}
 		uint8_t indeksTarget[] = {2,3,4,5};
 		uint8_t value[] = {
