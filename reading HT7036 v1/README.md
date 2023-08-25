@@ -21,44 +21,44 @@ Perangkat Monitoring Power 3 fase kompetibel protokol Modbus RTU
 
 | Address (HEX) | Address (DEC) | Description                     | Size   | State      |
 | ------------- | ------------- | ------------------------------- | ------ | ---------- |
-| BD3 - BD4     | 3027          | Voltage RMS A                   | 4 byte | Read       |
-| BD5 - BD6     | 3029          | Voltage RMS B                   | 4 byte | Read       |
-| BD7 - BD8     | 3031          | Voltage RMS C                   | 4 byte | Read       |
-| BDB - BDC     | 3035          | Voltage RMS Combine             | 4 byte | Read       |
-| BB7 - BB8     | 2999          | Current RMS A                   | 4 byte | Read       |
-| BB9 - BBA     | 3001          | Current RMS B                   | 4 byte | Read       |
-| BBB - BBC     | 3003          | Current RMS C                   | 4 byte | Read       |
-| BC1 - BC2     | 3009          | Current RMS Combine             | 4 byte | Read       |
-| BED - BEE     | 3053          | Active Power A                  | 4 byte | Read       |
-| BEF - BF0     | 3055          | Active Power B                  | 4 byte | Read       |
-| BF1 - BF2     | 3057          | Active Power C                  | 4 byte | Read       |
-| BF3 - BF4     | 3059          | Active Power Total              | 4 byte | Read       |
-| BF5 - BF6     | 3061          | Reactive Power A                | 4 byte | Read       |
-| BF7 - BF8     | 3063          | Reactive Power B                | 4 byte | Read       |
-| BF9 - BFA     | 3065          | Reactive Power C                | 4 byte | Read       |
-| BFB - BFC     | 3067          | Reactive Power Total            | 4 byte | Read       |
-| BFD - BFE     | 3069          | Apparent Power A                | 4 byte | Read       |
-| BFF - C00     | 3071          | Apparent Power B                | 4 byte | Read       |
-| C01 - C02     | 3073          | Apparent Power C                | 4 byte | Read       |
-| C03 - C04     | 3075          | Apparent Power Total            | 4 byte | Read       |
-| C05 - C06     | 3077          | Power Factor A                  | 4 byte | Read       |
-| C07 - C08     | 3079          | Power Factor B                  | 4 byte | Read       |
-| C09 - C0A     | 3081          | Power Factor C                  | 4 byte | Read       |
-| C0B - C0C     | 3083          | Power Factor Combine            | 4 byte | Read       |
-| DBD - DC0     | 3517          | Active Energy A                 | 8 Byte | Read/Write |
-| DC1 - DC4     | 3521          | Active Energy B                 | 8 Byte | Read/Write |
-| DC5 - DC8     | 3525          | Active Energy C                 | 8 Byte | Read/Write |
-| C83 - C86     | 3203          | Active Energy Total             | 8 Byte | Read       |
-| DC9 - DCC     | 3529          | Reactive Energy A               | 8 Byte | Read/Write |
-| DCD - DD0     | 3533          | Reactive Energy B               | 8 Byte | Read/Write |
-| DD1 - DD4     | 3537          | Reactive Energy C               | 8 Byte | Read/Write |
-| C93 - C96     | 3219          | Reactive Energy Total           | 8 Byte | Read       |
-| BCB - BCC     | 3019          | Voltage RMS AB                  | 4 byte | Read       |
-| BCD - BCE     | 3021          | Voltage RMS BC                  | 4 byte | Read       |
-| BCF - BD0     | 3023          | Voltage RMS CA                  | 4 byte | Read       |
-| 5351 - 5352   | 21329         | Total Harmonic Distortion A     | 4 byte | Read       |
-| 5353 - 5354   | 21331         | Total Harmonic Distortion B     | 4 byte | Read       |
-| 5355          | 21333         | Total Harmonic Distortion C     | 4 byte | Read       |
+| BD3 - BD4     | 3027 - 3028   | Voltage RMS A                   | 4 byte | Read       |
+| BD5 - BD6     | 3029 -3030    | Voltage RMS B                   | 4 byte | Read       |
+| BD7 - BD8     | 3031 - 3032   | Voltage RMS C                   | 4 byte | Read       |
+| BDB - BDC     | 3035 - 3036   | Voltage RMS Combine             | 4 byte | Read       |
+| BB7 - BB8     | 2999 - 3000   | Current RMS A                   | 4 byte | Read       |
+| BB9 - BBA     | 3001 - 3002   | Current RMS B                   | 4 byte | Read       |
+| BBB - BBC     | 3003 - 3004   | Current RMS C                   | 4 byte | Read       |
+| BC1 BC2       | 3009 - 3005   | Current RMS Combine             | 4 byte | Read       |
+| BED - BEE     | 3053 - 3054   | Active Power A                  | 4 byte | Read       |
+| BEF - BF0     | 3055 - 3056   | Active Power B                  | 4 byte | Read       |
+| BF1 - BF2     | 3057 - 3058   | Active Power C                  | 4 byte | Read       |
+| BF3 - BF4     | 3059 - 3060   | Active Power Total              | 4 byte | Read       |
+| BF5 - BF6     | 3061 - 3062   | Reactive Power A                | 4 byte | Read       |
+| BF7 - BF8     | 3063 - 3064   | Reactive Power B                | 4 byte | Read       |
+| BF9 - BFA     | 3065 - 3066   | Reactive Power C                | 4 byte | Read       |
+| BFB - BFC     | 3067 - 3068   | Reactive Power Total            | 4 byte | Read       |
+| BFD - BFE     | 3069 - 3070   | Apparent Power A                | 4 byte | Read       |
+| BFF - C00     | 3071  - 3072  | Apparent Power B                | 4 byte | Read       |
+| C01 - C02     | 3073 - 3074   | Apparent Power C                | 4 byte | Read       |
+| C03 - C04     | 3075 - 3076   | Apparent Power Total            | 4 byte | Read       |
+| C05 - C06     | 3077 - 3078   | Power Factor A                  | 4 byte | Read       |
+| C07 - C08     | 3079 - 3080   | Power Factor B                  | 4 byte | Read       |
+| C09 - C0A     | 3081 - 3082   | Power Factor C                  | 4 byte | Read       |
+| C0B - C0C     | 3083 - 3084   | Power Factor Combine            | 4 byte | Read       |
+| DBD - DC0     | 3517 - 3520   | Active Energy A                 | 8 Byte | Read/Write |
+| DC1 - DC4     | 3521 - 3524   | Active Energy B                 | 8 Byte | Read/Write |
+| DC5 - DC8     | 3525 - 3528   | Active Energy C                 | 8 Byte | Read/Write |
+| C83 - C86     | 3203 - 3206   | Active Energy Total             | 8 Byte | Read       |
+| DC9 - DCC     | 3529 - 3532   | Reactive Energy A               | 8 Byte | Read/Write |
+| DCD - DD0     | 3533 - 3536   | Reactive Energy B               | 8 Byte | Read/Write |
+| DD1 - DD4     | 3537 - 3540   | Reactive Energy C               | 8 Byte | Read/Write |
+| C93 - C96     | 3219 - 3222   | Reactive Energy Total           | 8 Byte | Read       |
+| BCB - BCC     | 3019 - 3020   | Voltage RMS AB                  | 4 byte | Read       |
+| BCD - BCE     | 3021 - 3022   | Voltage RMS BC                  | 4 byte | Read       |
+| BCF - BD0     | 3023 - 3024   | Voltage RMS CA                  | 4 byte | Read       |
+| 5351 - 5352   | 21329 - 21330 | Total Harmonic Distortion A     | 4 byte | Read       |
+| 5353 - 5354   | 21331 - 21332 | Total Harmonic Distortion B     | 4 byte | Read       |
+| 5355          | 21333 - 21334 | Total Harmonic Distortion C     | 4 byte | Read       |
 | 1000          | 4096          | Slave ID Modbus                 | 2 Byte | Read/Write |
 | 1001          | 4097          | Offset Voltage A HT7036         | 2 Byte | Read/Write |
 | 1002          | 4098          | Offset Voltage B HT7036         | 2 Byte | Read/Write |
