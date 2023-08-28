@@ -21,6 +21,7 @@
 #include "dma.h"
 #include "i2c.h"
 #include "spi.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -29,8 +30,7 @@
 #include "HT7036.h"
 #include "modbusSlave.h"
 #include "ee24xx.h"
-
-#include <stdio.h>
+#include "buttonInterface.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -230,12 +230,22 @@ uint64_t data64 = 0;
 uint16_t test16;
 uint8_t test1024[1024];
 
+//------------------------- GROUP VARIABLE BUTTON INTERFACE ---------------------------------
+
+uint8_t buttonAntiBounce = 0;
+extern uint8_t buttonStatus;
+extern uint8_t buttonTrigger;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-void serialPrint(char* text, uint8_t size){HAL_UART_Transmit(&huart2, (uint8_t*)text, size, 100);}
+void serialPrint(char* text, uint8_t size){
+	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_RESET);
+	HAL_UART_Transmit(&huart2, (uint8_t*)text, size, 100);
+	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_SET);
+}
 void powerMeterSetup();
 void eepromEncode(
 			uint64_t energyActiveA,			// indeks 0 - 7
@@ -302,6 +312,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_SPI1_Init();
   MX_I2C2_Init();
+  MX_TIM14_Init();
   /* USER CODE BEGIN 2 */
 
   // INIT & LOADING DATA FROM EEPROM EXTERNAL
@@ -320,8 +331,14 @@ int main(void)
   );
   // START MODBUS HANDLE
   modbusReceive(&Modbus);
+  uint8_t eepromTest = 123;
 
   ee24_init(&hi2c2, 0, 0, 0);
+
+  // RESET VALUE EEPROM BEGIN
+  //ee24_eraseChip();
+  //for(;;);
+  // RESET VALUE EEPROM END
 
   eepromLoad();
 
@@ -1010,6 +1027,46 @@ void powerHandleCalib(){
 	valueFloat[5] = rmsCurrentB;
 	valueFloat[6] = rmsCurrentC;
 	// MODIFY END
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef * htim){
+	if(htim == &htim14){
+		buttonAntiBounce = 0;
+		HAL_TIM_Base_Stop_IT(&htim14);
+	}
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIOPin){
+	// ANTI BOUNCING
+	if(buttonAntiBounce){
+		return;
+	}
+	// TRIGGER BUTTON
+	if((GPIOPin == GPIO_PIN_6) || (GPIOPin == GPIO_PIN_4) || (GPIOPin == GPIO_PIN_3) || (GPIOPin == GPIO_PIN_15)){
+		buttonAntiBounce = 1;
+		buttonTrigger=1;
+		HAL_TIM_Base_Start_IT(&htim14);
+		// BUTTON NEXT " >> "
+		if(GPIOPin == GPIO_PIN_6){
+			buttonStatus = BTN_NEXT;
+			serialPrint("NEXT\r\n", 6);
+		}
+		// BUTTON UP " ^ "
+		else if(GPIOPin == GPIO_PIN_4){
+			buttonStatus = BTN_UP;
+			serialPrint("UP\r\n", 4);
+		}
+		// BUTTON SET
+		else if(GPIOPin == GPIO_PIN_3){
+			buttonStatus = BTN_SET;
+			serialPrint("SET\r\n", 5);
+		}
+		// BUTTON ENTER
+		else if(GPIOPin == GPIO_PIN_15){
+			buttonStatus = BTN_ENTER;
+			serialPrint("ENTER\r\n", 7);
+		}
+	}
 }
 
 /* USER CODE END 4 */
