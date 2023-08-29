@@ -1,0 +1,4 @@
+../Core/Src/buttonInterface.c:136:9:convertRawBtnToFloat	24	static
+../Core/Src/buttonInterface.c:145:6:handleTreshold	0	static
+../Core/Src/buttonInterface.c:150:6:displayLoop	8	static
+../Core/Src/buttonInterface.c:14:6:menuLoop	24	static

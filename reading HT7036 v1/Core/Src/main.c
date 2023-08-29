@@ -233,18 +233,19 @@ uint8_t test1024[1024];
 //------------------------- GROUP VARIABLE BUTTON INTERFACE ---------------------------------
 
 uint8_t buttonAntiBounce = 0;
-extern uint8_t buttonStatus;
+extern uint16_t buttonStatus;
 extern uint8_t buttonTrigger;
-
+extern uint8_t menuLevel;
+extern uint8_t menuParam;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 void serialPrint(char* text, uint8_t size){
-	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_RESET);
+//	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_RESET);
 	HAL_UART_Transmit(&huart2, (uint8_t*)text, size, 100);
-	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_SET);
+//	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_SET);
 }
 void powerMeterSetup();
 void eepromEncode(
@@ -345,6 +346,8 @@ int main(void)
   // SETUP POWER METER
   powerMeterSetup();
 
+  valueSensor[0] = spiRead24(deviceId);
+
   // INITIAL TIMER SAMPLING POWER & EEPROM
   powerTimer = eepromTimer = HAL_GetTick();
 
@@ -369,6 +372,7 @@ int main(void)
 	  eepromLoop();
 	  modbusValueUpdateOld();
 	  powerCalibLoop();
+	  menuLoop();
 //	  powerDebug();
 	  HAL_Delay(1000);
     /* USER CODE END WHILE */
@@ -1031,6 +1035,21 @@ void powerHandleCalib(){
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef * htim){
 	if(htim == &htim14){
+		// SWITCH FROM DISPLAY MODE TO SETTING MODE
+		if(buttonStatus == BTN_NEXT){
+			uint8_t timerCount = 0;
+			uint32_t timer = HAL_GetTick();
+			while(HAL_GPIO_ReadPin(BTN_Next_GPIO_Port, BTN_Next_Pin) == GPIO_PIN_RESET){
+				if(HAL_GetTick()-timer >= 1000){
+					timerCount += 1;
+					timer = HAL_GetTick();
+				}
+				if(timerCount >= 3){
+					menuLevel = MENU_LEVEL_1;
+					buttonStatus = BTN_IDLE;
+				}
+			}
+		}
 		buttonAntiBounce = 0;
 		HAL_TIM_Base_Stop_IT(&htim14);
 	}
@@ -1042,27 +1061,27 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIOPin){
 		return;
 	}
 	// TRIGGER BUTTON
-	if((GPIOPin == GPIO_PIN_6) || (GPIOPin == GPIO_PIN_4) || (GPIOPin == GPIO_PIN_3) || (GPIOPin == GPIO_PIN_15)){
+	if((GPIOPin == BTN_Next_Pin) || (GPIOPin == BTN_Up_Pin) || (GPIOPin == BTN_Set_Pin) || (GPIOPin == BTN_Enter_Pin)){
 		buttonAntiBounce = 1;
 		buttonTrigger=1;
 		HAL_TIM_Base_Start_IT(&htim14);
 		// BUTTON NEXT " >> "
-		if(GPIOPin == GPIO_PIN_6){
+		if(GPIOPin == BTN_Next_Pin){
 			buttonStatus = BTN_NEXT;
 			serialPrint("NEXT\r\n", 6);
 		}
 		// BUTTON UP " ^ "
-		else if(GPIOPin == GPIO_PIN_4){
+		else if(GPIOPin == BTN_Up_Pin){
 			buttonStatus = BTN_UP;
 			serialPrint("UP\r\n", 4);
 		}
 		// BUTTON SET
-		else if(GPIOPin == GPIO_PIN_3){
+		else if(GPIOPin == BTN_Set_Pin){
 			buttonStatus = BTN_SET;
 			serialPrint("SET\r\n", 5);
 		}
 		// BUTTON ENTER
-		else if(GPIOPin == GPIO_PIN_15){
+		else if(GPIOPin == BTN_Enter_Pin){
 			buttonStatus = BTN_ENTER;
 			serialPrint("ENTER\r\n", 7);
 		}
