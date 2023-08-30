@@ -112,10 +112,10 @@ float 	offsetVoltageA = 0, offsetVoltageB = 0,	offsetVoltageC = 0,
 		offsetVoltage = 0,	offsetCurrent = 0;
 
 uint16_t offsetVolt_ht7036,	offsetCurr_ht7036,	gainVolt_ht7036,	gainCurr_ht7036,
-		 offsetVolt_stm32,	offsetCurr_stm32,	gainVolt_stm32,		gainCurr_stm32;
+		 offsetVolt_stm32,	offsetCurr_stm32,	gainVolt_stm32,		gainCurr_stm32,
+		 powerWiringType;
 
 uint32_t powerApparentBitA,	powerApparentBitB,	powerApparentBitC;
-
 
 
 //------------------------- GROUP VARIABLE MODBUS ---------------------------------
@@ -219,8 +219,8 @@ extern uint16_t addressModbus;
  * data Frame buffer(type:uint8_t[64 indeks array]) in EEPROM >> Based on table "group sensor & group calibration"
  */
 
-uint8_t eepromBufferRead[64];
-uint8_t eepromBufferWrite[64];
+uint8_t eepromBufferRead[68];
+uint8_t eepromBufferWrite[68];
 uint32_t eepromTimerDelta = 0;
 uint32_t eepromTimer = 0;
 
@@ -243,9 +243,9 @@ extern uint8_t menuParam;
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 void serialPrint(char* text, uint8_t size){
-//	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_RESET);
 	HAL_UART_Transmit(&huart2, (uint8_t*)text, size, 100);
-//	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_SET);
+	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_SET);
 }
 void powerMeterSetup();
 void eepromEncode(
@@ -262,7 +262,9 @@ void eepromEncode(
 			uint16_t offsetVolt_stm32,		// indeks 56 - 57
 			uint16_t offsetCurr_stm32,		// indeks 58 - 59
 			uint16_t gainVolt_stm32,		// indeks 60 - 62
-			uint16_t gainCurr_stm32			// indeks 62 - 63
+			uint16_t gainCurr_stm32,		// indeks 62 - 63
+			uint16_t slaveAddress,			// indeks 64 - 65
+			uint16_t wiringType				// indeks 66 - 67
 );
 uint16_t byteLow32(uint32_t buf){return (uint16_t)((buf & 0x0000FFFF));}
 uint16_t byteHigh32(uint32_t buf){return (uint16_t)((buf & 0xFFFF0000) >> 16);}
@@ -351,7 +353,6 @@ int main(void)
   // INITIAL TIMER SAMPLING POWER & EEPROM
   powerTimer = eepromTimer = HAL_GetTick();
 
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -369,10 +370,10 @@ int main(void)
 	  else if(powerApparentBitC > 10)ECVal = calcMeterConstant(powerApparentBitC, HFconstVal, rmsVoltageC*rmsCurrentC);
 	  else ECVal = ECDef;
 
-	  eepromLoop();
-	  modbusValueUpdateOld();
 	  powerCalibLoop();
 	  menuLoop();
+	  eepromLoop();
+	  modbusValueUpdateOld();
 //	  powerDebug();
 	  HAL_Delay(1000);
     /* USER CODE END WHILE */
@@ -716,7 +717,7 @@ void eepromLoad(){
 	// GET DATA FROM EEPROM EXTERNAL
 	ee24_read(0, (uint8_t*)eepromBufferRead, sizeof(eepromBufferRead), 1000);// for(uint8_t indeks=0;indeks<64;indeks++)ee24VirtualRead(&eepromBufferRead[indeks], 0, 1024, indeks);
 	// DECODE DATA
-	for(uint8_t indeks=0;indeks<64;indeks++){
+	for(uint8_t indeks=0;indeks<68;indeks++){
 		// DECODE ACTIVE ENERGY PHASE A >> valueuint64 [0];
 		if(indeks>=0 && indeks<8)buffer8[indeks] = eepromBufferRead[indeks];
 		if(indeks == 7){
@@ -814,6 +815,25 @@ void eepromLoad(){
 			if(gainCurr_stm32 == 0xFFFF)gainCurr_stm32 = GAIN_CURR_STM_DEF;
 			indeksAddress = 0;
 		}
+		// DECODE SLAVE ADDRESS MODBUS
+		if(indeks>=64 && indeks<66)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks==65){
+			uint16_t buffer16;
+			buffer16 = uint8ToUint16(buffer8[0], buffer8[1]);
+			if(buffer16 == 0xFFFF){
+				Modbus.slaveAddrSlaveSecond = SLAVEID_DEF;
+			}else{
+				Modbus.slaveAddrSlaveSecond = (uint8_t)buffer16;
+			}
+			indeksAddress = 0;
+		}
+		// DECPDE WIRING TYPE POWER
+		if(indeks>=66 && indeks<68)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks==67){
+			powerWiringType = uint8ToUint16(buffer8[0], buffer8[1]);
+			if(powerWiringType == 0xFFFF)powerWiringType = WIRING_TYPE_DEF;
+			indeksAddress = 0;
+		}
 	}
 	// SYNCRON FROM DATA EEPROM TO ENERGY[BUFFER ARRAY]
 	bufferEnergySUM[0] = (double)energyActiveA_uint;
@@ -871,10 +891,11 @@ void eepromLoop(){
 
 		// ENCODE DATA & WRITE EEPROM
 		eepromEncode(
-				energyActiveA_uint,		energyActiveB_uint,		energyActiveC_uint,
-				energyReactiveA_uint,	energyReactiveB_uint,	energyReactiveC_uint,
-				offsetVolt_ht7036,		offsetCurr_ht7036,		gainVolt_ht7036,		gainCurr_ht7036,
-				offsetVolt_stm32,		offsetCurr_stm32,		gainVolt_stm32,			gainCurr_stm32
+				energyActiveA_uint,				energyActiveB_uint,		energyActiveC_uint,
+				energyReactiveA_uint,			energyReactiveB_uint,	energyReactiveC_uint,
+				offsetVolt_ht7036,				offsetCurr_ht7036,		gainVolt_ht7036,		gainCurr_ht7036,
+				offsetVolt_stm32,				offsetCurr_stm32,		gainVolt_stm32,			gainCurr_stm32,
+				Modbus.slaveAddrSlaveSecond, 	powerWiringType
 		);
 		ee24_write(0, (uint8_t*)eepromBufferWrite, sizeof(eepromBufferWrite), 1000);
 		//for(uint8_t indeks1=0;indeks1<64;indeks1++){
@@ -886,22 +907,38 @@ void eepromLoop(){
 	}
 }
 
-/* ------------------group sensor---------------------
-* 0 >> active energy A (8 byte)
-* 8 >> active energy B (8 byte)
-* 16 >> active energy C (8 byte)
-* 24 >> reactive energy A (8 byte)
-* 32 >> reactive energy A (8 byte)
-* 40 >> reactive energy A (8 byte)
-* --------------group calibration---------------------
-* 48 >> offset Voltage super User (2 byte) >> HT7036
-* 50 >> offset current super user (2 byte) >> HT7036
-* 52 >> gain voltage super user (2 byte) >> HT7036
-* 54 >> gain current super user (2 byte) >> HT7036
-* 56 >> offset Voltage User (2 byte) >> STM32
-* 58 >> offset current user (2 byte) >> STM32
-* 60 >> gain voltage user (2 byte) >> STM32
-* 62 >> gain current user (2 byte) >> STM32
+/*
+--------------group sensor--------------
+
+| Address | Description               | size   |
+| ------- | ------------------------- | ------ |
+| 0       | active energy A           | 8 byte |
+| 8       | active energy B           | 8 byte |
+| 16      | active energy C           | 8 byte |
+| 24      | reactive energy A         | 8 byte |
+| 32      | reactive energy B         | 8 byte |
+| 40      | reactive energy C         | 8 byte |
+
+-------------group calibration------------------
+
+| Address | Description               | size   |
+| ------- | ------------------------- | ------ |
+| 48      | offset Voltage super User | 2 byte |
+| 50      | offset current super user | 2 byte |
+| 52      | gain voltage super user   | 2 byte |
+| 54      | gain current super user   | 2 byte |
+| 56      | offset Voltage User       | 2 byte |
+| 58      | offset current user       | 2 byte |
+| 60      | gain voltage user         | 2 byte |
+| 62      | gain current user         | 2 byte |
+
+-------group Other Sensor---------
+
+| Address | Description               | size   |
+| ------- | ------------------------- | ------ |
+| 64      | Slave ID                  | 2 byte |
+| 66      | Wiring type               | 2 byte |
+
 */
 void eepromEncode(
 			uint64_t energyActiveA,			// indeks 0 - 7
@@ -917,7 +954,9 @@ void eepromEncode(
 			uint16_t offsetVolt_stm32,		// indeks 56 - 57
 			uint16_t offsetCurr_stm32,		// indeks 58 - 59
 			uint16_t gainVolt_stm32,		// indeks 60 - 62
-			uint16_t gainCurr_stm32			// indeks 62 - 63
+			uint16_t gainCurr_stm32,		// indeks 62 - 63
+			uint16_t slaveAddress,			// indeks 64 - 65
+			uint16_t wiringType				// indeks 66 - 67
 		){
 	uint8_t buffer8[8];
 	uint8_t indeksBuffer=0;
@@ -968,6 +1007,13 @@ void eepromEncode(
 	// ENCODE GAIN CURRENT  STM32
 	eepromBufferWrite[62] = byte16High(gainCurr_stm32);
 	eepromBufferWrite[63] = byte16Low(gainCurr_stm32);
+	// ENCODE SLAVE ADDRESS MODBUS
+	eepromBufferWrite[64] = byte16High(slaveAddress);
+	eepromBufferWrite[65] = byte16Low(slaveAddress);
+	// WIRING TYPE
+	eepromBufferWrite[66] = byte16High(wiringType);
+	eepromBufferWrite[67] = byte16Low(wiringType);
+
 }
 
 void powerSplitValue(){
@@ -1039,7 +1085,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef * htim){
 		if(buttonStatus == BTN_NEXT){
 			uint8_t timerCount = 0;
 			uint32_t timer = HAL_GetTick();
-			while(HAL_GPIO_ReadPin(BTN_Next_GPIO_Port, BTN_Next_Pin) == GPIO_PIN_RESET){
+			while((HAL_GPIO_ReadPin(BTN_Next_GPIO_Port, BTN_Next_Pin) == GPIO_PIN_RESET) && (menuLevel == MENU_LEVEL_0)){
 				if(HAL_GetTick()-timer >= 1000){
 					timerCount += 1;
 					timer = HAL_GetTick();
@@ -1066,25 +1112,13 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIOPin){
 		buttonTrigger=1;
 		HAL_TIM_Base_Start_IT(&htim14);
 		// BUTTON NEXT " >> "
-		if(GPIOPin == BTN_Next_Pin){
-			buttonStatus = BTN_NEXT;
-			serialPrint("NEXT\r\n", 6);
-		}
+		if(GPIOPin == BTN_Next_Pin){buttonStatus = BTN_NEXT;}
 		// BUTTON UP " ^ "
-		else if(GPIOPin == BTN_Up_Pin){
-			buttonStatus = BTN_UP;
-			serialPrint("UP\r\n", 4);
-		}
+		else if(GPIOPin == BTN_Up_Pin){buttonStatus = BTN_UP;}
 		// BUTTON SET
-		else if(GPIOPin == BTN_Set_Pin){
-			buttonStatus = BTN_SET;
-			serialPrint("SET\r\n", 5);
-		}
+		else if(GPIOPin == BTN_Set_Pin){buttonStatus = BTN_SET;}
 		// BUTTON ENTER
-		else if(GPIOPin == BTN_Enter_Pin){
-			buttonStatus = BTN_ENTER;
-			serialPrint("ENTER\r\n", 7);
-		}
+		else if(GPIOPin == BTN_Enter_Pin){buttonStatus = BTN_ENTER;}
 	}
 }
 

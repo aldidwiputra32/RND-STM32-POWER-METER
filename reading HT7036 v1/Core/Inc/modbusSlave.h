@@ -3,15 +3,17 @@
 #include"main.h"
 #include "usart.h"
 
-#define MODBUS_OK 200
-#define ILLEGAL_FUNCTION 0x01
-#define ILLEGAL_DATA_ADDRESS 0x02
-#define ILLEGAL_DATA_VALUE 0x03
-#define ILLEGAL_DATA_CRC 0x04
-#define ILLEGAL_SLAVE_ID 0x05
-#define ACTION_READ 0
-#define ACTION_WRITE 1
-#define SIZE_DATA ((uint16_t)256)
+#define MODBUS_OK 				200
+#define ILLEGAL_FUNCTION 		0x01
+#define ILLEGAL_DATA_ADDRESS 	0x02
+#define ILLEGAL_DATA_VALUE 		0x03
+#define ILLEGAL_DATA_CRC 		0x04
+#define ILLEGAL_SLAVE_ID 		0x05
+#define ACTION_READ 			0
+#define ACTION_WRITE 			1
+#define SIZE_DATA 				((uint16_t)256)
+
+#define SLAVEID_DEF 			1
 
 typedef struct{
 	UART_HandleTypeDef * huart;
