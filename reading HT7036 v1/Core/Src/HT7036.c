@@ -557,17 +557,6 @@ void powerDebug(){
 		  );
 	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
 	memset(dataPrint, 0, sizeof(dataPrint));
-	serialPrint("\r\n------------READING EEPROM------------\r\n", 50);
-	sprintf(dataPrint,"\r\nact A=%lu\r\nact B=%lu\r\nact C=%lu\r\nrea A=%lu\r\nrea B=%lu\r\nrea C=%luoffVolt_HT=%d\r\noffcurrHT=%d\r\ngaivoltHT=%d\r\ngaicurrHT=%d\r\noffVolST=%d\r\noffCurrST=%d\r\ngaiVoltST=%d\r\ngaiCurrST=%d\r\n",
-			energyActiveA_uint,		energyActiveB_uint,		energyActiveC_uint,
-			energyReactiveA_uint,	energyReactiveB_uint,	energyReactiveC_uint,
-			offsetVolt_ht7036,		offsetCurr_ht7036,
-			gainVolt_ht7036,		gainCurr_ht7036,
-			offsetVolt_stm32,		offsetCurr_stm32,
-			gainVolt_stm32,			gainCurr_stm32
-	);
-	HAL_UART_Transmit(&huart2, dataPrint, 500, 100);
-	memset(dataPrint, 0, sizeof(dataPrint));
 	serialPrint("\r\n------------Else Sensor-----------\r\n", 40);
 	sprintf(dataPrint,"EC=%.6f\r\n",
 				  ECVal

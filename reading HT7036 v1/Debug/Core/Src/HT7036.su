@@ -36,4 +36,4 @@
 ../Core/Src/HT7036.c:466:10:uint32ToUint64	0	static
 ../Core/Src/HT7036.c:467:10:uint16ToUint32	0	static
 ../Core/Src/HT7036.c:468:10:uint8ToUint16	0	static
-../Core/Src/HT7036.c:472:6:powerDebug	104	static
+../Core/Src/HT7036.c:472:6:powerDebug	88	static

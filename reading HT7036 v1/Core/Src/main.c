@@ -185,7 +185,8 @@ uint16_t holdingRegisterAddress[] 	= 	{	3027,  3028,  3029,  3030,  3031,  3032,
 											0x3001,		 											// offset Voltage super User
 											0x3002, 												// offset current super user (2 byte) >> HT7036
 											0x3003, 												// gain voltage super user (2 byte) >> HT7036
-											0x3004													// gain current super user (2 byte) >> HT7036
+											0x3004,													// gain current super user (2 byte) >> HT7036
+											0x4001													// Wiring Type
 };
 											// VALUE REGISTER POWER SENSOR
 //uint16_t holdingRegisterSize = (uint16_t)sizeof(holdingRegisterAddress)/sizeof(uint16_t);
@@ -194,25 +195,39 @@ uint16_t holdingRegisterValue[121]	= {0};
 extern uint16_t addressModbus;
 
 //------------------------- GROUP VARIABLE EEPROM EXTERNAL 8K ---------------------------------
-/* NOTE
- * Have 64 pages each 16 bytes, and single address have 1 byte
- * Mapping Address EEPROM External
- * ------------------group sensor---------------------
- * 0 >> active energy A (8 byte)
- * 8 >> active energy B (8 byte)
- * 16 >> active energy C (8 byte)
- * 24 >> reactive energy A (8 byte)
- * 32 >> reactive energy B (8 byte)
- * 40 >> reactive energy c (8 byte)
- * --------------group calibration---------------------
- * 48 >> offset Voltage super User (2 byte) >> HT7036
- * 50 >> offset current super user (2 byte) >> HT7036
- * 52 >> gain voltage super user (2 byte) >> HT7036
- * 54 >> gain current super user (2 byte) >> HT7036
- * 56 >> offset Voltage User (2 byte) >> STM32
- * 58 >> offset current user (2 byte) >> STM32
- * 60 >> gain voltage user (2 byte) >> STM32
- * 62 >> gain current user (2 byte) >> STM32
+/*
+--------------group sensor--------------
+
+| Address | Description               | size   |
+| ------- | ------------------------- | ------ |
+| 0       | active energy A           | 8 byte |
+| 8       | active energy B           | 8 byte |
+| 16      | active energy C           | 8 byte |
+| 24      | reactive energy A         | 8 byte |
+| 32      | reactive energy B         | 8 byte |
+| 40      | reactive energy C         | 8 byte |
+
+-------------group calibration------------------
+
+| Address | Description               | size   |
+| ------- | ------------------------- | ------ |
+| 48      | offset Voltage super User | 2 byte |
+| 50      | offset current super user | 2 byte |
+| 52      | gain voltage super user   | 2 byte |
+| 54      | gain current super user   | 2 byte |
+| 56      | offset Voltage User       | 2 byte |
+| 58      | offset current user       | 2 byte |
+| 60      | gain voltage user         | 2 byte |
+| 62      | gain current user         | 2 byte |
+
+-------group Other Sensor---------
+
+| Address | Description               | size   |
+| ------- | ------------------------- | ------ |
+| 64      | Slave ID                  | 2 byte |
+| 66      | Wiring type               | 2 byte |
+
+
  * -------------schema write and read------------------
  * encode buffer(grouping data) >> 64 byte
  * decode buffer(split data)
@@ -224,12 +239,6 @@ uint8_t eepromBufferWrite[68];
 uint32_t eepromTimerDelta = 0;
 uint32_t eepromTimer = 0;
 
-uint32_t high = 0;
-uint32_t low = 1234;
-uint64_t data64 = 0;
-uint16_t test16;
-uint8_t test1024[1024];
-
 //------------------------- GROUP VARIABLE BUTTON INTERFACE ---------------------------------
 
 uint8_t buttonAntiBounce = 0;
@@ -237,15 +246,17 @@ extern uint16_t buttonStatus;
 extern uint8_t buttonTrigger;
 extern uint8_t menuLevel;
 extern uint8_t menuParam;
+extern uint8_t 	flagGetDataOld;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 void serialPrint(char* text, uint8_t size){
-	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_RESET);
+//	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_RESET);
 	HAL_UART_Transmit(&huart2, (uint8_t*)text, size, 100);
-	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_SET);
+//	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_SET);
 }
 void powerMeterSetup();
 void eepromEncode(
@@ -339,8 +350,8 @@ int main(void)
   ee24_init(&hi2c2, 0, 0, 0);
 
   // RESET VALUE EEPROM BEGIN
-  //ee24_eraseChip();
-  //for(;;);
+//  ee24_eraseChip();
+//  for(;;);
   // RESET VALUE EEPROM END
 
   eepromLoad();
@@ -658,6 +669,11 @@ void powerCalibLoop(){
 				if(addressModbus == 0x200B){gainCurrentB = (float)dataCalib16/1000;phase=PHASE_B;}
 				if(addressModbus == 0x200C){gainCurrentC = (float)dataCalib16/1000;phase=PHASE_C;}
 			}
+			else if(addressModbus == 0x4001){
+				stateConfig = Modbus.trigState;
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
+				powerWiringType = Modbus.holdingRegisterValue[addressSlave];
+			}
 		}
 		// --------------------------------------------------HANDLE RESET VALUE REGISTER[ENERGY]------------------------------------------------------------------
 		if(Modbus.functionCode == 0x10){
@@ -875,7 +891,22 @@ void eepromLoad(){
 	addressSlave[1] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x200B, Modbus.holdingRegisterSize);
 	addressSlave[2] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x200C, Modbus.holdingRegisterSize);
 	Modbus.holdingRegisterValue[addressSlave[0]] = Modbus.holdingRegisterValue[addressSlave[1]] = Modbus.holdingRegisterValue[addressSlave[2]] = gainCurr_stm32;
+	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x1000, Modbus.holdingRegisterSize);		// modbus slave id
+	Modbus.holdingRegisterValue[addressSlave[0]] = Modbus.slaveAddrSlaveSecond;
+	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x4001, Modbus.holdingRegisterSize);		// wiring Type
+	Modbus.holdingRegisterValue[addressSlave[0]] = powerWiringType;
 
+
+	uint8_t dataPrint[1100];
+	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port, MODBUS_En_Pin, GPIO_PIN_RESET);
+	serialPrint("\r\n----------EEPROM LOAD----------\r\n", 36);
+	sprintf(dataPrint,"\r\noffsetVoltSTM:%d, offsetCurrSTM:%d, gainVoltSTM:%d, gainCurrSTM:%d, WiringType:%d, slaveAddr:%d\r\noffsetVoltHT:%d, offsetCurrHT:%d, gainVoltHT:%d, gainCurrHT:%d\r\nActive:%lu, Reactive:%lu\r\n",
+			offsetVolt_stm32,offsetCurr_stm32,gainVolt_stm32,gainCurr_stm32,powerWiringType,Modbus.slaveAddrSlaveSecond,
+			offsetVolt_ht7036,offsetCurr_ht7036,gainVolt_ht7036,gainCurr_ht7036,
+			bufferEnergySUM[3],bufferEnergySUM[7]
+	);
+	HAL_UART_Transmit(&huart2, dataPrint, 500, 2000);
+	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port, MODBUS_En_Pin, GPIO_PIN_SET);
 }
 
 void eepromLoop(){
@@ -898,48 +929,9 @@ void eepromLoop(){
 				Modbus.slaveAddrSlaveSecond, 	powerWiringType
 		);
 		ee24_write(0, (uint8_t*)eepromBufferWrite, sizeof(eepromBufferWrite), 1000);
-		//for(uint8_t indeks1=0;indeks1<64;indeks1++){
-		//	if(ee24VirtualWrite(eepromBufferWrite[indeks1], 0, 1024) == TRIG_CLEAR){
-		//		for(uint8_t indeks2=0;indeks2<64;indeks2++)ee24VirtualWrite(eepromBufferWrite[indeks2], 0, 1024);
-		//		break;
-		//	}
-		//}
 	}
 }
 
-/*
---------------group sensor--------------
-
-| Address | Description               | size   |
-| ------- | ------------------------- | ------ |
-| 0       | active energy A           | 8 byte |
-| 8       | active energy B           | 8 byte |
-| 16      | active energy C           | 8 byte |
-| 24      | reactive energy A         | 8 byte |
-| 32      | reactive energy B         | 8 byte |
-| 40      | reactive energy C         | 8 byte |
-
--------------group calibration------------------
-
-| Address | Description               | size   |
-| ------- | ------------------------- | ------ |
-| 48      | offset Voltage super User | 2 byte |
-| 50      | offset current super user | 2 byte |
-| 52      | gain voltage super user   | 2 byte |
-| 54      | gain current super user   | 2 byte |
-| 56      | offset Voltage User       | 2 byte |
-| 58      | offset current user       | 2 byte |
-| 60      | gain voltage user         | 2 byte |
-| 62      | gain current user         | 2 byte |
-
--------group Other Sensor---------
-
-| Address | Description               | size   |
-| ------- | ------------------------- | ------ |
-| 64      | Slave ID                  | 2 byte |
-| 66      | Wiring type               | 2 byte |
-
-*/
 void eepromEncode(
 			uint64_t energyActiveA,			// indeks 0 - 7
 			uint64_t energyActiveB,			// indeks 8 - 15
@@ -1085,12 +1077,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef * htim){
 		if(buttonStatus == BTN_NEXT){
 			uint8_t timerCount = 0;
 			uint32_t timer = HAL_GetTick();
-			while((HAL_GPIO_ReadPin(BTN_Next_GPIO_Port, BTN_Next_Pin) == GPIO_PIN_RESET) && (menuLevel == MENU_LEVEL_0)){
+			while(HAL_GPIO_ReadPin(BTN_Next_GPIO_Port, BTN_Next_Pin) == GPIO_PIN_RESET){
 				if(HAL_GetTick()-timer >= 1000){
 					timerCount += 1;
 					timer = HAL_GetTick();
 				}
 				if(timerCount >= 3){
+					flagGetDataOld = 1;
 					menuLevel = MENU_LEVEL_1;
 					buttonStatus = BTN_IDLE;
 				}

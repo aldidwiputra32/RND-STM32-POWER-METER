@@ -8,11 +8,13 @@ uint8_t menuParam = MENU_WIRING_TYPE;
 uint8_t bufferCalib[4];
 
 static uint8_t	flagdataOld = 1;
-static uint8_t 	buttonSlaveID;
-static uint8_t 	buttonWiringType;
-static uint8_t 	buttonEnergyActive,		buttonEnergyReactive;
-static uint32_t paramLv1, 				paramLv2, 				paramLv3;
-static float 	buttonVoltageOffset,	buttonVoltageGain, 		buttonCurrentOffset, 	buttonCurrentGain;
+uint8_t 	flagGetDataOld = 0;
+uint8_t 	buttonSlaveID;
+uint8_t 	buttonWiringType;
+uint8_t 	buttonEnergyActive = 1;
+uint8_t 	buttonEnergyReactive = 1;
+uint32_t paramLv1, 				paramLv2, 				paramLv3;
+float 	buttonVoltageOffset,	buttonVoltageGain, 		buttonCurrentOffset, 	buttonCurrentGain;
 
 extern uint16_t offsetVolt_stm32,		offsetCurr_stm32,		gainVolt_stm32,			gainCurr_stm32;
 extern uint64_t	energyActiveA_uint,		energyActiveB_uint,		energyActiveC_uint,		energyActiveCombine_uint,
@@ -25,21 +27,22 @@ extern double bufferEnergySUM[8];
 void menuLoop(){
 	// STATE MACHINE PROCESSING
 	if(buttonTrigger){
-		// GET DATA FROM EEPROM DATA
-		buttonVoltageOffset = (float)offsetVolt_stm32/1000;
-		buttonCurrentOffset = (float)offsetCurr_stm32/1000;
-		buttonVoltageGain = (float)gainVolt_stm32/1000;
-		buttonCurrentGain = (float)gainCurr_stm32/1000;
+		if(flagGetDataOld){
+			// GET DATA FROM EEPROM DATA
+			buttonVoltageOffset = (float)offsetVolt_stm32/1000;
+			buttonCurrentOffset = (float)offsetCurr_stm32/1000;
+			buttonVoltageGain = (float)gainVolt_stm32/1000;
+			buttonCurrentGain = (float)gainCurr_stm32/1000;
 
-		buttonSlaveID = Modbus.slaveAddrSlaveSecond;
+			buttonSlaveID = Modbus.slaveAddrSlaveSecond;
 
-		buttonWiringType = (uint8_t)powerWiringType;
-		// ---------------------------------------STATE SETTING SAVE DATA-------------------------------------
-		if(buttonStatus == BTN_ENTER){
-			menuLevel = MENU_LEVEL_SAVE;
-			buttonStatus = BTN_IDLE;
+			buttonWiringType = (uint8_t)powerWiringType;
+
+			flagGetDataOld = 0;
 		}
-		else if(menuLevel == MENU_LEVEL_SAVE){
+
+		// ---------------------------------------STATE SETTING SAVE DATA-------------------------------------
+		if(menuLevel == MENU_LEVEL_SAVE){
 			if(buttonStatus == BTN_UP){
 				paramLv3++;
 				handleTreshold(&paramLv3, 2, 0);   // 0: CANCEL, 1: BACK, 2: SAVE
@@ -50,10 +53,10 @@ void menuLoop(){
 					powerWiringType = (uint16_t)buttonWiringType;
 
 					// GROUP CALIBRATION POWER
-					offsetVolt_stm32 = buttonVoltageOffset;
-					offsetCurr_stm32 = buttonCurrentOffset;
-					gainVolt_stm32 = buttonVoltageGain;
-					gainCurr_stm32 = buttonCurrentGain;
+					offsetVolt_stm32 = (uint16_t)(buttonVoltageOffset*1000);
+					offsetCurr_stm32 = (uint16_t)(buttonCurrentOffset*1000);
+					gainVolt_stm32 = (uint16_t)(buttonVoltageGain*1000);
+					gainCurr_stm32 = (uint16_t)(buttonCurrentGain*1000);
 
 					// GROUP MODBUS SLAVE ID
 					Modbus.slaveAddrSlaveSecond = buttonSlaveID;
@@ -67,7 +70,7 @@ void menuLoop(){
 						bufferEnergySUM[4] = bufferEnergySUM[5] = bufferEnergySUM[6] = bufferEnergySUM[7] = 0.00;
 						energyReactiveA_uint = energyReactiveB_uint = energyReactiveC_uint = energyReactiveCombine_uint = 0;
 					}
-
+					menuLevel = MENU_LEVEL_0;
 					// TRIGGER FOR SAVING DATA TO EEPROM
 					stateConfig = 1;
 				// ACTION CANCEL SETTING
@@ -87,7 +90,7 @@ void menuLoop(){
 			// BUTTON MANAGEMENT BEGIN
 			if(buttonStatus == BTN_UP){
 				paramLv1++;
-				handleTreshold(&paramLv1, 5, 0);
+				handleTreshold(&paramLv1, 4, 0);
 				buttonStatus = BTN_IDLE;
 			}else if(buttonStatus == BTN_NEXT){
 				if((paramLv1 == MENU_WIRING_TYPE) || (paramLv1 == MENU_MODBUS)){
@@ -96,9 +99,10 @@ void menuLoop(){
 					menuLevel = MENU_LEVEL_2;
 				}
 				buttonStatus = BTN_IDLE;
+			// ACTION FOR SAVING DATA
 			}else if(buttonStatus == BTN_ENTER){
-				// ACTION SAVING & SYNCRONIZE DATA
-
+				menuLevel = MENU_LEVEL_SAVE;
+				buttonStatus = BTN_IDLE;
 			}
 			// BUTTON MANAGEMENT END
 		// ---------------------------------------STATE SETTING LEVEL 2---------------------------------------
@@ -110,6 +114,9 @@ void menuLoop(){
 				buttonStatus = BTN_IDLE;
 			}else if(buttonStatus == BTN_NEXT){
 				menuLevel = MENU_LEVEL_3;
+				buttonStatus = BTN_IDLE;
+			}else if(buttonStatus == BTN_ENTER){
+				menuLevel = MENU_LEVEL_1;
 				buttonStatus = BTN_IDLE;
 			}
 			// BUTTON MANAGEMENT END
@@ -125,6 +132,9 @@ void menuLoop(){
 				if(buttonStatus == BTN_UP){
 					paramLv3++;
 					handleTreshold(&paramLv3, 1, 0);
+					buttonStatus = BTN_IDLE;
+				}else if(buttonStatus == BTN_ENTER){
+					menuLevel = MENU_LEVEL_1;
 					buttonStatus = BTN_IDLE;
 				}else if(buttonStatus == BTN_SET){
 					buttonWiringType = paramLv3;
@@ -158,6 +168,9 @@ void menuLoop(){
 						bufferCalibIndeks++;
 						handleTreshold(&bufferCalibIndeks, 3, 0);
 						buttonStatus = BTN_IDLE;
+					}else if(buttonStatus == BTN_ENTER){
+						menuLevel = MENU_LEVEL_2;
+						buttonStatus = BTN_IDLE;
 					}else if(buttonStatus == BTN_SET){
 						uint8_t state = 0;
 						if(paramLv1 == MENU_VOLTAGE){
@@ -170,6 +183,7 @@ void menuLoop(){
 						if(state){
 							menuLevel = MENU_LEVEL_1;
 							bufferCalibIndeks = 0;
+
 							flagdataOld = 1;
 							memset(bufferCalib, 0, sizeof(bufferCalib));
 						}else{
@@ -202,8 +216,10 @@ void menuLoop(){
 					buttonStatus = BTN_IDLE;
 				}else if(buttonStatus == BTN_SET){
 					// SAVE DATA SLAVE TO VARIABLE VOLATILE
-					buttonSlaveID = (bufferCalib[0]*100) + (bufferCalib[1]*10) + (bufferCalib[2]);
-					if(buttonSlaveID < 0xFF){
+					uint16_t buffer16;
+					buffer16 = (bufferCalib[0]*100) + (bufferCalib[1]*10) + (bufferCalib[2]);
+					if(buffer16 < 0xFF){
+						buttonSlaveID = (uint8_t)buffer16;
 						menuLevel = MENU_LEVEL_1;
 						bufferCalibIndeks = 0;
 						flagdataOld = 1;
@@ -212,12 +228,18 @@ void menuLoop(){
 						menuLevel = MENU_LEVEL_3;
 					}
 					paramLv3 = 0;
+				}else if(buttonStatus == BTN_ENTER){
+					menuLevel = MENU_LEVEL_1;
+					buttonStatus = BTN_IDLE;
 				}
 			// RESET ENERGY
 			}else if(paramLv1 == MENU_ENERGY){
 				if(buttonStatus == BTN_UP){
 					paramLv3++;
 					handleTreshold(&paramLv3, 1, 0); // 0: RESET, 1: NON-RESET
+					buttonStatus = BTN_IDLE;
+				}else if(buttonStatus == BTN_ENTER){
+					menuLevel = MENU_LEVEL_2;
 					buttonStatus = BTN_IDLE;
 				}else if(buttonStatus == BTN_SET){
 					// SAVE DATA SLAVE TO VARIABLE VOLATILE
@@ -230,7 +252,7 @@ void menuLoop(){
 				}
 			}
 		}
-		// displayLoop(menuLevel,paramLv1,paramLv2,paramLv3);
+		displayLoop(menuLevel,paramLv1,paramLv2,paramLv3);
 		buttonTrigger = 0;
 	}
 	// LEVEL DISPLAY
@@ -259,8 +281,10 @@ void handleTreshold(uint32_t * val, uint8_t max, uint8_t min){
 }
 
 void displayLoop(uint8_t level, uint8_t param1, uint8_t param2, uint8_t param3){
+	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_RESET);
 	// ---------------------------------------STATE SETTING LEVEL 1---------------------------------------
 	if(level == MENU_LEVEL_1){
+		serialPrint("\r\n----------MENU_LEVEL_1----------\r\n", 36);
 		if(param1 == MENU_WIRING_TYPE){
 			serialPrint("WIRINGTYPE\r\n", 12);
 		}else if(param1 == MENU_VOLTAGE){
@@ -274,6 +298,7 @@ void displayLoop(uint8_t level, uint8_t param1, uint8_t param2, uint8_t param3){
 		}
 	// ---------------------------------------STATE SETTING LEVEL 2---------------------------------------
 	}else if(level == MENU_LEVEL_2){
+		serialPrint("\r\n----------MENU_LEVEL_2----------\r\n", 36);
 		// DISPLAY CALIBRATION VOLTAGE
 		if(param1 == MENU_VOLTAGE){
 			if(param2 == SUBMENU_OFFSET){
@@ -301,6 +326,7 @@ void displayLoop(uint8_t level, uint8_t param1, uint8_t param2, uint8_t param3){
 	// ---------------------------------------STATE SETTING LEVEL 3---------------------------------------
 	}else if(level == MENU_LEVEL_3){
 		uint8_t dataPrint[1100];
+		serialPrint("\r\n----------MENU_LEVEL_2----------\r\n", 36);
 		// DISPLAY SET VALUE WIRING TYPE
 		if(param1 == MENU_WIRING_TYPE){
 			if(param3 == SUBMENU_N33){
@@ -341,7 +367,12 @@ void displayLoop(uint8_t level, uint8_t param1, uint8_t param2, uint8_t param3){
 			serialPrint(dataPrint, 50);
 		}
 	}else if(level == MENU_LEVEL_SAVE){
-		serialPrint("\r\nMENU_LEVEL_SAVE\r\n", 19);
+		uint8_t dataPrint[1100];
+		serialPrint("\r\n----------MENU_LEVEL_4----------\r\n", 36);
+		sprintf(dataPrint,"offsetVolt:%.2f, offsetCurr:%.2f, gainVolt:%.2f, gainCurr:%.2f, WiringType:%d, slaveAddr:%d",
+				buttonVoltageOffset,buttonCurrentOffset,buttonVoltageGain,buttonCurrentGain,buttonWiringType,buttonSlaveID
+		);
+		serialPrint(dataPrint, 700);
 		if(paramLv3 == SAVE){
 			serialPrint("\r\nSAVE\r\n", 8);
 		}
@@ -352,7 +383,20 @@ void displayLoop(uint8_t level, uint8_t param1, uint8_t param2, uint8_t param3){
 			serialPrint("\r\nCNCL\r\n", 8);
 		}
 	}
+	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_SET);
 }
+
+//// WIRING TYPE
+//					powerWiringType = (uint16_t)buttonWiringType;
+//
+//					// GROUP CALIBRATION POWER
+//					offsetVolt_stm32 = buttonVoltageOffset;
+//					offsetCurr_stm32 = buttonCurrentOffset;
+//					gainVolt_stm32 = buttonVoltageGain;
+//					gainCurr_stm32 = buttonCurrentGain;
+//
+//					// GROUP MODBUS SLAVE ID
+//					Modbus.slaveAddrSlaveSecond = buttonSlaveID;
 
 //uint8_t buttonStatus = 0;
 //uint8_t buttonAntiBounce = 0;
