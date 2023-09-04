@@ -262,6 +262,7 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 		if(indeks>=20 && indeks<24){
 			// FORMULA >> pwrFactor / 2 ^ 23
 			bufferSign = unsignToSign(&valueBuffer[indeks], BIT_SIZE_24);
+			handleAbsolute32(bufferSign);
 			valueFloat[indeks] = (float)bufferSign / 8388608;
 			HAL_Delay(10);
 		}
@@ -397,6 +398,12 @@ uint32_t powerSingleRecalib(uint8_t type, uint8_t addressWrite, uint32_t * dataS
 }
 
 void handleAbsolute(float * value){
+	if(*value < 0){
+		*value = *value *(-1);
+	}
+}
+
+void handleAbsolute32(int32_t * value){
 	if(*value < 0){
 		*value = *value *(-1);
 	}

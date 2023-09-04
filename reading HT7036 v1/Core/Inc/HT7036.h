@@ -289,5 +289,6 @@ uint64_t uint32ToUint64(uint32_t high, uint32_t low);
 uint32_t uint16ToUint32(uint16_t high, uint16_t low);
 uint16_t uint8ToUint16(uint8_t high, uint8_t low);
 void uint8Touint64(uint64_t * buffer, uint8_t * data);
+void handleAbsolute32(int32_t * value);
 
 #endif
