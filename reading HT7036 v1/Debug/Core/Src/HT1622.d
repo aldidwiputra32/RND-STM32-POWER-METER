@@ -1,4 +1,4 @@
-Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
+Core/Src/HT1622.o: ../Core/Src/HT1622.c ../Core/Inc/main.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h \
  ../Core/Inc/stm32f0xx_hal_conf.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_rcc.h \
@@ -29,13 +29,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim_ex.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h \
- ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h \
- ../Core/Inc/dma.h ../Core/Inc/main.h ../Core/Inc/i2c.h ../Core/Inc/spi.h \
- ../Core/Inc/tim.h ../Core/Inc/usart.h ../Core/Inc/gpio.h \
- ../Core/Inc/HT7036.h ../Core/Inc/spi.h ../Core/Inc/modbusSlave.h \
- ../Core/Inc/usart.h ../Core/Inc/ee24xx.h ../Core/Inc/buttonInterface.h \
- ../Core/Inc/gpio.h ../Core/Inc/tim.h ../Core/Inc/modbusSlave.h \
- ../Core/Inc/HT7036.h ../Core/Inc/HT1622.h
+ ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h
 ../Core/Inc/main.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h:
 ../Core/Inc/stm32f0xx_hal_conf.h:
@@ -68,21 +62,3 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim_ex.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h:
-../Core/Inc/dma.h:
-../Core/Inc/main.h:
-../Core/Inc/i2c.h:
-../Core/Inc/spi.h:
-../Core/Inc/tim.h:
-../Core/Inc/usart.h:
-../Core/Inc/gpio.h:
-../Core/Inc/HT7036.h:
-../Core/Inc/spi.h:
-../Core/Inc/modbusSlave.h:
-../Core/Inc/usart.h:
-../Core/Inc/ee24xx.h:
-../Core/Inc/buttonInterface.h:
-../Core/Inc/gpio.h:
-../Core/Inc/tim.h:
-../Core/Inc/modbusSlave.h:
-../Core/Inc/HT7036.h:
-../Core/Inc/HT1622.h:

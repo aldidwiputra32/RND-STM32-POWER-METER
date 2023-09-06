@@ -16,7 +16,7 @@
 ../Core/Src/HT7036.c:340:6:powerRestoreCalib	8	static
 ../Core/Src/HT7036.c:400:6:handleAbsolute	16	static
 ../Core/Src/HT7036.c:406:6:handleAbsolute32	0	static
-../Core/Src/HT7036.c:230:6:powerMultiReadSensor	56	static
+../Core/Src/HT7036.c:230:6:powerMultiReadSensor	64	static
 ../Core/Src/HT7036.c:412:6:powerCalibMode	8	static
 ../Core/Src/HT7036.c:346:6:powerMultiCalib	24	static
 ../Core/Src/HT7036.c:361:6:powerSingleCalib	16	static

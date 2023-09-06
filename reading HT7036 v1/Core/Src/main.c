@@ -31,6 +31,7 @@
 #include "modbusSlave.h"
 #include "ee24xx.h"
 #include "buttonInterface.h"
+#include "HT1622.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -234,6 +235,14 @@ extern uint16_t addressModbus;
  * data Frame buffer(type:uint8_t[64 indeks array]) in EEPROM >> Based on table "group sensor & group calibration"
  */
 
+//------------------------- GROUP VARIABLE DISPLAY 7-SEGMENT ---------------------------------
+uint8_t ht1622VAL[3][3] = {
+		{1,2,3},
+		{2,4,6},
+		{3,6,9}
+};
+
+
 uint8_t eepromBufferRead[68];
 uint8_t eepromBufferWrite[68];
 uint32_t eepromTimerDelta = 0;
@@ -370,6 +379,15 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
+	  uint8_t bufferLcd=0;
+	  for(uint8_t indeks=0;indeks<3;indeks++){
+		  for(uint8_t indeks1=0;indeks1<3;indeks1++){
+			  bufferLcd = ht1622VAL[indeks][indeks1]*1;
+			  bufferLcd = bufferLcd*1;
+		  }
+	  }
+
 	  powerTimerDelta = HAL_GetTick() - powerTimer;
 	  powerTimer = HAL_GetTick();
 	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
