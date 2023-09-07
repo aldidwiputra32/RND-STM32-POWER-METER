@@ -482,7 +482,7 @@ void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrin
 							// GET DATA ADDRESS RAM IC DRIVER LCD
 							for(uint8_t indeks3=0;indeks3<32;indeks3++){
 								if(lcdRam11[indeks3][0] == segBit){
-									ramAddressValue = lcdRam11[indeks3];
+									ramAddressValue = lcdRam11[indeks3][1];
 									ramAddressIndeks = indeks3;
 									break;
  								}
@@ -490,6 +490,9 @@ void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrin
 							break;
 						}
 					}
+					// UPDATE VALUE TO RAM IC DRIVER
+
+					lcdRam11[ramAddressIndeks][2] = comBit;
 				}
 			}
 		}
@@ -510,3 +513,5 @@ uint8_t ht1622GenerateBit(uint8_t dataRaw){
 	}
 	return buffer;
 }
+
+void uint8ToArray();
