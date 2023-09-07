@@ -1,0 +1,4 @@
+HT1622.c:424:6:ht1622ProcessDataPrint	5
+HT1622.c:444:9:ht1622SizeOf	3
+HT1622.c:457:6:ht1622Write	1
+HT1622.c:501:9:ht1622GenerateBit	3

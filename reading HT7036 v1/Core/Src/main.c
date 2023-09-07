@@ -234,6 +234,10 @@ extern uint16_t addressModbus;
  * decode buffer(split data)
  * data Frame buffer(type:uint8_t[64 indeks array]) in EEPROM >> Based on table "group sensor & group calibration"
  */
+uint8_t eepromBufferRead[68];
+uint8_t eepromBufferWrite[68];
+uint32_t eepromTimerDelta = 0;
+uint32_t eepromTimer = 0;
 
 //------------------------- GROUP VARIABLE DISPLAY 7-SEGMENT ---------------------------------
 uint8_t ht1622VAL[3][3] = {
@@ -241,12 +245,21 @@ uint8_t ht1622VAL[3][3] = {
 		{2,4,6},
 		{3,6,9}
 };
+extern uint8_t alphaNumeric[36][2];
+extern uint8_t lcdRam11[32][6];
+extern uint8_t lcdRam21[32][6];
+extern uint8_t lcdRam12[32][6];
+extern uint8_t lcdRam22[32][6];
 
+// testing begin
+uint8_t testing1 = 0;
+uint8_t testing2 = 0;
+uint8_t testing3 = 0;
 
-uint8_t eepromBufferRead[68];
-uint8_t eepromBufferWrite[68];
-uint32_t eepromTimerDelta = 0;
-uint32_t eepromTimer = 0;
+uint8_t dataLcd[10];
+uint8_t dataLcdBuffer[7];
+float datalcdFloat = 1.23;
+// testing end
 
 //------------------------- GROUP VARIABLE BUTTON INTERFACE ---------------------------------
 
@@ -363,6 +376,11 @@ int main(void)
 //  for(;;);
   // RESET VALUE EEPROM END
 
+
+  datalcdFloat = 0.12;
+  sprintf(dataLcd,"%.1f\n",datalcdFloat);
+  ht1622ProcessDataPrint(dataLcd, ht1622SizeOf(dataLcd), dataLcdBuffer);
+
   eepromLoad();
 
   // SETUP POWER METER
@@ -379,15 +397,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
-	  uint8_t bufferLcd=0;
-	  for(uint8_t indeks=0;indeks<3;indeks++){
-		  for(uint8_t indeks1=0;indeks1<3;indeks1++){
-			  bufferLcd = ht1622VAL[indeks][indeks1]*1;
-			  bufferLcd = bufferLcd*1;
-		  }
-	  }
-
 	  powerTimerDelta = HAL_GetTick() - powerTimer;
 	  powerTimer = HAL_GetTick();
 	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
