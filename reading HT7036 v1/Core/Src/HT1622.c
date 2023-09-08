@@ -1,6 +1,7 @@
 #include "HT1622.h"
 
 uint8_t mapSegmentIC1[56][4] = {
+		// Indeks Kolom | segment | COM | segment
 		{1,	1,	0,	23},
 		{1,	2,	0,	24},
 		{1,	3,	2,	24},
@@ -60,6 +61,7 @@ uint8_t mapSegmentIC1[56][4] = {
 };
 
 uint8_t mapSegmentIC2[56][4] = {
+		// Indeks Kolom | segment | COM | segment
 		{9,		1,	7,	23},
 		{9,		2,	7,	24},
 		{9,		3,	5,	24},
@@ -119,6 +121,7 @@ uint8_t mapSegmentIC2[56][4] = {
 };
 
 uint8_t mapSegmentEnergy[63][4] = {
+		// Indeks Kolom | segment | COM | segment
 		{17,	1,	2,	11},
 		{17,	2,	3,	10},
 		{17,	3,	5,	10},
@@ -185,6 +188,7 @@ uint8_t mapSegmentEnergy[63][4] = {
 };
 
 uint8_t mapSegmentPointIC1[6][3] = {
+		// Indeks | COM | Segment
 		{1,	3,	24},
 		{2,	3,	26},
 		{3,	3,	28},
@@ -194,6 +198,7 @@ uint8_t mapSegmentPointIC1[6][3] = {
 };
 
 uint8_t mapSegmentPointIC2[6][3] = {
+		// Indeks | COM | Segment
 		{7,		4,	24},
 		{8,		4,	26},
 		{9,		4,	28},
@@ -203,6 +208,7 @@ uint8_t mapSegmentPointIC2[6][3] = {
 };
 
 uint8_t mapSegmentUnitIC1[6][3] = {
+		// Indeks | COM | Segment
 		{1,	0,	31},
 		{2,	1,	31},
 		{3,	3,	31},
@@ -212,6 +218,7 @@ uint8_t mapSegmentUnitIC1[6][3] = {
 };
 
 uint8_t mapSegmentUnitIC2[8][3] = {
+		// Indeks | COM | Segment
 		{7,		7,	31},
 		{8,		6,	31},
 		{9,		5,	31},
@@ -223,6 +230,7 @@ uint8_t mapSegmentUnitIC2[8][3] = {
 };
 
 uint8_t mapSegmentUnitTotal[4][3] = {
+		// Indeks | COM | Segment
 		{1,	1,	12},
 		{2,	0,	10},
 		{3,	1,	10},
@@ -457,18 +465,20 @@ uint8_t ht1622SizeOf(uint8_t * buffer){
 void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrint >> count bit fic is 7 bit
 	uint8_t dataBit, comBit, segBit;
 	uint8_t ramAddressValue, ramAddressIndeks;
+	uint8_t dataBitAarray[8];
 	//------------------ GENERATE ADDRESS ------------------
 	// 7 SEGMENT
 	if(column == 1){
 		uint8_t segColumnIndeks = 1;
 		// ITERATE 7-SEGMENT COLUMN
 		for(uint8_t indeks=0;indeks<7;indeks++){
-			// FILTER FOF NUMBBER
+			// FILTER FOF NUMBBER >> 7-SEGMENT
 			if((dataPrint[indeks] != 0xF) && (dataPrint[indeks] != 0xFF)){ // bit NULL & bit coma
 				// ITERATE CONVERT DATA FROM CHAR TO BIT SEGMENT
 				for(uint8_t indeks1=0;indeks1<37;indeks1++){
-					if(dataPrint[indeks1] == alphaNumeric[indeks1][0]){
-						dataBit = alphaNumeric[indeks][1];
+					if(dataPrint[indeks] == (uint8_t)alphaNumeric[indeks1][0]){
+						dataBit = alphaNumeric[indeks1][1];
+						integerToArray(dataBit, dataBitAarray);
 						break;
 					}
 				}
@@ -490,9 +500,10 @@ void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrin
 							break;
 						}
 					}
-					// UPDATE VALUE TO RAM IC DRIVER
-
-					lcdRam11[ramAddressIndeks][2] = comBit;
+					// UPDATE VALUE TO RAM IC DRIVER & ACTIVATING FLAG FOR UPDATE TO LCD DRIVER
+					lcdRam11[ramAddressIndeks][comBit+2] = dataBitAarray[segment-1];
+					lcdRam11[ramAddressIndeks][6] = 1;
+					// SWITCH TO THE MEXT COLUMN 7-SEGMENT
 				}
 			}
 		}
@@ -514,4 +525,10 @@ uint8_t ht1622GenerateBit(uint8_t dataRaw){
 	return buffer;
 }
 
-void uint8ToArray();
+void integerToArray(uint8_t data, uint8_t * buffer){
+    uint8_t dataBuffer;
+    for(uint8_t indeks=0;indeks<8;indeks++){
+        dataBuffer = (data>>indeks) & 0b0000001;
+        buffer[indeks] = dataBuffer;
+    }
+}

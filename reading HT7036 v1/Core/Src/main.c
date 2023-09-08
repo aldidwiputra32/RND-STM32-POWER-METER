@@ -239,6 +239,16 @@ uint8_t eepromBufferWrite[68];
 uint32_t eepromTimerDelta = 0;
 uint32_t eepromTimer = 0;
 
+
+//------------------------- GROUP VARIABLE BUTTON INTERFACE ---------------------------------
+
+uint8_t buttonAntiBounce = 0;
+extern uint16_t buttonStatus;
+extern uint8_t buttonTrigger;
+extern uint8_t menuLevel;
+extern uint8_t menuParam;
+extern uint8_t 	flagGetDataOld;
+
 //------------------------- GROUP VARIABLE DISPLAY 7-SEGMENT ---------------------------------
 uint8_t ht1622VAL[3][3] = {
 		{1,2,3},
@@ -259,16 +269,9 @@ uint8_t testing3 = 0;
 uint8_t dataLcd[10];
 uint8_t dataLcdBuffer[7];
 float datalcdFloat = 1.23;
+uint8_t testPrint[50];
+
 // testing end
-
-//------------------------- GROUP VARIABLE BUTTON INTERFACE ---------------------------------
-
-uint8_t buttonAntiBounce = 0;
-extern uint16_t buttonStatus;
-extern uint8_t buttonTrigger;
-extern uint8_t menuLevel;
-extern uint8_t menuParam;
-extern uint8_t 	flagGetDataOld;
 
 /* USER CODE END PV */
 
@@ -335,6 +338,11 @@ int main(void)
   HAL_Delay(1000);
   /* USER CODE END Init */
 
+  // TESTING BEGIN
+  sprintf(testPrint,"%.2f\n",datalcdFloat);
+
+  // TESTING END
+
   /* Configure the system clock */
   SystemClock_Config();
 
@@ -377,9 +385,11 @@ int main(void)
   // RESET VALUE EEPROM END
 
 
-  datalcdFloat = 0.12;
-  sprintf(dataLcd,"%.1f\n",datalcdFloat);
-  ht1622ProcessDataPrint(dataLcd, ht1622SizeOf(dataLcd), dataLcdBuffer);
+  datalcdFloat = 220.1;
+  sprintf(dataLcd,"%.2f\n",datalcdFloat);
+  testing1 = ht1622SizeOf(dataLcd);
+  ht1622ProcessDataPrint(dataLcd, testing1, dataLcdBuffer);
+  ht1622Write(1, 1, dataLcdBuffer);
 
   eepromLoad();
 
