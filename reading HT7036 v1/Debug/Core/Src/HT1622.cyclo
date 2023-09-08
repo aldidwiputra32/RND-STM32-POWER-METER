@@ -1,5 +1,5 @@
 HT1622.c:432:6:ht1622ProcessDataPrint	5
 HT1622.c:452:9:ht1622SizeOf	3
-HT1622.c:515:9:ht1622GenerateBit	3
-HT1622.c:528:6:integerToArray	2
-HT1622.c:465:6:ht1622Write	13
+HT1622.c:554:9:ht1622GenerateBit	3
+HT1622.c:567:6:integerToArray	2
+HT1622.c:465:6:ht1622Write	23

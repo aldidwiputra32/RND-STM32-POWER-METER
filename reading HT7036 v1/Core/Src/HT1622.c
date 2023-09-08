@@ -472,7 +472,7 @@ void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrin
 		uint8_t segColumnIndeks = 1;
 		// ITERATE 7-SEGMENT COLUMN
 		for(uint8_t indeks=0;indeks<7;indeks++){
-			// FILTER FOF NUMBBER >> 7-SEGMENT
+			// FILTER FOF NUMBBER SEGMENT >> 7-SEGMENT
 			if((dataPrint[indeks] != 0xF) && (dataPrint[indeks] != 0xFF)){ // bit NULL & bit coma
 				// ITERATE CONVERT DATA FROM CHAR TO BIT SEGMENT
 				for(uint8_t indeks1=0;indeks1<37;indeks1++){
@@ -504,6 +504,44 @@ void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrin
 					lcdRam11[ramAddressIndeks][comBit+2] = dataBitAarray[segment-1];
 					lcdRam11[ramAddressIndeks][6] = 1;
 					// SWITCH TO THE MEXT COLUMN 7-SEGMENT
+				}
+				segColumnIndeks++;
+			// FILTER FOR COMA SEGMENT >> ENABLE OR DISABLE COMA
+			}else{
+				// FILTER INDEKS ARRAY FOR COMA POSITION
+				if((indeks==1) || (indeks==3) || (indeks==5)){
+					uint8_t pointColumnIndeks;
+					// GET COLUMN INDEKS
+					if(indeks==1)pointColumnIndeks=1;
+					if(indeks==3)pointColumnIndeks=2;
+					if(indeks==5)pointColumnIndeks=3;
+
+					// GET COMMON  & SEGMENT
+					for(uint8_t indeks4=0;indeks4<6;indeks4++){
+						if(mapSegmentPointIC1[indeks4][0] == pointColumnIndeks){
+							comBit = mapSegmentPointIC1[indeks4][1];
+							segBit = mapSegmentPointIC1[indeks4][2];
+							// GET DATA ADDRESS RAM IC DRIVER LCD
+							for(uint8_t indeks1=0;indeks1<32;indeks1++){
+								if(lcdRam11[indeks1][0] == segBit){
+									ramAddressValue = lcdRam11[indeks1][1];
+									ramAddressIndeks = indeks1;
+									break;
+								}
+							}
+							break;
+						}
+
+					}
+					// UPDATE VALUE TO RAM IC DRIVER & ACTIVATING FLAG FOR UPDATE TO LCD DRIVER
+					// DISABLE COMA SEGMENT
+					if(dataPrint[indeks] == 0xF){ 					// BIT DISABLE COMA
+						lcdRam11[ramAddressIndeks][comBit+2] = 0;	// DISABLE SEGMENT COMMA
+					// EANABLE COMA SEGMENT
+					}else if(dataPrint[indeks] == 0xFF){ 	// BIT ENABLE COMA
+						lcdRam11[ramAddressIndeks][comBit+2] = 1;
+					}
+					lcdRam11[ramAddressIndeks][6] = 1;
 				}
 			}
 		}
