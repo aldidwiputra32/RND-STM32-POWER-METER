@@ -5,7 +5,7 @@
 ../Core/Src/main.c:516:6:modbusValueUpdateNew	32	static
 ../Core/Src/main.c:550:6:modbusValueUpdateOld	56	static
 ../Core/Src/main.c:597:6:powerCalibLoop	80	static,ignoring_inline_asm
-../Core/Src/main.c:767:6:eepromLoad	1192	static
+../Core/Src/main.c:767:6:eepromLoad	48	static
 ../Core/Src/main.c:972:6:eepromEncode	72	static
 ../Core/Src/main.c:1066:6:powerHandleCalib	40	static
 ../Core/Src/main.c:1048:6:powerSplitValue	8	static

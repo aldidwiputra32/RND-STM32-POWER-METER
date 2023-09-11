@@ -385,11 +385,11 @@ int main(void)
   // RESET VALUE EEPROM END
 
 
-  datalcdFloat = 220.1;
+  datalcdFloat = 12.34;
   sprintf(dataLcd,"%.2f\n",datalcdFloat);
   testing1 = ht1622SizeOf(dataLcd);
   ht1622ProcessDataPrint(dataLcd, testing1, dataLcdBuffer);
-  ht1622Write(1, 1, dataLcdBuffer);
+  ht1622Write(1, 4, dataLcdBuffer);
 
   eepromLoad();
 
@@ -934,16 +934,16 @@ void eepromLoad(){
 	Modbus.holdingRegisterValue[addressSlave[0]] = powerWiringType;
 
 
-	uint8_t dataPrint[1100];
-	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port, MODBUS_En_Pin, GPIO_PIN_RESET);
-	serialPrint("\r\n----------EEPROM LOAD----------\r\n", 36);
-	sprintf(dataPrint,"\r\noffsetVoltSTM:%d, offsetCurrSTM:%d, gainVoltSTM:%d, gainCurrSTM:%d, WiringType:%d, slaveAddr:%d\r\noffsetVoltHT:%d, offsetCurrHT:%d, gainVoltHT:%d, gainCurrHT:%d\r\nActive:%lu, Reactive:%lu\r\n",
-			offsetVolt_stm32,offsetCurr_stm32,gainVolt_stm32,gainCurr_stm32,powerWiringType,Modbus.slaveAddrSlaveSecond,
-			offsetVolt_ht7036,offsetCurr_ht7036,gainVolt_ht7036,gainCurr_ht7036,
-			bufferEnergySUM[3],bufferEnergySUM[7]
-	);
-	HAL_UART_Transmit(&huart2, dataPrint, 500, 2000);
-	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port, MODBUS_En_Pin, GPIO_PIN_SET);
+//	uint8_t dataPrint[1100];
+//	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port, MODBUS_En_Pin, GPIO_PIN_RESET);
+//	serialPrint("\r\n----------EEPROM LOAD----------\r\n", 36);
+//	sprintf(dataPrint,"\r\noffsetVoltSTM:%d, offsetCurrSTM:%d, gainVoltSTM:%d, gainCurrSTM:%d, WiringType:%d, slaveAddr:%d\r\noffsetVoltHT:%d, offsetCurrHT:%d, gainVoltHT:%d, gainCurrHT:%d\r\nActive:%lu, Reactive:%lu\r\n",
+//			offsetVolt_stm32,offsetCurr_stm32,gainVolt_stm32,gainCurr_stm32,powerWiringType,Modbus.slaveAddrSlaveSecond,
+//			offsetVolt_ht7036,offsetCurr_ht7036,gainVolt_ht7036,gainCurr_ht7036,
+//			bufferEnergySUM[3],bufferEnergySUM[7]
+//	);
+//	HAL_UART_Transmit(&huart2, dataPrint, 500, 2000);
+//	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port, MODBUS_En_Pin, GPIO_PIN_SET);
 }
 
 void eepromLoop(){

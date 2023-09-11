@@ -37,4 +37,3 @@ HT7036.c:455:6:uint8Touint64	1
 HT7036.c:473:10:uint32ToUint64	1
 HT7036.c:474:10:uint16ToUint32	1
 HT7036.c:475:10:uint8ToUint16	1
-HT7036.c:479:6:powerDebug	1

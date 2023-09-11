@@ -1,5 +1,6 @@
 ../Core/Src/HT1622.c:432:6:ht1622ProcessDataPrint	32	static
 ../Core/Src/HT1622.c:452:9:ht1622SizeOf	0	static
-../Core/Src/HT1622.c:554:9:ht1622GenerateBit	8	static
-../Core/Src/HT1622.c:567:6:integerToArray	8	static
-../Core/Src/HT1622.c:465:6:ht1622Write	48	static
+../Core/Src/HT1622.c:799:6:handleUnitSegment	56	static
+../Core/Src/HT1622.c:833:9:ht1622GenerateBit	8	static
+../Core/Src/HT1622.c:846:6:integerToArray	8	static
+../Core/Src/HT1622.c:465:6:ht1622Write	64	static

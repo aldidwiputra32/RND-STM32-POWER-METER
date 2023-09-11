@@ -5,7 +5,7 @@
 extern uint32_t valueSensor[32];
 extern float valueFloat[32];
 extern uint64_t powerTimerDelta;
-uint8_t dataPrint[1100];
+//uint8_t dataPrint[1100];
 float HFconstVal;
 float ECValA = 0;
 float ECValB = 0;
@@ -476,104 +476,106 @@ uint16_t uint8ToUint16(uint8_t high, uint8_t low){return ((uint16_t)high<<8 | (u
 
 
 
-void powerDebug(){
-	// ENABLE MODBUS
-	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_RESET);
+//void powerDebug(){
+//	// ENABLE MODBUS
+//	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_RESET);
+//
+//	sprintf(dataPrint,"\r\n=======Sampling Time %d(ms)=======\r\n",powerTimerDelta);
+//	HAL_UART_Transmit(&huart2, dataPrint, 40, 1000);
+//	memset(dataPrint, 0, sizeof(dataPrint));
+//	// DEBUGGING VALUE >> GROUP POWER
+//	serialPrint("\r\n------------Power Active------------\r\n", 40);
+//	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
+//				  valueFloat[8],valueSensor[8],
+//				  valueFloat[9],valueSensor[9],
+//				  valueFloat[10],valueSensor[10],
+//				  valueFloat[11],valueSensor[11]
+//	);
+//	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+//	memset(dataPrint, 0, sizeof(dataPrint));
+//	serialPrint("\r\n------------Power Rective-----------\r\n", 40);
+//	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d),\r\nCombine=%.6f(%d)\r\n",
+//				  valueFloat[12],valueSensor[12],
+//				  valueFloat[13],valueSensor[13],
+//				  valueFloat[14],valueSensor[14],
+//				  valueFloat[15],valueSensor[15]
+//	);
+//	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+//	memset(dataPrint, 0, sizeof(dataPrint));
+//	serialPrint("\r\n------------Power Apparent----------\r\n", 40);
+//	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
+//				  valueFloat[16],valueSensor[16],
+//				  valueFloat[17],valueSensor[17],
+//				  valueFloat[18],valueSensor[18],
+//				  valueFloat[19],valueSensor[19]
+//	);
+//	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+//	memset(dataPrint, 0, sizeof(dataPrint));
+//	serialPrint("\r\n------------Voltage RMS-------------\r\n", 40);
+//	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nVector=%.6f(%d)\r\n",
+//				  valueFloat[0],valueSensor[0],
+//				  valueFloat[1],valueSensor[1],
+//				  valueFloat[2],valueSensor[2],
+//				  valueFloat[3],valueSensor[3]
+//	);
+//	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+//	memset(dataPrint, 0, sizeof(dataPrint));
+//	serialPrint("\r\n------------Voltage RMS DIF-------------\r\n", 40);
+//	sprintf(dataPrint,"AB=%.6f\r\nBC=%.6f\r\nCA=%.6F\r\n",
+//				  rmsVoltageAB,
+//				  rmsVoltageBC,
+//				  rmsVoltageCA
+//	);
+//	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+//	memset(dataPrint, 0, sizeof(dataPrint));
+//	serialPrint("\r\n------------Current RMS-------------\r\n", 40);
+//	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nVector=%.6f(%d)\r\n",
+//				  valueFloat[4],valueSensor[4],
+//				  valueFloat[5],valueSensor[5],
+//				  valueFloat[6],valueSensor[6],
+//				  valueFloat[7],valueSensor[7]
+//	);
+//	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+//	memset(dataPrint, 0, sizeof(dataPrint));
+//	serialPrint("\r\n------------Power Factor------------\r\n", 40);
+//	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
+//				  valueFloat[20],valueSensor[20],
+//				  valueFloat[21],valueSensor[21],
+//				  valueFloat[22],valueSensor[22],
+//				  valueFloat[23],valueSensor[23]
+//	);
+//	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+//	memset(dataPrint, 0, sizeof(dataPrint));
+//	serialPrint("\r\n------------Energy Active-----------\r\n", 40);
+//	sprintf(dataPrint,"A=%0.6f(%lu)\r\nB=%0.6f(%lu)\r\nC=%0.6f(%lu)\r\nCombine=%0.6f(%lu)\r\n",
+//				  bufferEnergySUM[0],energyModbus[0],
+//				  bufferEnergySUM[1],energyModbus[1],
+//				  bufferEnergySUM[2],energyModbus[2],
+//				  bufferEnergySUM[3],energyModbus[3]
+//		  );
+//	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+//	memset(dataPrint, 0, sizeof(dataPrint));
+//	serialPrint("\r\n------------Energy Reactive-----------\r\n", 40);
+//	sprintf(dataPrint,"A=%0.6f(%lu)\r\nB=%0.6f(%lu)\r\nC=%0.6f(%lu)\r\nCombine=%0.6f(%lu)\r\n",
+//				  bufferEnergySUM[4],energyModbus[4],
+//				  bufferEnergySUM[5],energyModbus[5],
+//				  bufferEnergySUM[6],energyModbus[6],
+//				  bufferEnergySUM[7],energyModbus[7]
+//		  );
+//	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
+//	memset(dataPrint, 0, sizeof(dataPrint));
+//	serialPrint("\r\n------------Else Sensor-----------\r\n", 40);
+//	sprintf(dataPrint,"EC=%.6f\r\n",
+//				  ECVal
+//		  );
+//	HAL_UART_Transmit(&huart2, dataPrint, 20, 100);
+//	memset(dataPrint, 0, sizeof(dataPrint));
+//
+//	// DISABLE MODBUS
+//	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_SET);
+//}
 
-	sprintf(dataPrint,"\r\n=======Sampling Time %d(ms)=======\r\n",powerTimerDelta);
-	HAL_UART_Transmit(&huart2, dataPrint, 40, 1000);
-	memset(dataPrint, 0, sizeof(dataPrint));
-	// DEBUGGING VALUE >> GROUP POWER
-	serialPrint("\r\n------------Power Active------------\r\n", 40);
-	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
-				  valueFloat[8],valueSensor[8],
-				  valueFloat[9],valueSensor[9],
-				  valueFloat[10],valueSensor[10],
-				  valueFloat[11],valueSensor[11]
-	);
-	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
-	memset(dataPrint, 0, sizeof(dataPrint));
-	serialPrint("\r\n------------Power Rective-----------\r\n", 40);
-	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d),\r\nCombine=%.6f(%d)\r\n",
-				  valueFloat[12],valueSensor[12],
-				  valueFloat[13],valueSensor[13],
-				  valueFloat[14],valueSensor[14],
-				  valueFloat[15],valueSensor[15]
-	);
-	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
-	memset(dataPrint, 0, sizeof(dataPrint));
-	serialPrint("\r\n------------Power Apparent----------\r\n", 40);
-	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
-				  valueFloat[16],valueSensor[16],
-				  valueFloat[17],valueSensor[17],
-				  valueFloat[18],valueSensor[18],
-				  valueFloat[19],valueSensor[19]
-	);
-	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
-	memset(dataPrint, 0, sizeof(dataPrint));
-	serialPrint("\r\n------------Voltage RMS-------------\r\n", 40);
-	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nVector=%.6f(%d)\r\n",
-				  valueFloat[0],valueSensor[0],
-				  valueFloat[1],valueSensor[1],
-				  valueFloat[2],valueSensor[2],
-				  valueFloat[3],valueSensor[3]
-	);
-	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
-	memset(dataPrint, 0, sizeof(dataPrint));
-	serialPrint("\r\n------------Voltage RMS DIF-------------\r\n", 40);
-	sprintf(dataPrint,"AB=%.6f\r\nBC=%.6f\r\nCA=%.6F\r\n",
-				  rmsVoltageAB,
-				  rmsVoltageBC,
-				  rmsVoltageCA
-	);
-	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
-	memset(dataPrint, 0, sizeof(dataPrint));
-	serialPrint("\r\n------------Current RMS-------------\r\n", 40);
-	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nVector=%.6f(%d)\r\n",
-				  valueFloat[4],valueSensor[4],
-				  valueFloat[5],valueSensor[5],
-				  valueFloat[6],valueSensor[6],
-				  valueFloat[7],valueSensor[7]
-	);
-	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
-	memset(dataPrint, 0, sizeof(dataPrint));
-	serialPrint("\r\n------------Power Factor------------\r\n", 40);
-	sprintf(dataPrint,"A=%.6f(%d)\r\nB=%.6f(%d)\r\nC=%.6f(%d)\r\nCombine=%.6f(%d)\r\n",
-				  valueFloat[20],valueSensor[20],
-				  valueFloat[21],valueSensor[21],
-				  valueFloat[22],valueSensor[22],
-				  valueFloat[23],valueSensor[23]
-	);
-	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
-	memset(dataPrint, 0, sizeof(dataPrint));
-	serialPrint("\r\n------------Energy Active-----------\r\n", 40);
-	sprintf(dataPrint,"A=%0.6f(%lu)\r\nB=%0.6f(%lu)\r\nC=%0.6f(%lu)\r\nCombine=%0.6f(%lu)\r\n",
-				  bufferEnergySUM[0],energyModbus[0],
-				  bufferEnergySUM[1],energyModbus[1],
-				  bufferEnergySUM[2],energyModbus[2],
-				  bufferEnergySUM[3],energyModbus[3]
-		  );
-	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
-	memset(dataPrint, 0, sizeof(dataPrint));
-	serialPrint("\r\n------------Energy Reactive-----------\r\n", 40);
-	sprintf(dataPrint,"A=%0.6f(%lu)\r\nB=%0.6f(%lu)\r\nC=%0.6f(%lu)\r\nCombine=%0.6f(%lu)\r\n",
-				  bufferEnergySUM[4],energyModbus[4],
-				  bufferEnergySUM[5],energyModbus[5],
-				  bufferEnergySUM[6],energyModbus[6],
-				  bufferEnergySUM[7],energyModbus[7]
-		  );
-	HAL_UART_Transmit(&huart2, dataPrint, 100, 100);
-	memset(dataPrint, 0, sizeof(dataPrint));
-	serialPrint("\r\n------------Else Sensor-----------\r\n", 40);
-	sprintf(dataPrint,"EC=%.6f\r\n",
-				  ECVal
-		  );
-	HAL_UART_Transmit(&huart2, dataPrint, 20, 100);
-	memset(dataPrint, 0, sizeof(dataPrint));
-
-	// DISABLE MODBUS
-	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_SET);
-}
+//==============================================================================================================================================================
 // SETUP CALIB
 /* Dataframe
  * GV,actualData
