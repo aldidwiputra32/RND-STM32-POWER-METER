@@ -777,23 +777,16 @@ void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrin
 	// EMABLE OR DISABLE PHASE OR DIV PHASE
 
 	// ENABLE OR DISABLE  UNIT SENSOR SEGMENT FOR IC1
-	if(type == CURRENT_RMS){
-		handleUnitSegment(0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-	}else if(type == VOLTAGE_RMS){
-		handleUnitSegment(0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0);
-	}else if(type == VOLTAGE_RMS_DIV){
-		handleUnitSegment(0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0);
-	}else if(type == ACTIVE_POWER){
-		handleUnitSegment(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-	}else if(type == REACTIVE_POWER){
-		handleUnitSegment(0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-	}else if(type == APPARENT_POWER){
-		handleUnitSegment(0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0);
-	}else if(type == ACTIVE_ENERGY){
-		handleUnitSegment(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0);
-	}else if(type == REACTIVE_ENERGY){
-		handleUnitSegment(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1);
-	}
+	if(type == CURRENT_RMS){handleUnitSegment(0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);}
+	else if(type == VOLTAGE_RMS){handleUnitSegment(0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0);}
+	else if(type == VOLTAGE_RMS_DIV){handleUnitSegment(0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0);}
+	else if(type == ACTIVE_POWER){handleUnitSegment(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);}
+	else if(type == REACTIVE_POWER){handleUnitSegment(0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);}
+	else if(type == APPARENT_POWER){handleUnitSegment(0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0);}
+	else if(type == ACTIVE_ENERGY){handleUnitSegment(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0);}
+	else if(type == REACTIVE_ENERGY){handleUnitSegment(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1);}
+
+	// ENABLE OR DISABLE SEGMENT
 }
 
 void handleUnitSegment(
@@ -812,6 +805,7 @@ void handleUnitSegment(
 			uint8_t energyActive,
 			uint8_t energyReactive
 		){
+	// UPDATE VALUE TO RAM IC DRIVER ADDRESS
 	lcdRam11[31][0+2] = powerActiveKw; 		// Active Power (KW) IC1
 	lcdRam11[31][1+2] = powerActiveMW; 		// Active Power (MW )IC1
 	lcdRam11[31][3+2] = current;			// current IC1
@@ -827,7 +821,11 @@ void handleUnitSegment(
 	lcdRam21[31][2+2] = energyActive;		// total active energy
 	lcdRam21[31][1+2] = energyReactive;		// total rective energy
 	// ENABLE FLAG
-
+	lcdRam11[31][6] = 1;
+	lcdRam12[31][6] = 1;
+	lcdRam21[31][6] = 1;
+	lcdRam22[31][6] = 1;
+	lcdRam22[30][6] = 1;
 }
 
 uint8_t ht1622GenerateBit(uint8_t dataRaw){
