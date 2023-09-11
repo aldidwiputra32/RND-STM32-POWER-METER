@@ -696,7 +696,7 @@ void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrin
 				}
 			}
 		}
-		// ================================================= SEGMENT COLUMN 4 ========================================================
+	// ================================================= SEGMENT COLUMN 4 ========================================================
 	}else if(column == 4){
 		uint8_t segColumnIndeks = 13;
 		// ITERATE 7-SEGMENT COLUMN
