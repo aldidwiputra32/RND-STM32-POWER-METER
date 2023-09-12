@@ -207,6 +207,17 @@ uint8_t mapSegmentPointIC2[6][3] = {
 		{12,	0,	28}
 };
 
+uint8_t mapSegmentPointEnergy[8][3] = {
+		{13,	6,	10},
+		{14,	7,	8},
+		{15,	7,	6},
+		{16,	7,	4},
+		{17,	4,	1},
+		{18,	0,	3},
+		{19,	1,	1},
+		{20,	0,	7}
+};
+
 uint8_t mapSegmentUnitIC1[6][3] = {
 		// Indeks | COM | Segment
 		{1,	0,	31},
@@ -429,7 +440,8 @@ uint8_t ht1622BuferWrite[3][13] = {
 };
 uint8_t dataBuffer[7];
 
-void ht1622ProcessDataPrint(uint8_t * dataPrint, uint8_t len, uint8_t * dataBuffer){
+
+void ht1622ProcessDataPrint(uint8_t type ,uint8_t * dataPrint, uint8_t len, uint8_t * dataBuffer){
 	dataBuffer[0] = dataPrint[0];
 	uint8_t indeksBuffer = 1;
 	for(uint8_t indeks=1;indeks<len;indeks++){
@@ -444,8 +456,10 @@ void ht1622ProcessDataPrint(uint8_t * dataPrint, uint8_t len, uint8_t * dataBuff
 			}
 		}
 	}
-	while(indeksBuffer <7){
-		dataBuffer[indeksBuffer++] = BIT_COMA_DISABLE;
+	if(type == FOUR_DIGIT){
+		while(indeksBuffer < 7){dataBuffer[indeksBuffer++] = BIT_COMA_DISABLE;}
+	}else if(type == NINE_DIGIT){
+		while(indeksBuffer < 17){dataBuffer[indeksBuffer++] = BIT_COMA_DISABLE;}
 	}
 }
 
@@ -465,144 +479,433 @@ uint8_t ht1622SizeOf(uint8_t * buffer){
 void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrint >> count bit fic is 7 bit
 	uint8_t dataBit, comBit, segBit;
 	uint8_t ramAddressValue, ramAddressIndeks;
-	uint8_t dataBitAarray[8];
-	// ================================================= SEGMENT COLUMN 1 ========================================================
-	if(column == 1){
-		uint8_t segColumnIndeks = 1;
-		// ITERATE 7-SEGMENT COLUMN
-		for(uint8_t indeks=0;indeks<7;indeks++){
-			// FILTER FOF NUMBBER SEGMENT >> 7-SEGMENT
-			if((dataPrint[indeks] != 0xF) && (dataPrint[indeks] != 0xFF)){ // bit NULL & bit coma
-				// ITERATE CONVERT DATA FROM CHAR TO BIT SEGMENT
-				for(uint8_t indeks1=0;indeks1<37;indeks1++){
-					if(dataPrint[indeks] == (uint8_t)alphaNumeric[indeks1][0]){
-						dataBit = alphaNumeric[indeks1][1];
-						integerToArray(dataBit, dataBitAarray);
-						break;
-					}
-				}
-				// ITERATE GET ADDRESSING DATA BIT FOR 7-SEGMENT
-				for(uint8_t segment=1;segment<8;segment++){
-					// ITERATE GET DATA COM, SEG, ADDR RAM
-					for(uint8_t indeks2=0;indeks2<56;indeks2++){
-						if((mapSegmentIC1[indeks2][0] == segColumnIndeks) && (mapSegmentIC1[indeks2][1] == segment)){
-							segBit = mapSegmentIC1[indeks2][3];
-							comBit = mapSegmentIC1[indeks2][2];
-							// GET DATA ADDRESS RAM IC DRIVER LCD
-							for(uint8_t indeks3=0;indeks3<32;indeks3++){
-								if(lcdRam11[indeks3][0] == segBit){
-									ramAddressValue = lcdRam11[indeks3][1];
-									ramAddressIndeks = indeks3;
-									break;
- 								}
-							}
+	uint8_t dataBitArray[8];
+	// FILTER 7 SGMENT >> FOUR DIGIT(CURRENT_RMS, VOLTAGE_RMS, VOLTAGE_RMS_DIV, ACTIVE_POWER, REACTIVE_POWER, APPARENT_POWER, ACTIVE_ENERGY, REACTIVE_ENERGY, POWER_FACTOR)
+	if((type == CURRENT_RMS)||(type == VOLTAGE_RMS)||(type == ACTIVE_POWER)||(type == REACTIVE_POWER)||(type == REACTIVE_POWER)||(type == APPARENT_POWER)||(type == POWER_FACTOR)){
+		// ================================================= SEGMENT ROW 1 ========================================================
+		if(column == 1){
+			uint8_t segColumnIndeks = 1;
+			// ITERATE 7-SEGMENT COLUMN
+			for(uint8_t indeks=0;indeks<7;indeks++){
+				// FILTER FOF NUMBBER SEGMENT >> 7-SEGMENT
+				if((dataPrint[indeks] != 0xF) && (dataPrint[indeks] != 0xFF)){ // bit NULL & bit coma
+					// ITERATE CONVERT DATA FROM CHAR TO BIT SEGMENT
+					for(uint8_t indeks1=0;indeks1<37;indeks1++){
+						if(dataPrint[indeks] == (uint8_t)alphaNumeric[indeks1][0]){
+							dataBit = alphaNumeric[indeks1][1];
+							integerToArray(dataBit, dataBitArray);
 							break;
 						}
 					}
-					// UPDATE VALUE TO RAM IC DRIVER & ACTIVATING FLAG FOR UPDATE TO LCD DRIVER
-					lcdRam11[ramAddressIndeks][comBit+2] = dataBitAarray[segment-1];
-					lcdRam11[ramAddressIndeks][6] = 1;
-					// SWITCH TO THE MEXT COLUMN 7-SEGMENT
-				}
-				segColumnIndeks++;
-			// FILTER FOR COMA SEGMENT >> ENABLE OR DISABLE COMA
-			}else{
-				// FILTER INDEKS ARRAY FOR COMA POSITION
-				if((indeks==1) || (indeks==3) || (indeks==5)){
-					uint8_t pointColumnIndeks;
-					// GET COLUMN INDEKS
-					if(indeks==1)pointColumnIndeks=1;
-					if(indeks==3)pointColumnIndeks=2;
-					if(indeks==5)pointColumnIndeks=3;
+					// ITERATE GET ADDRESSING DATA BIT FOR 7-SEGMENT
+					for(uint8_t segment=1;segment<8;segment++){
+						// ITERATE GET DATA COM, SEG, ADDR RAM
+						for(uint8_t indeks2=0;indeks2<56;indeks2++){
+							if((mapSegmentIC1[indeks2][0] == segColumnIndeks) && (mapSegmentIC1[indeks2][1] == segment)){
+								segBit = mapSegmentIC1[indeks2][3];
+								comBit = mapSegmentIC1[indeks2][2];
+								// GET DATA ADDRESS RAM IC DRIVER LCD
+								for(uint8_t indeks3=0;indeks3<32;indeks3++){
+									if(lcdRam11[indeks3][0] == segBit){
+										ramAddressValue = lcdRam11[indeks3][1];
+										ramAddressIndeks = indeks3;
+										break;
+									}
+								}
+								break;
+							}
+						}
+						// UPDATE VALUE TO RAM IC DRIVER & ACTIVATING FLAG FOR UPDATE TO LCD DRIVER
+						lcdRam11[ramAddressIndeks][comBit+2] = dataBitArray[segment-1];
+						lcdRam11[ramAddressIndeks][6] = 1;
+						// SWITCH TO THE MEXT COLUMN 7-SEGMENT
+					}
+					segColumnIndeks++;
+				// FILTER FOR COMA SEGMENT >> ENABLE OR DISABLE COMA
+				}else{
+					// FILTER INDEKS ARRAY FOR COMA POSITION
+					if((indeks==1) || (indeks==3) || (indeks==5)){
+						uint8_t pointColumnIndeks;
+						// GET COLUMN INDEKS
+						if(indeks==1)pointColumnIndeks=1;
+						if(indeks==3)pointColumnIndeks=2;
+						if(indeks==5)pointColumnIndeks=3;
 
-					// GET COMMON  & SEGMENT
-					for(uint8_t indeks4=0;indeks4<6;indeks4++){
-						if(mapSegmentPointIC1[indeks4][0] == pointColumnIndeks){
-							comBit = mapSegmentPointIC1[indeks4][1];
-							segBit = mapSegmentPointIC1[indeks4][2];
-							// GET DATA ADDRESS RAM IC DRIVER LCD
-							for(uint8_t indeks1=0;indeks1<32;indeks1++){
-								if(lcdRam11[indeks1][0] == segBit){
-									ramAddressValue = lcdRam11[indeks1][1];
-									ramAddressIndeks = indeks1;
-									break;
+						// GET COMMON  & SEGMENT
+						for(uint8_t indeks4=0;indeks4<6;indeks4++){
+							if(mapSegmentPointIC1[indeks4][0] == pointColumnIndeks){
+								comBit = mapSegmentPointIC1[indeks4][1];
+								segBit = mapSegmentPointIC1[indeks4][2];
+								// GET DATA ADDRESS RAM IC DRIVER LCD
+								for(uint8_t indeks1=0;indeks1<32;indeks1++){
+									if(lcdRam11[indeks1][0] == segBit){
+										ramAddressValue = lcdRam11[indeks1][1];
+										ramAddressIndeks = indeks1;
+										break;
+									}
 								}
+								break;
 							}
-							break;
-						}
 
+						}
+						// UPDATE VALUE TO RAM IC DRIVER & ACTIVATING FLAG FOR UPDATE TO LCD DRIVER
+						// DISABLE COMA SEGMENT
+						if(dataPrint[indeks] == 0xF){ 					// BIT DISABLE COMA
+							lcdRam11[ramAddressIndeks][comBit+2] = 0;	// DISABLE SEGMENT COMMA
+						// EANABLE COMA SEGMENT
+						}else if(dataPrint[indeks] == 0xFF){ 			// BIT ENABLE COMA
+							lcdRam11[ramAddressIndeks][comBit+2] = 1;
+						}
+						lcdRam11[ramAddressIndeks][6] = 1;
 					}
-					// UPDATE VALUE TO RAM IC DRIVER & ACTIVATING FLAG FOR UPDATE TO LCD DRIVER
-					// DISABLE COMA SEGMENT
-					if(dataPrint[indeks] == 0xF){ 					// BIT DISABLE COMA
-						lcdRam11[ramAddressIndeks][comBit+2] = 0;	// DISABLE SEGMENT COMMA
-					// EANABLE COMA SEGMENT
-					}else if(dataPrint[indeks] == 0xFF){ 			// BIT ENABLE COMA
-						lcdRam11[ramAddressIndeks][comBit+2] = 1;
+				}
+			}
+		// ================================================= SEGMENT ROW 2 ========================================================
+		}else if(column == 2){
+			uint8_t segColumnIndeks = 5;
+			// ITERATE 7-SEGMENT COLUMN
+			for(uint8_t indeks=0;indeks<7;indeks++){
+				// FILTER FOF NUMBBER SEGMENT >> 7-SEGMENT
+				if((dataPrint[indeks] != 0xF) && (dataPrint[indeks] != 0xFF)){ // bit NULL & bit coma
+					// ITERATE CONVERT DATA FROM CHAR TO BIT SEGMENT
+					for(uint8_t indeks1=0;indeks1<37;indeks1++){
+						if(dataPrint[indeks] == (uint8_t)alphaNumeric[indeks1][0]){
+							dataBit = alphaNumeric[indeks1][1];
+							integerToArray(dataBit, dataBitArray);
+							break;
+						}
 					}
-					lcdRam11[ramAddressIndeks][6] = 1;
+					// ITERATE GET ADDRESSING DATA BIT FOR 7-SEGMENT
+					for(uint8_t segment=1;segment<8;segment++){
+						// ITERATE GET DATA COM, SEG, ADDR RAM
+						for(uint8_t indeks2=0;indeks2<56;indeks2++){
+							if((mapSegmentIC1[indeks2][0] == segColumnIndeks) && (mapSegmentIC1[indeks2][1] == segment)){
+								segBit = mapSegmentIC1[indeks2][3];
+								comBit = mapSegmentIC1[indeks2][2];
+								// GET DATA ADDRESS RAM IC DRIVER LCD
+								for(uint8_t indeks3=0;indeks3<32;indeks3++){
+									if(lcdRam12[indeks3][0] == segBit){
+										ramAddressValue = lcdRam12[indeks3][1];
+										ramAddressIndeks = indeks3;
+										break;
+									}
+								}
+								break;
+							}
+						}
+						// UPDATE VALUE TO RAM IC DRIVER & ACTIVATING FLAG FOR UPDATE TO LCD DRIVER
+						lcdRam12[ramAddressIndeks][comBit+2-4] = dataBitArray[segment-1];
+						lcdRam12[ramAddressIndeks][6] = 1;
+						// SWITCH TO THE MEXT COLUMN 7-SEGMENT
+					}
+					segColumnIndeks++;
+				// FILTER FOR COMA SEGMENT >> ENABLE OR DISABLE COMA
+				}else{
+					// FILTER INDEKS ARRAY FOR COMA POSITION
+					if((indeks==1) || (indeks==3) || (indeks==5)){
+						uint8_t pointColumnIndeks;
+						// GET COLUMN INDEKS
+						if(indeks==1)pointColumnIndeks=4;
+						if(indeks==3)pointColumnIndeks=5;
+						if(indeks==5)pointColumnIndeks=6;
+						// GET COMMON  & SEGMENT
+						for(uint8_t indeks4=0;indeks4<6;indeks4++){
+							if(mapSegmentPointIC1[indeks4][0] == pointColumnIndeks){
+								comBit = mapSegmentPointIC1[indeks4][1];
+								segBit = mapSegmentPointIC1[indeks4][2];
+								// GET DATA ADDRESS RAM IC DRIVER LCD
+								for(uint8_t indeks1=0;indeks1<32;indeks1++){
+									if(lcdRam12[indeks1][0] == segBit){
+										ramAddressValue = lcdRam12[indeks1][1];
+										ramAddressIndeks = indeks1;
+										break;
+									}
+								}
+								break;
+							}
+						}
+						// UPDATE VALUE TO RAM IC DRIVER & ACTIVATING FLAG FOR UPDATE TO LCD DRIVER
+						// DISABLE COMA SEGMENT
+						if(dataPrint[indeks] == 0xF){ 					// BIT DISABLE COMA
+							lcdRam12[ramAddressIndeks][comBit+2-4] = 0;	// DISABLE SEGMENT COMMA
+						// EANABLE COMA SEGMENT
+						}else if(dataPrint[indeks] == 0xFF){ 			// BIT ENABLE COMA
+							lcdRam12[ramAddressIndeks][comBit+2-4] = 1;
+						}
+						lcdRam12[ramAddressIndeks][6] = 1;
+					}
+				}
+			}
+		// ================================================= SEGMENT ROW 3 ========================================================
+		}else if(column == 3){
+			uint8_t segColumnIndeks = 9;
+			// ITERATE 7-SEGMENT COLUMN
+			for(uint8_t indeks=0;indeks<7;indeks++){
+				// FILTER FOF NUMBBER SEGMENT >> 7-SEGMENT
+				if((dataPrint[indeks] != 0xF) && (dataPrint[indeks] != 0xFF)){ // bit NULL & bit coma
+					// ITERATE CONVERT DATA FROM CHAR TO BIT SEGMENT
+					for(uint8_t indeks1=0;indeks1<37;indeks1++){
+						if(dataPrint[indeks] == (uint8_t)alphaNumeric[indeks1][0]){
+							dataBit = alphaNumeric[indeks1][1];
+							integerToArray(dataBit, dataBitArray);
+							break;
+						}
+					}
+					// ITERATE GET ADDRESSING DATA BIT FOR 7-SEGMENT
+					for(uint8_t segment=1;segment<8;segment++){
+						// ITERATE GET DATA COM, SEG, ADDR RAM
+						for(uint8_t indeks2=0;indeks2<56;indeks2++){
+							if((mapSegmentIC2[indeks2][0] == segColumnIndeks) && (mapSegmentIC2[indeks2][1] == segment)){
+								segBit = mapSegmentIC2[indeks2][3];
+								comBit = mapSegmentIC2[indeks2][2];
+								// GET DATA ADDRESS RAM IC DRIVER LCD
+								for(uint8_t indeks3=0;indeks3<32;indeks3++){
+									if(lcdRam22[indeks3][0] == segBit){
+										ramAddressValue = lcdRam22[indeks3][1];
+										ramAddressIndeks = indeks3;
+										break;
+									}
+								}
+								break;
+							}
+						}
+						// UPDATE VALUE TO RAM IC DRIVER & ACTIVATING FLAG FOR UPDATE TO LCD DRIVER
+						lcdRam22[ramAddressIndeks][comBit+2-4] = dataBitArray[segment-1];
+						lcdRam22[ramAddressIndeks][6] = 1;
+						// SWITCH TO THE MEXT COLUMN 7-SEGMENT
+					}
+					segColumnIndeks++;
+				// FILTER FOR COMA SEGMENT >> ENABLE OR DISABLE COMA
+				}else{
+					// FILTER INDEKS ARRAY FOR COMA POSITION
+					if((indeks==1) || (indeks==3) || (indeks==5)){
+						uint8_t pointColumnIndeks;
+						// GET COLUMN INDEKS
+						if(indeks==1)pointColumnIndeks=7;
+						if(indeks==3)pointColumnIndeks=8;
+						if(indeks==5)pointColumnIndeks=9;
+						// GET COMMON  & SEGMENT
+						for(uint8_t indeks4=0;indeks4<6;indeks4++){
+							if(mapSegmentPointIC2[indeks4][0] == pointColumnIndeks){
+								comBit = mapSegmentPointIC2[indeks4][1];
+								segBit = mapSegmentPointIC2[indeks4][2];
+								// GET DATA ADDRESS RAM IC DRIVER LCD
+								for(uint8_t indeks1=0;indeks1<32;indeks1++){
+									if(lcdRam22[indeks1][0] == segBit){
+										ramAddressValue = lcdRam22[indeks1][1];
+										ramAddressIndeks = indeks1;
+										break;
+									}
+								}
+								break;
+							}
+						}
+						// UPDATE VALUE TO RAM IC DRIVER & ACTIVATING FLAG FOR UPDATE TO LCD DRIVER
+						// DISABLE COMA SEGMENT
+						if(dataPrint[indeks] == 0xF){ 					// BIT DISABLE COMA
+							lcdRam22[ramAddressIndeks][comBit+2-4] = 0;	// DISABLE SEGMENT COMMA
+						// EANABLE COMA SEGMENT
+						}else if(dataPrint[indeks] == 0xFF){ 			// BIT ENABLE COMA
+							lcdRam22[ramAddressIndeks][comBit+2-4] = 1;
+						}
+						lcdRam22[ramAddressIndeks][6] = 1;
+					}
+				}
+			}
+		// ================================================= SEGMENT ROW 4 ========================================================
+		}else if(column == 4){
+			uint8_t segColumnIndeks = 13;
+			// ITERATE 7-SEGMENT COLUMN
+			for(uint8_t indeks=0;indeks<7;indeks++){
+				// FILTER FOF NUMBBER SEGMENT >> 7-SEGMENT
+				if((dataPrint[indeks] != 0xF) && (dataPrint[indeks] != 0xFF)){ // bit NULL & bit coma
+					// ITERATE CONVERT DATA FROM CHAR TO BIT SEGMENT
+					for(uint8_t indeks1=0;indeks1<37;indeks1++){
+						if(dataPrint[indeks] == (uint8_t)alphaNumeric[indeks1][0]){
+							dataBit = alphaNumeric[indeks1][1];
+							integerToArray(dataBit, dataBitArray);
+							break;
+						}
+					}
+					// ITERATE GET ADDRESSING DATA BIT FOR 7-SEGMENT
+					for(uint8_t segment=1;segment<8;segment++){
+						// ITERATE GET DATA COM, SEG, ADDR RAM
+						for(uint8_t indeks2=0;indeks2<56;indeks2++){
+							if((mapSegmentIC2[indeks2][0] == segColumnIndeks) && (mapSegmentIC2[indeks2][1] == segment)){
+								segBit = mapSegmentIC2[indeks2][3];
+								comBit = mapSegmentIC2[indeks2][2];
+								// GET DATA ADDRESS RAM IC DRIVER LCD
+								for(uint8_t indeks3=0;indeks3<32;indeks3++){
+									if(lcdRam21[indeks3][0] == segBit){
+										ramAddressValue = lcdRam21[indeks3][1];
+										ramAddressIndeks = indeks3;
+										break;
+									}
+								}
+								break;
+							}
+						}
+						// UPDATE VALUE TO RAM IC DRIVER & ACTIVATING FLAG FOR UPDATE TO LCD DRIVER
+						lcdRam21[ramAddressIndeks][comBit+2] = dataBitArray[segment-1];
+						lcdRam21[ramAddressIndeks][6] = 1;
+						// SWITCH TO THE MEXT COLUMN 7-SEGMENT
+					}
+					segColumnIndeks++;
+				// FILTER FOR COMA SEGMENT >> ENABLE OR DISABLE COMA
+				}else{
+					// FILTER INDEKS ARRAY FOR COMA POSITION
+					if((indeks==1) || (indeks==3) || (indeks==5)){
+						uint8_t pointColumnIndeks;
+						// GET COLUMN INDEKS
+						if(indeks==1)pointColumnIndeks=10;
+						if(indeks==3)pointColumnIndeks=11;
+						if(indeks==5)pointColumnIndeks=12;
+						// GET COMMON  & SEGMENT
+						for(uint8_t indeks4=0;indeks4<6;indeks4++){
+							if(mapSegmentPointIC2[indeks4][0] == pointColumnIndeks){
+								comBit = mapSegmentPointIC2[indeks4][1];
+								segBit = mapSegmentPointIC2[indeks4][2];
+								// GET DATA ADDRESS RAM IC DRIVER LCD
+								for(uint8_t indeks1=0;indeks1<32;indeks1++){
+									if(lcdRam21[indeks1][0] == segBit){
+										ramAddressValue = lcdRam21[indeks1][1];
+										ramAddressIndeks = indeks1;
+										break;
+									}
+								}
+								break;
+							}
+						}
+						// UPDATE VALUE TO RAM IC DRIVER & ACTIVATING FLAG FOR UPDATE TO LCD DRIVER
+						// DISABLE COMA SEGMENT
+						if(dataPrint[indeks] == 0xF){ 					// BIT DISABLE COMA
+							lcdRam21[ramAddressIndeks][comBit+2] = 0;	// DISABLE SEGMENT COMMA
+						// EANABLE COMA SEGMENT
+						}else if(dataPrint[indeks] == 0xFF){ 			// BIT ENABLE COMA
+							lcdRam21[ramAddressIndeks][comBit+2] = 1;
+						}
+						lcdRam21[ramAddressIndeks][6] = 1;
+					}
 				}
 			}
 		}
-	// ================================================= SEGMENT COLUMN 2 ========================================================
-	}else if(column == 2){
-		uint8_t segColumnIndeks = 5;
+		// ================================================= UNIT SENSOR ========================================================
+
+		// ENABLE OR DISABLE  UNIT SENSOR SEGMENT FOR IC1
+		if((type == CURRENT_RMS)||(type == VOLTAGE_RMS)||(type == ACTIVE_POWER)||(type == REACTIVE_POWER)||(type == REACTIVE_POWER)||(type == APPARENT_POWER)||(type == POWER_FACTOR)){
+			lcdRam11[22][3+2] = 1; 		lcdRam11[22][2+2] = 0;		// AB phase
+			lcdRam12[22][6+2-4] = 1;	lcdRam12[22][5+2-4] = 0;	// BC Phase
+			lcdRam21[13][5+2-4] = 1;	lcdRam21[13][6+2-4] = 0;    // CA Phase
+			// ENABLE FLAG
+			lcdRam11[22][6] = 1;		lcdRam12[22][6] = 1;
+			lcdRam21[13][6] = 1;
+			if(type == CURRENT_RMS){handleUnitSegment(0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1);}
+			else if(type == VOLTAGE_RMS){handleUnitSegment(0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1);}
+			else if(type == ACTIVE_POWER){handleUnitSegment(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1);}
+			else if(type == REACTIVE_POWER){handleUnitSegment(0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1);}
+			else if(type == APPARENT_POWER){handleUnitSegment(0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1);}
+			else if(type == POWER_FACTOR){handleUnitSegment(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1);}
+		// EMABLE OR DISABLE PHASE OR DIV PHASE
+		}else if(type == VOLTAGE_RMS_DIV){
+			handleUnitSegment(0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1);
+			lcdRam11[22][3+2] = 1; 		lcdRam11[22][2+2] = 1;		// AB phase
+			lcdRam12[22][6+2-4] = 1;	lcdRam12[22][5+2-4] = 1;	// BC Phase
+			lcdRam21[13][5+2-4] = 1;	lcdRam21[13][6+2-4] = 1;    // CA Phase
+			// ENABLE FLAG
+			lcdRam11[22][6] = 1;		lcdRam12[22][6] = 1;
+			lcdRam21[13][6] = 1;
+		}
+	// FILTER 7 SGMENT >> NINE DIGIT(ACTIVE_ENERGY, REACTIVE_ENERGY)
+	}else if((type == ACTIVE_ENERGY)||(type == REACTIVE_ENERGY)){
+		// ENABLE OR DIABLE UNIT SEGMENT
+		if(type == ACTIVE_ENERGY){handleUnitSegment(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1);}
+		else if(type == REACTIVE_ENERGY){handleUnitSegment(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1);}
+		// WRITE 7-SEGMENT >> NINE DIGIT
+		uint8_t segColumnIndeks = 17;
 		// ITERATE 7-SEGMENT COLUMN
-		for(uint8_t indeks=0;indeks<7;indeks++){
+		for(uint8_t indeks7=0;indeks7<17;indeks7++){
 			// FILTER FOF NUMBBER SEGMENT >> 7-SEGMENT
-			if((dataPrint[indeks] != 0xF) && (dataPrint[indeks] != 0xFF)){ // bit NULL & bit coma
+			if((dataPrint[indeks7] != 0xF) && (dataPrint[indeks7] != 0xFF)){ // bit NULL & bit coma
 				// ITERATE CONVERT DATA FROM CHAR TO BIT SEGMENT
 				for(uint8_t indeks1=0;indeks1<37;indeks1++){
-					if(dataPrint[indeks] == (uint8_t)alphaNumeric[indeks1][0]){
+					if(dataPrint[indeks7] == (uint8_t)alphaNumeric[indeks1][0]){
 						dataBit = alphaNumeric[indeks1][1];
-						integerToArray(dataBit, dataBitAarray);
+						integerToArray(dataBit, dataBitArray);
 						break;
 					}
 				}
 				// ITERATE GET ADDRESSING DATA BIT FOR 7-SEGMENT
 				for(uint8_t segment=1;segment<8;segment++){
 					// ITERATE GET DATA COM, SEG, ADDR RAM
-					for(uint8_t indeks2=0;indeks2<56;indeks2++){
-						if((mapSegmentIC1[indeks2][0] == segColumnIndeks) && (mapSegmentIC1[indeks2][1] == segment)){
-							segBit = mapSegmentIC1[indeks2][3];
-							comBit = mapSegmentIC1[indeks2][2];
+					for(uint8_t indeks2=0;indeks2<63;indeks2++){
+						if((mapSegmentEnergy[indeks2][0] == segColumnIndeks) && (mapSegmentEnergy[indeks2][1] == segment)){
+							segBit = mapSegmentEnergy[indeks2][3];
+							comBit = mapSegmentEnergy[indeks2][2];
 							// GET DATA ADDRESS RAM IC DRIVER LCD
 							for(uint8_t indeks3=0;indeks3<32;indeks3++){
-								if(lcdRam12[indeks3][0] == segBit){
-									ramAddressValue = lcdRam12[indeks3][1];
-									ramAddressIndeks = indeks3;
-									break;
+								if((comBit>=0) && (comBit<=3)){
+									if(lcdRam21[indeks3][0] == segBit){
+										ramAddressValue = lcdRam21[indeks3][1];
+										ramAddressIndeks = indeks3;
+										break;
+									}
+								}else if((comBit>=4) && (comBit<= 7)){
+									if(lcdRam22[indeks3][0] == segBit){
+										ramAddressValue = lcdRam22[indeks3][1];
+										ramAddressIndeks = indeks3;
+										break;
+									}
 								}
 							}
 							break;
 						}
 					}
 					// UPDATE VALUE TO RAM IC DRIVER & ACTIVATING FLAG FOR UPDATE TO LCD DRIVER
-					lcdRam12[ramAddressIndeks][comBit+2-4] = dataBitAarray[segment-1];
-					lcdRam12[ramAddressIndeks][6] = 1;
+					// FILTER RAM IC DRIVER
+					if((comBit>=0) && (comBit<=3)){
+						lcdRam21[ramAddressIndeks][comBit+2] = dataBitArray[segment-1];
+						lcdRam21[ramAddressIndeks][6] = 1;
+					}else if((comBit>=4) && (comBit<= 7)){
+						lcdRam22[ramAddressIndeks][comBit+2-4] = dataBitArray[segment-1];
+						lcdRam22[ramAddressIndeks][6] = 1;
+					}
+					// ENABLE FLAG
 					// SWITCH TO THE MEXT COLUMN 7-SEGMENT
 				}
 				segColumnIndeks++;
 			// FILTER FOR COMA SEGMENT >> ENABLE OR DISABLE COMA
 			}else{
 				// FILTER INDEKS ARRAY FOR COMA POSITION
-				if((indeks==1) || (indeks==3) || (indeks==5)){
+				if((indeks7==1)||(indeks7==3)||(indeks7==5)||(indeks7==7)||(indeks7==9)||(indeks7==11)||(indeks7==13)||(indeks7==15)){
 					uint8_t pointColumnIndeks;
 					// GET COLUMN INDEKS
-					if(indeks==1)pointColumnIndeks=4;
-					if(indeks==3)pointColumnIndeks=5;
-					if(indeks==5)pointColumnIndeks=6;
+					if(indeks7==1)pointColumnIndeks=13;
+					if(indeks7==3)pointColumnIndeks=14;
+					if(indeks7==5)pointColumnIndeks=15;
+					if(indeks7==7)pointColumnIndeks=16;
+					if(indeks7==9)pointColumnIndeks=17;
+					if(indeks7==11)pointColumnIndeks=18;
+					if(indeks7==13)pointColumnIndeks=19;
+					if(indeks7==15)pointColumnIndeks=20;
 					// GET COMMON  & SEGMENT
-					for(uint8_t indeks4=0;indeks4<6;indeks4++){
-						if(mapSegmentPointIC1[indeks4][0] == pointColumnIndeks){
-							comBit = mapSegmentPointIC1[indeks4][1];
-							segBit = mapSegmentPointIC1[indeks4][2];
+					for(uint8_t indeks5=0;indeks5<8;indeks5++){
+						if(mapSegmentPointEnergy[indeks5][0] == pointColumnIndeks){
+							comBit = mapSegmentPointEnergy[indeks5][1];
+							segBit = mapSegmentPointEnergy[indeks5][2];
 							// GET DATA ADDRESS RAM IC DRIVER LCD
-							for(uint8_t indeks1=0;indeks1<32;indeks1++){
-								if(lcdRam12[indeks1][0] == segBit){
-									ramAddressValue = lcdRam12[indeks1][1];
-									ramAddressIndeks = indeks1;
-									break;
+							for(uint8_t indeks6=0;indeks6<32;indeks6++){
+								if((comBit>=0) && (comBit<=3)){
+									if(lcdRam21[indeks6][0] == segBit){
+										ramAddressValue = lcdRam21[indeks6][1];
+										ramAddressIndeks = indeks6;
+										break;
+									}
+								}else if((comBit>=4) && (comBit<=7)){
+									if(lcdRam22[indeks6][0] == segBit){
+										ramAddressValue = lcdRam22[indeks6][1];
+										ramAddressIndeks = indeks6;
+										break;
+									}
 								}
 							}
 							break;
@@ -610,183 +913,18 @@ void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrin
 					}
 					// UPDATE VALUE TO RAM IC DRIVER & ACTIVATING FLAG FOR UPDATE TO LCD DRIVER
 					// DISABLE COMA SEGMENT
-					if(dataPrint[indeks] == 0xF){ 					// BIT DISABLE COMA
-						lcdRam12[ramAddressIndeks][comBit+2-4] = 0;	// DISABLE SEGMENT COMMA
+					if(dataPrint[indeks7] == 0xF){ 					// BIT DISABLE COMA
+						if((comBit>=0) && (comBit<=3)){lcdRam21[ramAddressIndeks][comBit+2] = 0;	lcdRam21[ramAddressIndeks][6] = 1;}	// DISABLE SEGMENT COMMA
+						if((comBit>=4) && (comBit<=7)){lcdRam22[ramAddressIndeks][comBit+2-4] = 0;	lcdRam22[ramAddressIndeks][6] = 1;}	// DISABLE SEGMENT COMMA
 					// EANABLE COMA SEGMENT
-					}else if(dataPrint[indeks] == 0xFF){ 			// BIT ENABLE COMA
-						lcdRam12[ramAddressIndeks][comBit+2-4] = 1;
+					}else if(dataPrint[indeks7] == 0xFF){ 			// BIT ENABLE COMA
+						if((comBit>=0) && (comBit<=3)){lcdRam21[ramAddressIndeks][comBit+2] = 1;	lcdRam21[ramAddressIndeks][6] = 1;}	// DISABLE SEGMENT COMMA
+						if((comBit>=4) && (comBit<=7)){lcdRam22[ramAddressIndeks][comBit+2-4] = 1;	lcdRam22[ramAddressIndeks][6] = 1;}	// DISABLE SEGMENT COMMA
 					}
-					lcdRam12[ramAddressIndeks][6] = 1;
-				}
-			}
-		}
-	// ================================================= SEGMENT COLUMN 3 ========================================================
-	}else if(column == 3){
-		uint8_t segColumnIndeks = 9;
-		// ITERATE 7-SEGMENT COLUMN
-		for(uint8_t indeks=0;indeks<7;indeks++){
-			// FILTER FOF NUMBBER SEGMENT >> 7-SEGMENT
-			if((dataPrint[indeks] != 0xF) && (dataPrint[indeks] != 0xFF)){ // bit NULL & bit coma
-				// ITERATE CONVERT DATA FROM CHAR TO BIT SEGMENT
-				for(uint8_t indeks1=0;indeks1<37;indeks1++){
-					if(dataPrint[indeks] == (uint8_t)alphaNumeric[indeks1][0]){
-						dataBit = alphaNumeric[indeks1][1];
-						integerToArray(dataBit, dataBitAarray);
-						break;
-					}
-				}
-				// ITERATE GET ADDRESSING DATA BIT FOR 7-SEGMENT
-				for(uint8_t segment=1;segment<8;segment++){
-					// ITERATE GET DATA COM, SEG, ADDR RAM
-					for(uint8_t indeks2=0;indeks2<56;indeks2++){
-						if((mapSegmentIC2[indeks2][0] == segColumnIndeks) && (mapSegmentIC2[indeks2][1] == segment)){
-							segBit = mapSegmentIC2[indeks2][3];
-							comBit = mapSegmentIC2[indeks2][2];
-							// GET DATA ADDRESS RAM IC DRIVER LCD
-							for(uint8_t indeks3=0;indeks3<32;indeks3++){
-								if(lcdRam22[indeks3][0] == segBit){
-									ramAddressValue = lcdRam22[indeks3][1];
-									ramAddressIndeks = indeks3;
-									break;
-								}
-							}
-							break;
-						}
-					}
-					// UPDATE VALUE TO RAM IC DRIVER & ACTIVATING FLAG FOR UPDATE TO LCD DRIVER
-					lcdRam22[ramAddressIndeks][comBit+2-4] = dataBitAarray[segment-1];
-					lcdRam22[ramAddressIndeks][6] = 1;
-					// SWITCH TO THE MEXT COLUMN 7-SEGMENT
-				}
-				segColumnIndeks++;
-			// FILTER FOR COMA SEGMENT >> ENABLE OR DISABLE COMA
-			}else{
-				// FILTER INDEKS ARRAY FOR COMA POSITION
-				if((indeks==1) || (indeks==3) || (indeks==5)){
-					uint8_t pointColumnIndeks;
-					// GET COLUMN INDEKS
-					if(indeks==1)pointColumnIndeks=7;
-					if(indeks==3)pointColumnIndeks=8;
-					if(indeks==5)pointColumnIndeks=9;
-					// GET COMMON  & SEGMENT
-					for(uint8_t indeks4=0;indeks4<6;indeks4++){
-						if(mapSegmentPointIC2[indeks4][0] == pointColumnIndeks){
-							comBit = mapSegmentPointIC2[indeks4][1];
-							segBit = mapSegmentPointIC2[indeks4][2];
-							// GET DATA ADDRESS RAM IC DRIVER LCD
-							for(uint8_t indeks1=0;indeks1<32;indeks1++){
-								if(lcdRam22[indeks1][0] == segBit){
-									ramAddressValue = lcdRam22[indeks1][1];
-									ramAddressIndeks = indeks1;
-									break;
-								}
-							}
-							break;
-						}
-					}
-					// UPDATE VALUE TO RAM IC DRIVER & ACTIVATING FLAG FOR UPDATE TO LCD DRIVER
-					// DISABLE COMA SEGMENT
-					if(dataPrint[indeks] == 0xF){ 					// BIT DISABLE COMA
-						lcdRam22[ramAddressIndeks][comBit+2-4] = 0;	// DISABLE SEGMENT COMMA
-					// EANABLE COMA SEGMENT
-					}else if(dataPrint[indeks] == 0xFF){ 			// BIT ENABLE COMA
-						lcdRam22[ramAddressIndeks][comBit+2-4] = 1;
-					}
-					lcdRam22[ramAddressIndeks][6] = 1;
-				}
-			}
-		}
-	// ================================================= SEGMENT COLUMN 4 ========================================================
-	}else if(column == 4){
-		uint8_t segColumnIndeks = 13;
-		// ITERATE 7-SEGMENT COLUMN
-		for(uint8_t indeks=0;indeks<7;indeks++){
-			// FILTER FOF NUMBBER SEGMENT >> 7-SEGMENT
-			if((dataPrint[indeks] != 0xF) && (dataPrint[indeks] != 0xFF)){ // bit NULL & bit coma
-				// ITERATE CONVERT DATA FROM CHAR TO BIT SEGMENT
-				for(uint8_t indeks1=0;indeks1<37;indeks1++){
-					if(dataPrint[indeks] == (uint8_t)alphaNumeric[indeks1][0]){
-						dataBit = alphaNumeric[indeks1][1];
-						integerToArray(dataBit, dataBitAarray);
-						break;
-					}
-				}
-				// ITERATE GET ADDRESSING DATA BIT FOR 7-SEGMENT
-				for(uint8_t segment=1;segment<8;segment++){
-					// ITERATE GET DATA COM, SEG, ADDR RAM
-					for(uint8_t indeks2=0;indeks2<56;indeks2++){
-						if((mapSegmentIC2[indeks2][0] == segColumnIndeks) && (mapSegmentIC2[indeks2][1] == segment)){
-							segBit = mapSegmentIC2[indeks2][3];
-							comBit = mapSegmentIC2[indeks2][2];
-							// GET DATA ADDRESS RAM IC DRIVER LCD
-							for(uint8_t indeks3=0;indeks3<32;indeks3++){
-								if(lcdRam21[indeks3][0] == segBit){
-									ramAddressValue = lcdRam21[indeks3][1];
-									ramAddressIndeks = indeks3;
-									break;
-								}
-							}
-							break;
-						}
-					}
-					// UPDATE VALUE TO RAM IC DRIVER & ACTIVATING FLAG FOR UPDATE TO LCD DRIVER
-					lcdRam21[ramAddressIndeks][comBit+2] = dataBitAarray[segment-1];
-					lcdRam21[ramAddressIndeks][6] = 1;
-					// SWITCH TO THE MEXT COLUMN 7-SEGMENT
-				}
-				segColumnIndeks++;
-			// FILTER FOR COMA SEGMENT >> ENABLE OR DISABLE COMA
-			}else{
-				// FILTER INDEKS ARRAY FOR COMA POSITION
-				if((indeks==1) || (indeks==3) || (indeks==5)){
-					uint8_t pointColumnIndeks;
-					// GET COLUMN INDEKS
-					if(indeks==1)pointColumnIndeks=10;
-					if(indeks==3)pointColumnIndeks=11;
-					if(indeks==5)pointColumnIndeks=12;
-					// GET COMMON  & SEGMENT
-					for(uint8_t indeks4=0;indeks4<6;indeks4++){
-						if(mapSegmentPointIC2[indeks4][0] == pointColumnIndeks){
-							comBit = mapSegmentPointIC2[indeks4][1];
-							segBit = mapSegmentPointIC2[indeks4][2];
-							// GET DATA ADDRESS RAM IC DRIVER LCD
-							for(uint8_t indeks1=0;indeks1<32;indeks1++){
-								if(lcdRam21[indeks1][0] == segBit){
-									ramAddressValue = lcdRam21[indeks1][1];
-									ramAddressIndeks = indeks1;
-									break;
-								}
-							}
-							break;
-						}
-					}
-					// UPDATE VALUE TO RAM IC DRIVER & ACTIVATING FLAG FOR UPDATE TO LCD DRIVER
-					// DISABLE COMA SEGMENT
-					if(dataPrint[indeks] == 0xF){ 					// BIT DISABLE COMA
-						lcdRam21[ramAddressIndeks][comBit+2] = 0;	// DISABLE SEGMENT COMMA
-					// EANABLE COMA SEGMENT
-					}else if(dataPrint[indeks] == 0xFF){ 			// BIT ENABLE COMA
-						lcdRam21[ramAddressIndeks][comBit+2] = 1;
-					}
-					lcdRam21[ramAddressIndeks][6] = 1;
 				}
 			}
 		}
 	}
-	// ================================================= UNIT SENSOR ========================================================
-	// EMABLE OR DISABLE PHASE OR DIV PHASE
-
-	// ENABLE OR DISABLE  UNIT SENSOR SEGMENT FOR IC1
-	if(type == CURRENT_RMS){handleUnitSegment(0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);}
-	else if(type == VOLTAGE_RMS){handleUnitSegment(0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0);}
-	else if(type == VOLTAGE_RMS_DIV){handleUnitSegment(0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0);}
-	else if(type == ACTIVE_POWER){handleUnitSegment(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);}
-	else if(type == REACTIVE_POWER){handleUnitSegment(0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);}
-	else if(type == APPARENT_POWER){handleUnitSegment(0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0);}
-	else if(type == ACTIVE_ENERGY){handleUnitSegment(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0);}
-	else if(type == REACTIVE_ENERGY){handleUnitSegment(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1);}
-
-	// ENABLE OR DISABLE SEGMENT
 }
 
 void handleUnitSegment(
@@ -803,8 +941,10 @@ void handleUnitSegment(
 			uint8_t temp,
 			uint8_t percent,
 			uint8_t energyActive,
-			uint8_t energyReactive
-		){
+			uint8_t energyReactive,
+			uint8_t powerFactor,
+			uint8_t energyTotal
+){
 	// UPDATE VALUE TO RAM IC DRIVER ADDRESS
 	lcdRam11[31][0+2] = powerActiveKw; 		// Active Power (KW) IC1
 	lcdRam11[31][1+2] = powerActiveMW; 		// Active Power (MW )IC1
@@ -820,12 +960,44 @@ void handleUnitSegment(
 	lcdRam21[31][3+2] = percent;			// precent
 	lcdRam21[31][2+2] = energyActive;		// total active energy
 	lcdRam21[31][1+2] = energyReactive;		// total rective energy
+	lcdRam21[10][1+2] = powerFactor;		// power factor
+	lcdRam21[12][1+2] = energyTotal;		// energy total
 	// ENABLE FLAG
 	lcdRam11[31][6] = 1;
 	lcdRam12[31][6] = 1;
 	lcdRam21[31][6] = 1;
+	lcdRam21[10][6] = 1;
+	lcdRam21[12][6] = 1;
 	lcdRam22[31][6] = 1;
 	lcdRam22[30][6] = 1;
+}
+
+void spiEnableCS1(){HAL_GPIO_WritePin(CS1_DRIVER_GPIO_Port, CS1_DRIVER_Pin, GPIO_PIN_RESET);}
+void spiDisableCS1(){HAL_GPIO_WritePin(CS1_DRIVER_GPIO_Port, CS1_DRIVER_Pin, GPIO_PIN_SET);}
+void spiEnableCS2(){HAL_GPIO_WritePin(CS2_DRIVER_GPIO_Port, CS2_DRIVER_Pin, GPIO_PIN_RESET);}
+void spiDisableCS2(){HAL_GPIO_WritePin(CS2_DRIVER_GPIO_Port, CS2_DRIVER_Pin, GPIO_PIN_SET);}
+
+void ht1622EncodeGroup(uint8_t * data[7], uint8_t * buffer){
+	for(uint8_t indeks=0;indeks<32;indeks++){
+		if(data[indeks][6] == 1){
+			//decode to 16 bit
+		}
+	}
+}
+
+uint16_t ht1622EncodeSingle(uint8_t address, uint8_t * data){
+	uint16_t buffer = 0;
+	uint16_t address16 = (uint8_t)address;
+	uint16_t data16 = (uint8_t)data;
+
+	buffer = 0b101 << 13;
+	buffer = buffer | (address16 << 7);
+	buffer = buffer | (data[2] << 6);
+	buffer = buffer | (data[3] << 5);
+	buffer = buffer | (data[4] << 4);
+	buffer = buffer | (data[5] << 3);
+
+	return buffer;
 }
 
 uint8_t ht1622GenerateBit(uint8_t dataRaw){

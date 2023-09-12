@@ -262,12 +262,14 @@ extern uint8_t lcdRam12[32][6];
 extern uint8_t lcdRam22[32][6];
 
 // testing begin
-uint8_t testing1 = 0;
+uint16_t testing1 = 0;
 uint8_t testing2 = 0;
 uint8_t testing3 = 0;
 
 uint8_t dataLcd[10];
 uint8_t dataLcdBuffer[7];
+uint8_t dataLcdBuffer17[17];
+
 float datalcdFloat = 1.23;
 uint8_t testPrint[50];
 
@@ -338,11 +340,6 @@ int main(void)
   HAL_Delay(1000);
   /* USER CODE END Init */
 
-  // TESTING BEGIN
-  sprintf(testPrint,"%.2f\n",datalcdFloat);
-
-  // TESTING END
-
   /* Configure the system clock */
   SystemClock_Config();
 
@@ -385,11 +382,22 @@ int main(void)
   // RESET VALUE EEPROM END
 
 
-  datalcdFloat = 12.34;
+  datalcdFloat = 1234567.34;
+//  datalcdFloat = 8888888.88;
   sprintf(dataLcd,"%.2f\n",datalcdFloat);
   testing1 = ht1622SizeOf(dataLcd);
-  ht1622ProcessDataPrint(dataLcd, testing1, dataLcdBuffer);
-  ht1622Write(1, 4, dataLcdBuffer);
+//  ht1622ProcessDataPrint(FOUR_DIGIT,dataLcd, testing1, dataLcdBuffer);
+  ht1622ProcessDataPrint(NINE_DIGIT,dataLcd, testing1, dataLcdBuffer17);
+
+//  ht1622Write(CURRENT_RMS, 4, dataLcdBuffer);
+//  ht1622Write(VOLTAGE_RMS, 4, dataLcdBuffer);
+//  ht1622Write(VOLTAGE_RMS_DIV, 4, dataLcdBuffer);
+//  ht1622Write(ACTIVE_POWER, 4, dataLcdBuffer);
+//  ht1622Write(REACTIVE_POWER, 4, dataLcdBuffer);
+//  ht1622Write(APPARENT_POWER, 4, dataLcdBuffer);
+  ht1622Write(ACTIVE_ENERGY, 4, dataLcdBuffer17);
+//  ht1622Write(REACTIVE_ENERGY, 4, dataLcdBuffer);
+//  ht1622Write(POWER_FACTOR, 4, dataLcdBuffer);
 
   eepromLoad();
 
