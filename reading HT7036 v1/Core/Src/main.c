@@ -314,6 +314,46 @@ void powerHandleCalib();
 void eepromLoop();
 void eepromLoad();
 
+// TESTING BEGIN
+float altitudeOld = 0;
+float altitudeOld1 = 0;
+float altitudeArray[] = {
+		10,
+		30,
+		90,
+		10,
+		20,
+		65538,
+		70,
+		65540,
+		80,
+		90,
+		100
+};
+float altitudeNew = 0;
+void handleConfirmAltitude(float * valueOld, float * valueNew){
+	if(*valueNew >= 65535){
+		*valueNew = *valueOld;
+	}else if(*valueNew < 65535){
+		*valueOld = *valueNew;
+	}
+}
+
+void handleErrorDiff(uint8_t type, float * valueOld, float * valueNew){
+	uint16_t diff;
+	if(type == 1){
+		if(*valueNew > *valueOld)diff=*valueNew - *valueOld;
+		else if(*valueNew < *valueOld)diff=*valueOld - *valueNew;
+		if(diff > 40){
+			if(*valueNew < 65535)*valueOld = *valueNew;
+			*valueNew = 0;
+		}else{
+			*valueOld = *valueNew;
+		}
+	}
+}
+// TESTING END
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -351,7 +391,6 @@ int main(void)
   MX_DMA_Init();
   MX_SPI2_Init();
   MX_USART2_UART_Init();
-  MX_SPI1_Init();
   MX_I2C2_Init();
   MX_TIM14_Init();
   /* USER CODE BEGIN 2 */
@@ -373,14 +412,68 @@ int main(void)
   // START MODBUS HANDLE
   modbusReceive(&Modbus);
   uint8_t eepromTest = 123;
-
   ee24_init(&hi2c2, 0, 0, 0);
 
   // RESET VALUE EEPROM BEGIN
 //  ee24_eraseChip();
 //  for(;;);
   // RESET VALUE EEPROM END
+/*
 
+ "(46) 101 011101 1011
+(48) 101 000011 1100"
+
+1011011101011
+
+1011011101101
+
+101
+
+
+ */
+
+  //============================== SPI TESTING BEGIN ===============================
+  uint16_t writeLcd = 0b1011011101011000;
+  uint8_t writeLcdHigh = byteHigh(writeLcd);
+  uint8_t writeLcdLow = byteLow(writeLcd);
+//  HAL_GPIO_WritePin(BACKLIGHT_En_GPIO_Port,	 GPIO_P, PinState)
+  ht1622_init();
+  clean_all();
+  for(;;){
+	  write_seg_data_bit_4(1,48, 0, 0, 1, 1);
+	  write_seg_data_bit_4(1,46, 1, 1, 0, 1);
+
+	  write_seg_data_bit_4(1,50, 1, 1, 0, 1);
+	  write_seg_data_bit_4(1,52, 0, 0, 1, 1);
+
+	  write_seg_data_bit_4(1,54, 1, 1, 1, 1);
+	  write_seg_data_bit_4(1,56, 1, 1, 0, 1);
+
+	  write_seg_data_bit_4(1,58, 0, 0, 0, 0);
+	  write_seg_data_bit_4(1,60, 0, 1, 0, 1);
+
+
+	  write_seg_data_bit_4(2,47, 0, 0, 0, 0);
+	  write_seg_data_bit_4(2,49, 1, 0, 1, 0);
+
+	  write_seg_data_bit_4(2,51, 1, 0, 1, 1);
+	  write_seg_data_bit_4(2,53, 1, 1, 0, 1);
+
+	  write_seg_data_bit_4(2,55, 1, 0, 0, 1);
+	  write_seg_data_bit_4(2,57, 1, 1, 1, 0);
+
+	  write_seg_data_bit_4(2,59, 0, 1, 0, 0);
+	  write_seg_data_bit_4(2,61, 1, 1, 1, 0);
+	  HAL_Delay(500);
+	  clean_all();
+	  HAL_Delay(500);
+  }
+
+
+//  write_seg_data_4(46, 15);
+//  set_all();
+
+  //============================== SPI TESTING END ===============================
 
   datalcdFloat = 1234567.34;
 //  datalcdFloat = 8888888.88;

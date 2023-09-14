@@ -61,6 +61,10 @@ void Error_Handler(void);
 #define MODBUS_En_GPIO_Port GPIOA
 #define CS1_DRIVER_Pin GPIO_PIN_4
 #define CS1_DRIVER_GPIO_Port GPIOA
+#define LCD_WR_Pin GPIO_PIN_5
+#define LCD_WR_GPIO_Port GPIOA
+#define LCD_DATA_Pin GPIO_PIN_7
+#define LCD_DATA_GPIO_Port GPIOA
 #define CS2_DRIVER_Pin GPIO_PIN_0
 #define CS2_DRIVER_GPIO_Port GPIOB
 #define CS_Pin GPIO_PIN_8

@@ -51,11 +51,22 @@ void handleUnitSegment(
 			uint8_t powerFactor,
 			uint8_t energyTotal
 );
-void spiEnableCS1();
-void spiDisableCS1();
-void spiEnableCS2();
-void spiDisableCS2();
-void ht1622EncodeGroup(uint8_t * data[7], uint8_t * buffer);
+void ht1622EncodeGroup();
 uint8_t ht1622GenerateBit(uint8_t dataRaw);
 uint16_t ht1622EncodeSingle(uint8_t address, uint8_t * data);
+
+#define  BIAS          0x29
+#define  RC256         0x18
+#define  SYSEN         0x01
+#define  LCDON         0x03
+
+void send_command(uint8_t type, uint8_t cmd);
+void write_seg_data_4(uint8_t type, uint8_t seg_addr, uint8_t com_data);
+void write_seg_data_44(uint8_t type, uint8_t seg_addr, uint8_t *com_data, uint16_t count);
+void write_seg_data_bit_4(uint8_t type,uint8_t seg_addr, uint8_t d3, uint8_t d2, uint8_t d1, uint8_t d0);
+void set_all(void);
+void clean_all(void);
+void ht1622_init(void);
+
+
 #endif

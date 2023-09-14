@@ -1,4 +1,13 @@
 #include "HT1622.h"
+#include "stm32f0xx_hal.h"
+#include "main.h"
+
+#define  CS1 		   1
+#define  CS2           2
+#define  WR_LOW        (HAL_GPIO_WritePin(LCD_WR_GPIO_Port, LCD_WR_Pin, GPIO_PIN_RESET))
+#define  WR_HIGH       (HAL_GPIO_WritePin(LCD_WR_GPIO_Port, LCD_WR_Pin, GPIO_PIN_SET))
+#define  DATA_LOW      (HAL_GPIO_WritePin(LCD_DATA_GPIO_Port, LCD_DATA_Pin, GPIO_PIN_RESET))
+#define  DATA_HIGH     (HAL_GPIO_WritePin(LCD_DATA_GPIO_Port, LCD_DATA_Pin, GPIO_PIN_SET))
 
 uint8_t mapSegmentIC1[56][4] = {
 		// Indeks Kolom | segment | COM | segment
@@ -438,6 +447,8 @@ uint8_t ht1622BuferWrite[3][13] = {
 		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 };
+
+uint8_t dataWriteLcd[128][2];
 uint8_t dataBuffer[7];
 
 
@@ -476,18 +487,18 @@ uint8_t ht1622SizeOf(uint8_t * buffer){
 	return value;
 }
 
-void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrint >> count bit fic is 7 bit
+void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrint >>= count bit fic is 7 bit
 	uint8_t dataBit, comBit, segBit;
 	uint8_t ramAddressValue, ramAddressIndeks;
 	uint8_t dataBitArray[8];
-	// FILTER 7 SGMENT >> FOUR DIGIT(CURRENT_RMS, VOLTAGE_RMS, VOLTAGE_RMS_DIV, ACTIVE_POWER, REACTIVE_POWER, APPARENT_POWER, ACTIVE_ENERGY, REACTIVE_ENERGY, POWER_FACTOR)
+	// FILTER 7 SGMENT >>= FOUR DIGIT(CURRENT_RMS, VOLTAGE_RMS, VOLTAGE_RMS_DIV, ACTIVE_POWER, REACTIVE_POWER, APPARENT_POWER, ACTIVE_ENERGY, REACTIVE_ENERGY, POWER_FACTOR)
 	if((type == CURRENT_RMS)||(type == VOLTAGE_RMS)||(type == ACTIVE_POWER)||(type == REACTIVE_POWER)||(type == REACTIVE_POWER)||(type == APPARENT_POWER)||(type == POWER_FACTOR)){
 		// ================================================= SEGMENT ROW 1 ========================================================
 		if(column == 1){
 			uint8_t segColumnIndeks = 1;
 			// ITERATE 7-SEGMENT COLUMN
 			for(uint8_t indeks=0;indeks<7;indeks++){
-				// FILTER FOF NUMBBER SEGMENT >> 7-SEGMENT
+				// FILTER FOF NUMBBER SEGMENT >>= 7-SEGMENT
 				if((dataPrint[indeks] != 0xF) && (dataPrint[indeks] != 0xFF)){ // bit NULL & bit coma
 					// ITERATE CONVERT DATA FROM CHAR TO BIT SEGMENT
 					for(uint8_t indeks1=0;indeks1<37;indeks1++){
@@ -521,7 +532,7 @@ void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrin
 						// SWITCH TO THE MEXT COLUMN 7-SEGMENT
 					}
 					segColumnIndeks++;
-				// FILTER FOR COMA SEGMENT >> ENABLE OR DISABLE COMA
+				// FILTER FOR COMA SEGMENT >>= ENABLE OR DISABLE COMA
 				}else{
 					// FILTER INDEKS ARRAY FOR COMA POSITION
 					if((indeks==1) || (indeks==3) || (indeks==5)){
@@ -565,7 +576,7 @@ void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrin
 			uint8_t segColumnIndeks = 5;
 			// ITERATE 7-SEGMENT COLUMN
 			for(uint8_t indeks=0;indeks<7;indeks++){
-				// FILTER FOF NUMBBER SEGMENT >> 7-SEGMENT
+				// FILTER FOF NUMBBER SEGMENT >>= 7-SEGMENT
 				if((dataPrint[indeks] != 0xF) && (dataPrint[indeks] != 0xFF)){ // bit NULL & bit coma
 					// ITERATE CONVERT DATA FROM CHAR TO BIT SEGMENT
 					for(uint8_t indeks1=0;indeks1<37;indeks1++){
@@ -599,7 +610,7 @@ void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrin
 						// SWITCH TO THE MEXT COLUMN 7-SEGMENT
 					}
 					segColumnIndeks++;
-				// FILTER FOR COMA SEGMENT >> ENABLE OR DISABLE COMA
+				// FILTER FOR COMA SEGMENT >>= ENABLE OR DISABLE COMA
 				}else{
 					// FILTER INDEKS ARRAY FOR COMA POSITION
 					if((indeks==1) || (indeks==3) || (indeks==5)){
@@ -641,7 +652,7 @@ void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrin
 			uint8_t segColumnIndeks = 9;
 			// ITERATE 7-SEGMENT COLUMN
 			for(uint8_t indeks=0;indeks<7;indeks++){
-				// FILTER FOF NUMBBER SEGMENT >> 7-SEGMENT
+				// FILTER FOF NUMBBER SEGMENT >>= 7-SEGMENT
 				if((dataPrint[indeks] != 0xF) && (dataPrint[indeks] != 0xFF)){ // bit NULL & bit coma
 					// ITERATE CONVERT DATA FROM CHAR TO BIT SEGMENT
 					for(uint8_t indeks1=0;indeks1<37;indeks1++){
@@ -675,7 +686,7 @@ void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrin
 						// SWITCH TO THE MEXT COLUMN 7-SEGMENT
 					}
 					segColumnIndeks++;
-				// FILTER FOR COMA SEGMENT >> ENABLE OR DISABLE COMA
+				// FILTER FOR COMA SEGMENT >>= ENABLE OR DISABLE COMA
 				}else{
 					// FILTER INDEKS ARRAY FOR COMA POSITION
 					if((indeks==1) || (indeks==3) || (indeks==5)){
@@ -717,7 +728,7 @@ void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrin
 			uint8_t segColumnIndeks = 13;
 			// ITERATE 7-SEGMENT COLUMN
 			for(uint8_t indeks=0;indeks<7;indeks++){
-				// FILTER FOF NUMBBER SEGMENT >> 7-SEGMENT
+				// FILTER FOF NUMBBER SEGMENT >>= 7-SEGMENT
 				if((dataPrint[indeks] != 0xF) && (dataPrint[indeks] != 0xFF)){ // bit NULL & bit coma
 					// ITERATE CONVERT DATA FROM CHAR TO BIT SEGMENT
 					for(uint8_t indeks1=0;indeks1<37;indeks1++){
@@ -751,7 +762,7 @@ void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrin
 						// SWITCH TO THE MEXT COLUMN 7-SEGMENT
 					}
 					segColumnIndeks++;
-				// FILTER FOR COMA SEGMENT >> ENABLE OR DISABLE COMA
+				// FILTER FOR COMA SEGMENT >>= ENABLE OR DISABLE COMA
 				}else{
 					// FILTER INDEKS ARRAY FOR COMA POSITION
 					if((indeks==1) || (indeks==3) || (indeks==5)){
@@ -790,7 +801,6 @@ void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrin
 			}
 		}
 		// ================================================= UNIT SENSOR ========================================================
-
 		// ENABLE OR DISABLE  UNIT SENSOR SEGMENT FOR IC1
 		if((type == CURRENT_RMS)||(type == VOLTAGE_RMS)||(type == ACTIVE_POWER)||(type == REACTIVE_POWER)||(type == REACTIVE_POWER)||(type == APPARENT_POWER)||(type == POWER_FACTOR)){
 			lcdRam11[22][3+2] = 1; 		lcdRam11[22][2+2] = 0;		// AB phase
@@ -815,16 +825,16 @@ void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrin
 			lcdRam11[22][6] = 1;		lcdRam12[22][6] = 1;
 			lcdRam21[13][6] = 1;
 		}
-	// FILTER 7 SGMENT >> NINE DIGIT(ACTIVE_ENERGY, REACTIVE_ENERGY)
+	// FILTER 7 SGMENT >>= NINE DIGIT(ACTIVE_ENERGY, REACTIVE_ENERGY)
 	}else if((type == ACTIVE_ENERGY)||(type == REACTIVE_ENERGY)){
 		// ENABLE OR DIABLE UNIT SEGMENT
 		if(type == ACTIVE_ENERGY){handleUnitSegment(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1);}
 		else if(type == REACTIVE_ENERGY){handleUnitSegment(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1);}
-		// WRITE 7-SEGMENT >> NINE DIGIT
+		// WRITE 7-SEGMENT >>= NINE DIGIT
 		uint8_t segColumnIndeks = 17;
 		// ITERATE 7-SEGMENT COLUMN
 		for(uint8_t indeks7=0;indeks7<17;indeks7++){
-			// FILTER FOF NUMBBER SEGMENT >> 7-SEGMENT
+			// FILTER FOF NUMBBER SEGMENT >>= 7-SEGMENT
 			if((dataPrint[indeks7] != 0xF) && (dataPrint[indeks7] != 0xFF)){ // bit NULL & bit coma
 				// ITERATE CONVERT DATA FROM CHAR TO BIT SEGMENT
 				for(uint8_t indeks1=0;indeks1<37;indeks1++){
@@ -873,7 +883,7 @@ void ht1622Write(uint8_t type, uint8_t column, uint8_t * dataPrint){ // dataPrin
 					// SWITCH TO THE MEXT COLUMN 7-SEGMENT
 				}
 				segColumnIndeks++;
-			// FILTER FOR COMA SEGMENT >> ENABLE OR DISABLE COMA
+			// FILTER FOR COMA SEGMENT >>= ENABLE OR DISABLE COMA
 			}else{
 				// FILTER INDEKS ARRAY FOR COMA POSITION
 				if((indeks7==1)||(indeks7==3)||(indeks7==5)||(indeks7==7)||(indeks7==9)||(indeks7==11)||(indeks7==13)||(indeks7==15)){
@@ -956,7 +966,7 @@ void handleUnitSegment(
 	lcdRam22[31][6+2-4] = powerApparentMw; 	// Apparent Power (MVa) IC2
 	lcdRam22[31][5+2-4] = voltage; 			// Volrage (Kv) IC2
 	lcdRam22[31][4+2-4] = freq; 			// frequency IC2
-	lcdRam22[30][4+2-4] = temp;				// disable segement temperature >> not used
+	lcdRam22[30][4+2-4] = temp;				// disable segement temperature >>= not used
 	lcdRam21[31][3+2] = percent;			// precent
 	lcdRam21[31][2+2] = energyActive;		// total active energy
 	lcdRam21[31][1+2] = energyReactive;		// total rective energy
@@ -972,31 +982,45 @@ void handleUnitSegment(
 	lcdRam22[30][6] = 1;
 }
 
-void spiEnableCS1(){HAL_GPIO_WritePin(CS1_DRIVER_GPIO_Port, CS1_DRIVER_Pin, GPIO_PIN_RESET);}
-void spiDisableCS1(){HAL_GPIO_WritePin(CS1_DRIVER_GPIO_Port, CS1_DRIVER_Pin, GPIO_PIN_SET);}
-void spiEnableCS2(){HAL_GPIO_WritePin(CS2_DRIVER_GPIO_Port, CS2_DRIVER_Pin, GPIO_PIN_RESET);}
-void spiDisableCS2(){HAL_GPIO_WritePin(CS2_DRIVER_GPIO_Port, CS2_DRIVER_Pin, GPIO_PIN_SET);}
-
-void ht1622EncodeGroup(uint8_t * data[7], uint8_t * buffer){
+void ht1622EncodeGroup(){
+	uint8_t indeksBuffer=0;
+	// LCD RAM11
 	for(uint8_t indeks=0;indeks<32;indeks++){
-		if(data[indeks][6] == 1){
-			//decode to 16 bit
+		if(lcdRam11[indeks][6] == 1){
+			dataWriteLcd[indeksBuffer][0] = ht1622EncodeSingle(lcdRam11[indeks][1], lcdRam11[indeks]);
+			dataWriteLcd[indeksBuffer][1] = 11;
+			indeksBuffer++;
+		}
+		if(lcdRam12[indeks][6] == 1){
+			dataWriteLcd[indeksBuffer][0] = ht1622EncodeSingle(lcdRam12[indeks][1], lcdRam12[indeks]);
+			dataWriteLcd[indeksBuffer][1] = 12;
+			indeksBuffer++;
+		}
+		if(lcdRam21[indeks][6] == 1){
+			dataWriteLcd[indeksBuffer][0] = ht1622EncodeSingle(lcdRam21[indeks][1], lcdRam21[indeks]);
+			dataWriteLcd[indeksBuffer][1] = 21;
+			indeksBuffer++;
+		}
+		if(lcdRam22[indeks][6] == 1){
+			dataWriteLcd[indeksBuffer][0] = ht1622EncodeSingle(lcdRam22[indeks][1], lcdRam22[indeks]);
+			dataWriteLcd[indeksBuffer][1] = 22;
+			indeksBuffer++;
 		}
 	}
+	dataWriteLcd[indeksBuffer][0] = 65535;
+	dataWriteLcd[indeksBuffer][1] = 65535;
 }
 
 uint16_t ht1622EncodeSingle(uint8_t address, uint8_t * data){
 	uint16_t buffer = 0;
 	uint16_t address16 = (uint8_t)address;
 	uint16_t data16 = (uint8_t)data;
-
 	buffer = 0b101 << 13;
 	buffer = buffer | (address16 << 7);
 	buffer = buffer | (data[2] << 6);
 	buffer = buffer | (data[3] << 5);
 	buffer = buffer | (data[4] << 4);
 	buffer = buffer | (data[5] << 3);
-
 	return buffer;
 }
 
@@ -1020,6 +1044,120 @@ void integerToArray(uint8_t data, uint8_t * buffer){
         buffer[indeks] = dataBuffer;
     }
 }
+
+static void CS_LOW(uint8_t type){
+	if(type == CS1)HAL_GPIO_WritePin(CS1_DRIVER_GPIO_Port, CS1_DRIVER_Pin, GPIO_PIN_RESET);
+	else if(type == CS2)HAL_GPIO_WritePin(CS2_DRIVER_GPIO_Port, CS2_DRIVER_Pin, GPIO_PIN_RESET);
+}
+
+static void CS_HIGH(uint8_t type){
+	if(type == CS1)HAL_GPIO_WritePin(CS1_DRIVER_GPIO_Port, CS1_DRIVER_Pin, GPIO_PIN_SET);
+	else if(type == CS2)HAL_GPIO_WritePin(CS2_DRIVER_GPIO_Port, CS2_DRIVER_Pin, GPIO_PIN_SET);
+}
+
+static void addr_cmd_bit(uint8_t data, uint8_t cnt)
+{
+	uint8_t i;
+	for(i = 0; i < cnt; i++) {
+		WR_LOW;
+		if(data & 0x80)
+			DATA_HIGH;
+		else
+			DATA_LOW;
+		WR_HIGH;
+		data <<= 1;
+	}
+}
+
+static void data_bit(uint8_t data, uint8_t cnt)
+{
+	uint8_t i;
+	for(i = 0; i < cnt; i++) {
+		WR_LOW;
+		if(data & 0x01)
+			DATA_HIGH;
+		else
+			DATA_LOW;
+		WR_HIGH;
+		data >>= 1;
+	}
+}
+
+void send_command(uint8_t type, uint8_t cmd)
+{
+	CS_LOW(type);
+	addr_cmd_bit(0x80, 3);
+	addr_cmd_bit(cmd, 9);
+	CS_HIGH(type);
+	__NOP();
+}
+
+/* seg_addr: A5~A0 (0011 1111) 0x3F
+   com_data: D3~D0 (0000 1111) 0x0F */
+void write_seg_data_4(uint8_t type, uint8_t seg_addr, uint8_t com_data)
+{
+	seg_addr <<= 2;
+	CS_LOW(type);
+	addr_cmd_bit(0xA0, 3);
+	addr_cmd_bit(seg_addr, 6);
+	data_bit(com_data, 4);
+	CS_HIGH(type);
+	__NOP();
+}
+
+void write_seg_data_44(uint8_t type, uint8_t seg_addr, uint8_t *com_data, uint16_t count)
+{
+	uint16_t i;
+	seg_addr <<= 2;
+	CS_LOW(type);
+	addr_cmd_bit(0xA0, 3);
+	addr_cmd_bit(seg_addr, 6);
+	for(i = 0; i < count; i++, com_data++) {
+		data_bit(*com_data, 8);
+	}
+	CS_HIGH(type);
+	__NOP();
+}
+
+void write_seg_data_bit_4(uint8_t type,uint8_t seg_addr, uint8_t d3, uint8_t d2, uint8_t d1, uint8_t d0)
+{
+	write_seg_data_4(type, seg_addr, d3<<3 | d2<<2 | d1<<1 | d0<<0);
+}
+
+void set_all(void)
+{
+	uint16_t i;
+	for(i = 0; i < 0x3F; i++) {  //A5~A0: 00111111
+		write_seg_data_4(CS1, i, 0x0F); //D3~D0: 00001111 set 1
+		write_seg_data_4(CS2, i, 0x0F); //D3~D0: 00001111 set 1
+	}
+}
+
+void clean_all()
+{
+	uint16_t i;
+	for(i = 0; i < 0x3F; i++) {  //A5~A0: 00111111
+		write_seg_data_4(CS1, i, 0x00); //D3~D0: 00001111 set 0
+		write_seg_data_4(CS2, i, 0x00); //D3~D0: 00001111 set 0
+	}
+}
+
+void ht1622_init(void)
+{
+	// IC1
+	send_command(CS1, BIAS);
+	send_command(CS1, RC256);
+	send_command(CS1, SYSEN);
+	send_command(CS1, LCDON);
+	// IC2
+	send_command(CS2, BIAS);
+	send_command(CS2, RC256);
+	send_command(CS2, SYSEN);
+	send_command(CS2, LCDON);
+}
+
+
+
 
 // ==============================================================================================================================
 //for(uint8_t indeks=1;indeks<7;indeks++){

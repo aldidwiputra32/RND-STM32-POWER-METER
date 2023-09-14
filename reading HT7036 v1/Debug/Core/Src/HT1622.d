@@ -30,7 +30,7 @@ Core/Src/HT1622.o: ../Core/Src/HT1622.c ../Core/Inc/HT1622.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim_ex.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h \
- ../Core/Inc/spi.h
+ ../Core/Inc/spi.h ../Core/Inc/main.h
 ../Core/Inc/HT1622.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h:
@@ -65,3 +65,4 @@ Core/Src/HT1622.o: ../Core/Src/HT1622.c ../Core/Inc/HT1622.h \
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h:
 ../Core/Inc/spi.h:
+../Core/Inc/main.h:
