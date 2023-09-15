@@ -24,8 +24,24 @@ extern MODBUS 	Modbus;
 extern uint16_t	powerWiringType;
 extern double bufferEnergySUM[8];
 
+extern float 	powerActiveA,		powerActiveB,		powerActiveC,		PowerActiveCombine,   // V x i x cos phi
+				powerReactiveA,		powerReactiveB,		powerReactiveC,		powerReactiveCombine, // V x i x sin phi
+				powerApparentA,		powerApparentB,		powerApparentC,		powerApparentCombine; // V x i
+// RMS REGISTER
+extern float 	rmsVoltageA,		rmsVoltageB,		rmsVoltageC,		rmsVoltageVector,
+				rmsCurrentA,		rmsCurrentB,		rmsCurrentC,		rmsCurrentVector;
+// POWER FACTOR REGISTER
+extern float 	powerFactorA,		powerFactorB,		powerFactorC, 		powerFactorCombine;
+
+// ENERGY REGISTER
+extern float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombine,
+				energyReactiveA,	energyReactiveB, 	energyReactiveC,	energyReactiveCombine;
+
+extern float 	rmsVoltageAB,		rmsVoltageBC,		rmsVoltageCA;
+
 void menuLoop(){
 	// STATE MACHINE PROCESSING
+	// MODE SAVE SETTING
 	if(buttonTrigger){
 		if(flagGetDataOld){
 			// GET DATA FROM EEPROM DATA
@@ -281,109 +297,123 @@ void handleTreshold(uint32_t * val, uint8_t max, uint8_t min){
 }
 
 void displayLoop(uint8_t level, uint8_t param1, uint8_t param2, uint8_t param3){
-	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_RESET);
+	// ---------------------------------------STATE DISPLAY ----------------------------------------------
+	if(level == MENU_LEVEL_0){
+		if((param1 == DISPLAY_CURRENT_RMS) || (param1 == DISPLAY_VOLTAGE_RMS)||(param1 == d))
+		if(param1 == DISPLAY_CURRENT_RMS){
+			ht1622UpdateRam(CURRENT_RMS, FOUR_DIGIT, 1, rmsCurrentA);
+			ht1622UpdateRam(CURRENT_RMS, FOUR_DIGIT, 2, rmsCurrentB);
+			ht1622UpdateRam(CURRENT_RMS, FOUR_DIGIT, 3, rmsCurrentC);
+			ht1622UpdateRam(ACTIVE_ENERGY, NINE_DIGIT, 3, energyActiveCombine);
+		}else if(param1 == DISPLAY_VOLTAGE_RMS){
+			ht1622UpdateRam(CURRENT_RMS, FOUR_DIGIT, 1, rmsCurrentA);
+			ht1622UpdateRam(CURRENT_RMS, FOUR_DIGIT, 2, rmsCurrentB);
+			ht1622UpdateRam(CURRENT_RMS, FOUR_DIGIT, 3, rmsCurrentC);
+			ht1622UpdateRam(ACTIVE_ENERGY, NINE_DIGIT, 3, energyActiveCombine);
+
+		}
+	}
 	// ---------------------------------------STATE SETTING LEVEL 1---------------------------------------
 	if(level == MENU_LEVEL_1){
-		serialPrint("\r\n----------MENU_LEVEL_1----------\r\n", 36);
+//		serialPrint("\r\n----------MENU_LEVEL_1----------\r\n", 36);
 		if(param1 == MENU_WIRING_TYPE){
-			serialPrint("WIRINGTYPE\r\n", 12);
+//			serialPrint("WIRINGTYPE\r\n", 12);
 		}else if(param1 == MENU_VOLTAGE){
-			serialPrint("CALIB VOLTAGE\r\n", 15);
+//			serialPrint("CALIB VOLTAGE\r\n", 15);
 		}else if(param1 == MENU_CURRENT){
-			serialPrint("CALIB CURRENT\r\n", 15);
+//			serialPrint("CALIB CURRENT\r\n", 15);
 		}else if(param1 == MENU_MODBUS){
-			serialPrint("MODBUS\r\n", 6);
+//			serialPrint("MODBUS\r\n", 6);
 		}else if(param1 == MENU_ENERGY){
-			serialPrint("ENERGY\r\n", 8);
+//			serialPrint("ENERGY\r\n", 8);
 		}
 	// ---------------------------------------STATE SETTING LEVEL 2---------------------------------------
 	}else if(level == MENU_LEVEL_2){
-		serialPrint("\r\n----------MENU_LEVEL_2----------\r\n", 36);
+//		serialPrint("\r\n----------MENU_LEVEL_2----------\r\n", 36);
 		// DISPLAY CALIBRATION VOLTAGE
 		if(param1 == MENU_VOLTAGE){
 			if(param2 == SUBMENU_OFFSET){
-				serialPrint("CALIB VOLTAGE: OFFSET\r\n", 23);
+//				serialPrint("CALIB VOLTAGE: OFFSET\r\n", 23);
 			}else if(param2 == SUBMENU_GAIN){
-				serialPrint("CALIB VOLTAGE: GAIN\r\n", 21);
+//				serialPrint("CALIB VOLTAGE: GAIN\r\n", 21);
 			}
 		}
 		// DISPLAY CALIBRATION CURRENT
 		else if(param1 == MENU_CURRENT){
 			if(param2 == SUBMENU_OFFSET){
-				serialPrint("CALIB CURRENT: OFFSET\r\n", 23);
+//				serialPrint("CALIB CURRENT: OFFSET\r\n", 23);
 			}else if(param2 == SUBMENU_GAIN){
-				serialPrint("CALIB CURRENT: GAIN\r\n", 21);
+//				serialPrint("CALIB CURRENT: GAIN\r\n", 21);
 			}
 		}
 		// DISPLAY RESET ENERGY
 		else if(param1 == MENU_ENERGY){
 			if(param2 == SUBMENU_E_ACTIVE){
-				serialPrint("ENERGY ACTIVE\r\n", 16);
+//				serialPrint("ENERGY ACTIVE\r\n", 16);
 			}else if(param2 == SUBMENU_E_REACTIVE){
-				serialPrint("ENERGY REACTIVE\r\n", 18);
+//				serialPrint("ENERGY REACTIVE\r\n", 18);
 			}
 		}
 	// ---------------------------------------STATE SETTING LEVEL 3---------------------------------------
 	}else if(level == MENU_LEVEL_3){
-		uint8_t dataPrint[1100];
-		serialPrint("\r\n----------MENU_LEVEL_2----------\r\n", 36);
+//		uint8_t dataPrint[1100];
+//		serialPrint("\r\n----------MENU_LEVEL_2----------\r\n", 36);
 		// DISPLAY SET VALUE WIRING TYPE
 		if(param1 == MENU_WIRING_TYPE){
 			if(param3 == SUBMENU_N33){
-				serialPrint("WIRETYPE: N33\r\n", 15);
+//				serialPrint("WIRETYPE: N33\r\n", 15);
 			}else if(param3 == SUBMENU_N34){
-				serialPrint("WIRETYPE: N34\r\n", 15);
+//				serialPrint("WIRETYPE: N34\r\n", 15);
 			}
 		// DISPLAY SET VALUE VOLTAGE
 		}else if(param1 == MENU_VOLTAGE){
 			if(param2 == SUBMENU_OFFSET){
-				sprintf(dataPrint,"\r\nCALIB VOLTAGE OFFSET CALC >> %d%d%d%d\r\n",bufferCalib[0],bufferCalib[1],bufferCalib[2],bufferCalib[3]);
-				serialPrint(dataPrint, 50);
+//				sprintf(dataPrint,"\r\nCALIB VOLTAGE OFFSET CALC >> %d%d%d%d\r\n",bufferCalib[0],bufferCalib[1],bufferCalib[2],bufferCalib[3]);
+//				serialPrint(dataPrint, 50);
 			}else if(param2 == SUBMENU_GAIN){
-				sprintf(dataPrint,"\r\nCALIB VOLTAGE GAIN CALC >> %d%d%d%d\r\n",bufferCalib[0],bufferCalib[1],bufferCalib[2],bufferCalib[3]);
-				serialPrint(dataPrint, 50);
+//				sprintf(dataPrint,"\r\nCALIB VOLTAGE GAIN CALC >> %d%d%d%d\r\n",bufferCalib[0],bufferCalib[1],bufferCalib[2],bufferCalib[3]);
+//				serialPrint(dataPrint, 50);
 			}
 		// DISPLAY SET VALUE CURRENT
 		}else if(param1 == MENU_CURRENT){
 			if(param2 == SUBMENU_OFFSET){
-				sprintf(dataPrint,"\r\nCALIB CURRENT OFFSET CALC >> %d%d%d%d\r\n",bufferCalib[0],bufferCalib[1],bufferCalib[2],bufferCalib[3]);
-				serialPrint(dataPrint, 50);
+//				sprintf(dataPrint,"\r\nCALIB CURRENT OFFSET CALC >> %d%d%d%d\r\n",bufferCalib[0],bufferCalib[1],bufferCalib[2],bufferCalib[3]);
+//				serialPrint(dataPrint, 50);
 			}else if(param2 == SUBMENU_GAIN){
-				sprintf(dataPrint,"\r\nCALIB CURRENT GAIN CALC >> %d%d%d%d\r\n",bufferCalib[0],bufferCalib[1],bufferCalib[2],bufferCalib[3]);
-				serialPrint(dataPrint, 50);
+//				sprintf(dataPrint,"\r\nCALIB CURRENT GAIN CALC >> %d%d%d%d\r\n",bufferCalib[0],bufferCalib[1],bufferCalib[2],bufferCalib[3]);
+//				serialPrint(dataPrint, 50);
 			}
 		// DISPLAY SET VALUE ENERGY
 		}else if(param1 == MENU_ENERGY){
 			if(param2 == SUBMENU_E_ACTIVE){
-				sprintf(dataPrint,"\r\nCALIB ENERGY CALC >> %d\r\n",paramLv3);
-				serialPrint(dataPrint, 50);
+//				sprintf(dataPrint,"\r\nCALIB ENERGY CALC >> %d\r\n",paramLv3);
+//				serialPrint(dataPrint, 50);
 			}else if(param2 == SUBMENU_E_REACTIVE){
-				sprintf(dataPrint,"\r\nCALIB ENERGY CALC >> %d\r\n",paramLv3);
-				serialPrint(dataPrint, 50);
+//				sprintf(dataPrint,"\r\nCALIB ENERGY CALC >> %d\r\n",paramLv3);
+//				serialPrint(dataPrint, 50);
 			}
 		// DISPLAY SET VALUE MODBUS
 		}else if(param1 == MENU_MODBUS){
-			sprintf(dataPrint,"\r\nCALIB MODBUS CALC >> %d%d%d\r\n",bufferCalib[0],bufferCalib[1],bufferCalib[2]);
-			serialPrint(dataPrint, 50);
+//			sprintf(dataPrint,"\r\nCALIB MODBUS CALC >> %d%d%d\r\n",bufferCalib[0],bufferCalib[1],bufferCalib[2]);
+//			serialPrint(dataPrint, 50);
 		}
 	}else if(level == MENU_LEVEL_SAVE){
-		uint8_t dataPrint[1100];
-		serialPrint("\r\n----------MENU_LEVEL_4----------\r\n", 36);
-		sprintf(dataPrint,"offsetVolt:%.2f, offsetCurr:%.2f, gainVolt:%.2f, gainCurr:%.2f, WiringType:%d, slaveAddr:%d",
-				buttonVoltageOffset,buttonCurrentOffset,buttonVoltageGain,buttonCurrentGain,buttonWiringType,buttonSlaveID
-		);
-		serialPrint(dataPrint, 700);
+//		uint8_t dataPrint[1100];
+//		serialPrint("\r\n----------MENU_LEVEL_4----------\r\n", 36);
+//		sprintf(dataPrint,"offsetVolt:%.2f, offsetCurr:%.2f, gainVolt:%.2f, gainCurr:%.2f, WiringType:%d, slaveAddr:%d",
+//				buttonVoltageOffset,buttonCurrentOffset,buttonVoltageGain,buttonCurrentGain,buttonWiringType,buttonSlaveID
+//		);
+//		serialPrint(dataPrint, 700);
 		if(paramLv3 == SAVE){
-			serialPrint("\r\nSAVE\r\n", 8);
+//			serialPrint("\r\nSAVE\r\n", 8);
 		}
 		if(paramLv3 == BACK){
-			serialPrint("\r\nBACK\r\n", 8);
+//			serialPrint("\r\nBACK\r\n", 8);
 		}
 		if(paramLv3 == CANCEL){
-			serialPrint("\r\nCNCL\r\n", 8);
+//			serialPrint("\r\nCNCL\r\n", 8);
 		}
 	}
-	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port,MODBUS_En_Pin,GPIO_PIN_SET);
 }
 
 //// WIRING TYPE

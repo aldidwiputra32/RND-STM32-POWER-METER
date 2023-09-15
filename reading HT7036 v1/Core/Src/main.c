@@ -436,59 +436,36 @@ int main(void)
   uint16_t writeLcd = 0b1011011101011000;
   uint8_t writeLcdHigh = byteHigh(writeLcd);
   uint8_t writeLcdLow = byteLow(writeLcd);
+
 //  HAL_GPIO_WritePin(BACKLIGHT_En_GPIO_Port,	 GPIO_P, PinState)
   ht1622_init();
   clean_all();
-  for(;;){
-	  write_seg_data_bit_4(1,48, 0, 0, 1, 1);
-	  write_seg_data_bit_4(1,46, 1, 1, 0, 1);
 
-	  write_seg_data_bit_4(1,50, 1, 1, 0, 1);
-	  write_seg_data_bit_4(1,52, 0, 0, 1, 1);
-
-	  write_seg_data_bit_4(1,54, 1, 1, 1, 1);
-	  write_seg_data_bit_4(1,56, 1, 1, 0, 1);
-
-	  write_seg_data_bit_4(1,58, 0, 0, 0, 0);
-	  write_seg_data_bit_4(1,60, 0, 1, 0, 1);
+  HAL_Delay(100);
 
 
-	  write_seg_data_bit_4(2,47, 0, 0, 0, 0);
-	  write_seg_data_bit_4(2,49, 1, 0, 1, 0);
-
-	  write_seg_data_bit_4(2,51, 1, 0, 1, 1);
-	  write_seg_data_bit_4(2,53, 1, 1, 0, 1);
-
-	  write_seg_data_bit_4(2,55, 1, 0, 0, 1);
-	  write_seg_data_bit_4(2,57, 1, 1, 1, 0);
-
-	  write_seg_data_bit_4(2,59, 0, 1, 0, 0);
-	  write_seg_data_bit_4(2,61, 1, 1, 1, 0);
-	  HAL_Delay(500);
-	  clean_all();
-	  HAL_Delay(500);
-  }
-
+//  set_all();
+//  sprintf(dataLcd,"%.1f\n",datalcdFloat);
+//  testing1 = ht1622SizeOf(dataLcd);
+  ht1622UpdateRam(VOLTAGE_RMS, FOUR_DIGIT, 1, 220.5);
+  ht1622UpdateRam(VOLTAGE_RMS, FOUR_DIGIT, 2, 220.9);
+  ht1622UpdateRam(VOLTAGE_RMS, FOUR_DIGIT, 3, 221.4);
+  ht1622Print();
 
 //  write_seg_data_4(46, 15);
 //  set_all();
 
   //============================== SPI TESTING END ===============================
 
-  datalcdFloat = 1234567.34;
-//  datalcdFloat = 8888888.88;
-  sprintf(dataLcd,"%.2f\n",datalcdFloat);
-  testing1 = ht1622SizeOf(dataLcd);
-//  ht1622ProcessDataPrint(FOUR_DIGIT,dataLcd, testing1, dataLcdBuffer);
-  ht1622ProcessDataPrint(NINE_DIGIT,dataLcd, testing1, dataLcdBuffer17);
 
+//  ht1622ProcessDataPrint(NINE_DIGIT,dataLcd, testing1, dataLcdBuffer17);
 //  ht1622Write(CURRENT_RMS, 4, dataLcdBuffer);
 //  ht1622Write(VOLTAGE_RMS, 4, dataLcdBuffer);
 //  ht1622Write(VOLTAGE_RMS_DIV, 4, dataLcdBuffer);
 //  ht1622Write(ACTIVE_POWER, 4, dataLcdBuffer);
 //  ht1622Write(REACTIVE_POWER, 4, dataLcdBuffer);
 //  ht1622Write(APPARENT_POWER, 4, dataLcdBuffer);
-  ht1622Write(ACTIVE_ENERGY, 4, dataLcdBuffer17);
+//  ht1622Write(ACTIVE_ENERGY, 4, dataLcdBuffer17);
 //  ht1622Write(REACTIVE_ENERGY, 4, dataLcdBuffer);
 //  ht1622Write(POWER_FACTOR, 4, dataLcdBuffer);
 

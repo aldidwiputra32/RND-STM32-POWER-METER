@@ -1,5 +1,5 @@
-../Core/Src/buttonInterface.c:261:9:convertRawBtnToFloat	24	static
-../Core/Src/buttonInterface.c:270:6:floatTodisplay	16	static
-../Core/Src/buttonInterface.c:278:6:handleTreshold	0	static
-../Core/Src/buttonInterface.c:283:6:displayLoop	1160	static
+../Core/Src/buttonInterface.c:262:9:convertRawBtnToFloat	24	static
+../Core/Src/buttonInterface.c:271:6:floatTodisplay	16	static
+../Core/Src/buttonInterface.c:279:6:handleTreshold	0	static
 ../Core/Src/buttonInterface.c:27:6:menuLoop	24	static
+../Core/Src/buttonInterface.c:284:6:displayLoop	0	static

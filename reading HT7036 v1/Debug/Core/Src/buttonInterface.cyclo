@@ -1,5 +1,5 @@
-buttonInterface.c:261:9:convertRawBtnToFloat	1
-buttonInterface.c:270:6:floatTodisplay	1
-buttonInterface.c:278:6:handleTreshold	3
-buttonInterface.c:283:6:displayLoop	34
+buttonInterface.c:262:9:convertRawBtnToFloat	1
+buttonInterface.c:271:6:floatTodisplay	1
+buttonInterface.c:279:6:handleTreshold	3
 buttonInterface.c:27:6:menuLoop	58
+buttonInterface.c:284:6:displayLoop	1
