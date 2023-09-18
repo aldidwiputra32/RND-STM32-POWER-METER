@@ -487,19 +487,29 @@ uint8_t ht1622SizeOf(uint8_t * buffer){
 	return value;
 }
 
-void ht1622UpdateRam(uint8_t type, uint8_t typeDigit, uint8_t column, float dataPrintFloat){ // dataPrint >>= count bit fic is 7 bit
-	uint8_t dataBit, comBit, segBit;
-	uint8_t ramAddressValue, ramAddressIndeks;
-	uint8_t dataBitArray[8];
-	uint8_t dataPrintRaw[10];
+void ht1622UpdateRamChar(uint8_t type, uint8_t typeDigit, uint8_t column, uint8_t * dataPrintChar){
+	uint8_t dataPrint[7];
+	// PROCESSING DATA PRINT
+	ht1622ProcessDataPrint(typeDigit, dataPrintChar, 5, dataPrint);
+	ht1622HandleUpdateRam(type, typeDigit, column, dataPrint);
+}
+
+void ht1622UpdateRamFloat(uint8_t type, uint8_t typeDigit, uint8_t column, float dataPrintFloat){
 	uint8_t dataPrint[17];
+	uint8_t dataPrintRaw[10];
 	// PROCESSING DATA PRINT
 	sprintf(dataPrintRaw,"%.1f\n",dataPrintFloat);
 	ht1622ProcessDataPrint(typeDigit, dataPrintRaw, ht1622SizeOf(dataPrintRaw), dataPrint);
+	ht1622HandleUpdateRam(type, typeDigit, column, dataPrint);
+}
 
+void ht1622HandleUpdateRam(uint8_t type, uint8_t typeDigit, uint8_t column, uint8_t * dataPrint){ // dataPrint >>= count bit fic is 7 bit
+	uint8_t dataBit, comBit, segBit;
+	uint8_t ramAddressValue, ramAddressIndeks;
+	uint8_t dataBitArray[8];
 
 	// FILTER 7 SGMENT >>= FOUR DIGIT(CURRENT_RMS, VOLTAGE_RMS, VOLTAGE_RMS_DIV, ACTIVE_POWER, REACTIVE_POWER, APPARENT_POWER, ACTIVE_ENERGY, REACTIVE_ENERGY, POWER_FACTOR)
-	if((type == CURRENT_RMS)||(type == VOLTAGE_RMS)||(type == ACTIVE_POWER)||(type == REACTIVE_POWER)||(type == REACTIVE_POWER)||(type == APPARENT_POWER)||(type == POWER_FACTOR)){
+	if((type == NONE)||(type == CURRENT_RMS)||(type == VOLTAGE_RMS)||(type == VOLTAGE_RMS_DIV)||(type == ACTIVE_POWER)||(type == REACTIVE_POWER)||(type == REACTIVE_POWER)||(type == APPARENT_POWER)||(type == POWER_FACTOR)){
 		// ================================================= SEGMENT ROW 1 ========================================================
 		if(column == 1){
 			uint8_t segColumnIndeks = 1;
@@ -814,29 +824,31 @@ void ht1622UpdateRam(uint8_t type, uint8_t typeDigit, uint8_t column, float data
 			lcdRam12[22][6+2-4] = 1;	lcdRam12[22][5+2-4] = 0;	// BC Phase
 			lcdRam22[13][5+2-4] = 1;	lcdRam22[13][6+2-4] = 0;    // CA Phase
 			// ENABLE FLAG
-			lcdRam11[22][6] = 1;		lcdRam12[22][6] = 1;
+			lcdRam11[22][6] = 1;
+			lcdRam12[22][6] = 1;
 			lcdRam22[13][6] = 1;
-			if(type == CURRENT_RMS){handleUnitSegment(0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1);}
-			else if(type == VOLTAGE_RMS){handleUnitSegment(0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1);}
-			else if(type == ACTIVE_POWER){handleUnitSegment(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1);}
-			else if(type == REACTIVE_POWER){handleUnitSegment(0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1);}
-			else if(type == APPARENT_POWER){handleUnitSegment(0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1);}
-			else if(type == POWER_FACTOR){handleUnitSegment(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1);}
+			if(type == CURRENT_RMS){handleUnitSegment(0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1);}
+			else if(type == VOLTAGE_RMS){handleUnitSegment(0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1);}
+			else if(type == ACTIVE_POWER){handleUnitSegment(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1);}
+			else if(type == REACTIVE_POWER){handleUnitSegment(0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1);}
+			else if(type == APPARENT_POWER){handleUnitSegment(0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1);}
+			else if(type == POWER_FACTOR){handleUnitSegment(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1);}
 		// EMABLE OR DISABLE PHASE OR DIV PHASE
 		}else if(type == VOLTAGE_RMS_DIV){
-			handleUnitSegment(0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1);
+			handleUnitSegment(0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1);
 			lcdRam11[22][3+2] = 1; 		lcdRam11[22][2+2] = 1;		// AB phase
 			lcdRam12[22][6+2-4] = 1;	lcdRam12[22][5+2-4] = 1;	// BC Phase
-			lcdRam21[13][5+2-4] = 1;	lcdRam21[13][6+2-4] = 1;    // CA Phase
+			lcdRam22[13][5+2-4] = 1;	lcdRam22[13][6+2-4] = 1;    // CA Phase
 			// ENABLE FLAG
-			lcdRam11[22][6] = 1;		lcdRam12[22][6] = 1;
-			lcdRam21[13][6] = 1;
+			lcdRam11[22][6] = 1;
+			lcdRam12[22][6] = 1;
+			lcdRam22[13][6] = 1;
 		}
 	// FILTER 7 SGMENT >>= NINE DIGIT(ACTIVE_ENERGY, REACTIVE_ENERGY)
 	}else if((type == ACTIVE_ENERGY)||(type == REACTIVE_ENERGY)){
 		// ENABLE OR DIABLE UNIT SEGMENT
-		if(type == ACTIVE_ENERGY){handleUnitSegment(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1);}
-		else if(type == REACTIVE_ENERGY){handleUnitSegment(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1);}
+//		if(type == ACTIVE_ENERGY){handleUnitSegment(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1);}
+//		else if(type == REACTIVE_ENERGY){handleUnitSegment(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1);}
 		// WRITE 7-SEGMENT >>= NINE DIGIT
 		uint8_t segColumnIndeks = 17;
 		// ITERATE 7-SEGMENT COLUMN
@@ -971,7 +983,7 @@ void handleUnitSegment(
 	lcdRam12[31][7+2-4] = voltage; 			// Voltage IC1
 	lcdRam22[31][7+2-4] = powerApprarentKw; // Apparent Power (KVa) IC2
 	lcdRam22[31][6+2-4] = powerApparentMw; 	// Apparent Power (MVa) IC2
-	lcdRam22[31][5+2-4] = voltage; 			// Volrage (Kv) IC2
+	lcdRam22[31][5+2-4] = voltageK; 		// Volrage (Kv) IC2
 	lcdRam22[31][4+2-4] = freq; 			// frequency IC2
 	lcdRam22[30][4+2-4] = temp;				// disable segement temperature >>= not used
 	lcdRam21[31][3+2] = percent;			// precent
@@ -1153,14 +1165,51 @@ void ht1622_init(void)
 {
 	// IC1
 	send_command(CS1, BIAS);
-	send_command(CS1, RC32);
+//	send_command(CS1, RC32);
+	send_command(CS1, RC1);
 	send_command(CS1, SYSEN);
 	send_command(CS1, LCDON);
 	// IC2
 	send_command(CS2, BIAS);
-	send_command(CS2, RC32);
+//	send_command(CS2, RC32);
+	send_command(CS2, RC1);
 	send_command(CS2, SYSEN);
 	send_command(CS2, LCDON);
+}
+
+void ht1622ClearSegment(){
+	// LCD RAM COMBINE (LCDRAM11,LCDRAM12,LCDRAM21,LCDRAM22)
+	for(uint8_t seg=23;seg<=31;seg++){
+		for(uint8_t com=2;com<=5;com++){
+			lcdRam11[seg][com] = 0;
+			lcdRam11[seg][6] = 1;
+			lcdRam12[seg][com] = 0;
+			lcdRam12[seg][6] = 1;
+			lcdRam21[seg][com] = 0;
+			lcdRam21[seg][6] = 1;
+			lcdRam22[seg][com] = 0;
+			lcdRam22[seg][6] = 1;
+		}
+	}
+	// LCDrRAM 11
+	for(uint8_t com=2;com<=5;com++){
+		lcdRam11[22][com] = 0;
+		lcdRam11[22][6] = 1;
+	}
+	// LCD RAM 12
+	for(uint8_t com=2;com<=5;com++){
+		lcdRam12[22][com] = 0;
+		lcdRam12[22][6] = 1;
+	}
+	// LCD RAM COMBINE (LCDRAM21,LCDRAM22)
+	for(uint8_t seg=1;seg<=13;seg++){
+		for(uint8_t com=2;com<=5;com++){
+			lcdRam21[seg][com] = 0;
+			lcdRam21[seg][6] = 1;
+			lcdRam22[seg][com] = 0;
+			lcdRam22[seg][6] = 1;
+		}
+	}
 }
 
 void ht1622Print(void){

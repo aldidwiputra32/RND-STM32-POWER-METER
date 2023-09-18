@@ -32,6 +32,7 @@
 #include "ee24xx.h"
 #include "buttonInterface.h"
 #include "HT1622.h"
+#include "math.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -248,33 +249,13 @@ extern uint8_t buttonTrigger;
 extern uint8_t menuLevel;
 extern uint8_t menuParam;
 extern uint8_t 	flagGetDataOld;
+extern uint32_t paramLv1;
 
+
+//========================================================
+uint8_t dataTesting = 1;
+//========================================================
 //------------------------- GROUP VARIABLE DISPLAY 7-SEGMENT ---------------------------------
-uint8_t ht1622VAL[3][3] = {
-		{1,2,3},
-		{2,4,6},
-		{3,6,9}
-};
-extern uint8_t alphaNumeric[36][2];
-extern uint8_t lcdRam11[32][6];
-extern uint8_t lcdRam21[32][6];
-extern uint8_t lcdRam12[32][6];
-extern uint8_t lcdRam22[32][6];
-
-// testing begin
-uint16_t testing1 = 0;
-uint8_t testing2 = 0;
-uint8_t testing3 = 0;
-
-uint8_t dataLcd[10];
-uint8_t dataLcdBuffer[7];
-uint8_t dataLcdBuffer17[17];
-
-float datalcdFloat = 1.23;
-uint8_t testPrint[50];
-
-// testing end
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -313,6 +294,7 @@ void powerSplitValue();
 void powerHandleCalib();
 void eepromLoop();
 void eepromLoad();
+void powerHandleTreshold();
 
 // TESTING BEGIN
 float altitudeOld = 0;
@@ -411,74 +393,30 @@ int main(void)
   );
   // START MODBUS HANDLE
   modbusReceive(&Modbus);
-  uint8_t eepromTest = 123;
+  // START EEPROM EXTERNAL
   ee24_init(&hi2c2, 0, 0, 0);
-
-  // RESET VALUE EEPROM BEGIN
-//  ee24_eraseChip();
-//  for(;;);
-  // RESET VALUE EEPROM END
-/*
-
- "(46) 101 011101 1011
-(48) 101 000011 1100"
-
-1011011101011
-
-1011011101101
-
-101
-
-
- */
-
-  //============================== SPI TESTING BEGIN ===============================
-  uint16_t writeLcd = 0b1011011101011000;
-  uint8_t writeLcdHigh = byteHigh(writeLcd);
-  uint8_t writeLcdLow = byteLow(writeLcd);
-
-//  HAL_GPIO_WritePin(BACKLIGHT_En_GPIO_Port,	 GPIO_P, PinState)
+  eepromLoad();
+  // START HT1622
   ht1622_init();
   clean_all();
-
-  HAL_Delay(100);
-
-
-//  set_all();
-//  sprintf(dataLcd,"%.1f\n",datalcdFloat);
-//  testing1 = ht1622SizeOf(dataLcd);
-  ht1622UpdateRam(VOLTAGE_RMS, FOUR_DIGIT, 1, 220.5);
-  ht1622UpdateRam(VOLTAGE_RMS, FOUR_DIGIT, 2, 220.9);
-  ht1622UpdateRam(VOLTAGE_RMS, FOUR_DIGIT, 3, 221.4);
-  ht1622Print();
-
-//  write_seg_data_4(46, 15);
-//  set_all();
-
-  //============================== SPI TESTING END ===============================
-
-
-//  ht1622ProcessDataPrint(NINE_DIGIT,dataLcd, testing1, dataLcdBuffer17);
-//  ht1622Write(CURRENT_RMS, 4, dataLcdBuffer);
-//  ht1622Write(VOLTAGE_RMS, 4, dataLcdBuffer);
-//  ht1622Write(VOLTAGE_RMS_DIV, 4, dataLcdBuffer);
-//  ht1622Write(ACTIVE_POWER, 4, dataLcdBuffer);
-//  ht1622Write(REACTIVE_POWER, 4, dataLcdBuffer);
-//  ht1622Write(APPARENT_POWER, 4, dataLcdBuffer);
-//  ht1622Write(ACTIVE_ENERGY, 4, dataLcdBuffer17);
-//  ht1622Write(REACTIVE_ENERGY, 4, dataLcdBuffer);
-//  ht1622Write(POWER_FACTOR, 4, dataLcdBuffer);
-
-  eepromLoad();
-
+  //===========================================================
+  dataTesting = ~dataTesting;
+  dataTesting = ~dataTesting;
+  dataTesting = ~dataTesting;
+  dataTesting = ~dataTesting;
+//  write_seg_data_bit_4(1, 63, 1, 0, 0, 0);
+//  write_seg_data_bit_4(1, 44, 0, 0, 1, 0);
+//  uint8_t dataPrintChar[4] = "abcd";
+//  ht1622UpdateRamChar(1, FOUR_DIGIT, 1, dataPrintChar);
+//  dataPrintChar[0] = 'e';dataPrintChar[1] = 'f';dataPrintChar[2] = 'g';dataPrintChar[3] = 'h';
+//  ht1622UpdateRamChar(1, FOUR_DIGIT, 2, dataPrintChar);
+//  ht1622Print();
+//  for(;;);
+  //===========================================================
   // SETUP POWER METER
   powerMeterSetup();
-
-  valueSensor[0] = spiRead24(deviceId);
-
   // INITIAL TIMER SAMPLING POWER & EEPROM
   powerTimer = eepromTimer = HAL_GetTick();
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -500,7 +438,6 @@ int main(void)
 	  menuLoop();
 	  eepromLoop();
 	  modbusValueUpdateOld();
-//	  powerDebug();
 	  HAL_Delay(1000);
     /* USER CODE END WHILE */
 
@@ -958,13 +895,13 @@ void eepromLoad(){
 			}
 			indeksAddress = 0;
 		}
-		// DECPDE WIRING TYPE POWER
-		if(indeks>=66 && indeks<68)buffer8[indeksAddress++] = eepromBufferRead[indeks];
-		if(indeks==67){
-			powerWiringType = uint8ToUint16(buffer8[0], buffer8[1]);
-			if(powerWiringType == 0xFFFF)powerWiringType = WIRING_TYPE_DEF;
-			indeksAddress = 0;
-		}
+//		// DECPDE WIRING TYPE POWER
+//		sif(indeks>=66 && indeks<68)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+//		if(indeks==67){
+//			powerWiringType = uint8ToUint16(buffer8[0], buffer8[1]);
+//			if(powerWiringType == 0xFFFF)powerWiringType = WIRING_TYPE_DEF;
+//			indeksAddress = 0;
+//		}
 	}
 	// SYNCRON FROM DATA EEPROM TO ENERGY[BUFFER ARRAY]
 	bufferEnergySUM[0] = (double)energyActiveA_uint;
@@ -1010,8 +947,6 @@ void eepromLoad(){
 	Modbus.holdingRegisterValue[addressSlave[0]] = Modbus.slaveAddrSlaveSecond;
 	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x4001, Modbus.holdingRegisterSize);		// wiring Type
 	Modbus.holdingRegisterValue[addressSlave[0]] = powerWiringType;
-
-
 //	uint8_t dataPrint[1100];
 //	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port, MODBUS_En_Pin, GPIO_PIN_RESET);
 //	serialPrint("\r\n----------EEPROM LOAD----------\r\n", 36);
@@ -1137,8 +1072,31 @@ void powerSplitValue(){
 	energyReactiveA_uint = energyModbus[4];	energyReactiveB_uint = energyModbus[5];	energyReactiveC_uint = energyModbus[6];
 
 	powerApparentBitA = valueSensor[16];	powerApparentBitB = valueSensor[17];	powerApparentBitC = valueSensor[18];
-
+	powerHandleTreshold();
 	powerHandleCalib();
+}
+
+void powerHandleTreshold(){
+	if((powerActiveA<1)&&(powerActiveA>(-1)))powerActiveA=0;
+	if((powerActiveB<1)&&(powerActiveB>(-1)))powerActiveB=0;
+	if((powerActiveC<1)&&(powerActiveC>-1))powerActiveC=0;
+	if(powerActiveA<=(-1))powerActiveA*=(-1);
+	if(powerActiveB<=(-1))powerActiveB*=(-1);
+	if(powerActiveC<=(-1))powerActiveC*=(-1);
+
+	if((powerReactiveA<1)&&(powerReactiveA>(-1)))powerReactiveA=0;
+	if((powerReactiveB<1)&&(powerReactiveB>(-1)))powerReactiveB=0;
+	if((powerReactiveC<1)&&(powerReactiveC>-1))powerReactiveC=0;
+	if(powerReactiveA<=(-1))powerReactiveA*=(-1);
+	if(powerReactiveB<=(-1))powerReactiveB*=(-1);
+	if(powerReactiveC<=(-1))powerReactiveC*=(-1);
+
+	if((powerApparentA<1)&&(powerApparentA>(-1)))powerApparentA=0;
+	if((powerApparentB<1)&&(powerApparentB>(-1)))powerApparentB=0;
+	if((powerApparentC<1)&&(powerApparentC>-1))powerApparentC=0;
+	if(powerApparentA<=(-1))powerApparentA*=(-1);
+	if(powerApparentB<=(-1))powerApparentB*=(-1);
+	if(powerApparentC<=(-1))powerApparentC*=(-1);
 }
 
 void powerHandleCalib(){
@@ -1200,6 +1158,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef * htim){
 				if(timerCount >= 3){
 					flagGetDataOld = 1;
 					menuLevel = MENU_LEVEL_1;
+					paramLv1 = 0;
 					buttonStatus = BTN_IDLE;
 				}
 			}

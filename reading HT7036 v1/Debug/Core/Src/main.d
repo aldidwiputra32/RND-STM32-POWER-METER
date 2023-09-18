@@ -35,7 +35,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Core/Inc/HT7036.h ../Core/Inc/spi.h ../Core/Inc/modbusSlave.h \
  ../Core/Inc/usart.h ../Core/Inc/ee24xx.h ../Core/Inc/buttonInterface.h \
  ../Core/Inc/gpio.h ../Core/Inc/tim.h ../Core/Inc/modbusSlave.h \
- ../Core/Inc/HT7036.h ../Core/Inc/HT1622.h
+ ../Core/Inc/HT1622.h ../Core/Inc/HT7036.h ../Core/Inc/HT1622.h
 ../Core/Inc/main.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h:
 ../Core/Inc/stm32f0xx_hal_conf.h:
@@ -84,5 +84,6 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Core/Inc/gpio.h:
 ../Core/Inc/tim.h:
 ../Core/Inc/modbusSlave.h:
+../Core/Inc/HT1622.h:
 ../Core/Inc/HT7036.h:
 ../Core/Inc/HT1622.h:

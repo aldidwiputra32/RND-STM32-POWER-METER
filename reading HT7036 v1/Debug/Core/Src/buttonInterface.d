@@ -32,7 +32,8 @@ Core/Src/buttonInterface.o: ../Core/Src/buttonInterface.c \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h \
  ../Core/Inc/gpio.h ../Core/Inc/tim.h ../Core/Inc/modbusSlave.h \
- ../Core/Inc/usart.h ../Core/Inc/HT7036.h ../Core/Inc/spi.h
+ ../Core/Inc/usart.h ../Core/Inc/HT1622.h ../Core/Inc/spi.h \
+ ../Core/Inc/HT7036.h
 ../Core/Inc/buttonInterface.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h:
@@ -70,5 +71,6 @@ Core/Src/buttonInterface.o: ../Core/Src/buttonInterface.c \
 ../Core/Inc/tim.h:
 ../Core/Inc/modbusSlave.h:
 ../Core/Inc/usart.h:
-../Core/Inc/HT7036.h:
+../Core/Inc/HT1622.h:
 ../Core/Inc/spi.h:
+../Core/Inc/HT7036.h:
