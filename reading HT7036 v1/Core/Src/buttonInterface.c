@@ -313,37 +313,38 @@ void displayLoop(){
 			dataPrintChar[0]='g';dataPrintChar[1]='.';dataPrintChar[2]='c';dataPrintChar[3]='r';dataPrintChar[4]='t';		// G.Crt
 			ht1622UpdateRamChar(NONE, FOUR_DIGIT, 2, dataPrintChar);
 			// DISPLAY SETTING DATA BLINKING CURSOR
-//			if(stateCursor == 1){
-//				if(bufferCalibIndeks!=0)dataPrintChar[0]=bufferCalib[0]+'0';
-//				if(bufferCalibIndeks!=1)dataPrintChar[1]=bufferCalib[1] + '0';
-//				if(bufferCalibIndeks!=3)dataPrintChar[3]=bufferCalib[2] + '0';
-//				if(bufferCalibIndeks!=4)dataPrintChar[4]=bufferCalib[3] + '0';
-//			}else if(stateCursor == -2){
+			if(stateCursor == 1){
+				if(bufferCalibIndeks!=0)dataPrintChar[0]=bufferCalib[0]+'0';
+				if(bufferCalibIndeks!=1)dataPrintChar[1]=bufferCalib[1] + '0';
+				if(bufferCalibIndeks!=3)dataPrintChar[3]=bufferCalib[2] + '0';
+				if(bufferCalibIndeks!=4)dataPrintChar[4]=bufferCalib[3] + '0';
+			}else if(stateCursor == -2){
 				dataPrintChar[0]=bufferCalib[0] + '0';
 				dataPrintChar[1]=bufferCalib[1] + '0';
 				dataPrintChar[3]=bufferCalib[2] + '0';
 				dataPrintChar[4]=bufferCalib[3] + '0';
-//			}
+			}
 			dataPrintChar[2]='.';
 			stateCursor = ~stateCursor;
 			ht1622UpdateRamChar(NONE, FOUR_DIGIT, 3, dataPrintChar);
+			ht1622Print();
 
 		// DISPLAY SET VALUE MODBUS
-		}else if(paramLv1 ==MENU_MODBUS){
+		}else if(paramLv1 == MENU_MODBUS){
 			dataPrintChar[0]='s';dataPrintChar[1]='.';dataPrintChar[2]='a';dataPrintChar[3]='d';dataPrintChar[4]='r';		// e.clr
 			ht1622UpdateRamChar(NONE, FOUR_DIGIT, 2, dataPrintChar);
 			// DISPLAY SETTING DATA BLINKING CURSOR
-//			if(stateCursor){
-//				if(bufferCalibIndeks!=0)dataPrintChar[0]=bufferCalib[0]+'0';
-//				if(bufferCalibIndeks!=1)dataPrintChar[1]=bufferCalib[1] + '0';
-//				if(bufferCalibIndeks!=3)dataPrintChar[3]=bufferCalib[2] + '0';
-//				if(bufferCalibIndeks!=4)dataPrintChar[4]=bufferCalib[3] + '0';
-//			}else{
+			if(stateCursor){
+				if(bufferCalibIndeks!=0)dataPrintChar[0]=bufferCalib[0]+'0';
+				if(bufferCalibIndeks!=1)dataPrintChar[1]=bufferCalib[1] + '0';
+				if(bufferCalibIndeks!=3)dataPrintChar[3]=bufferCalib[2] + '0';
+				if(bufferCalibIndeks!=4)dataPrintChar[4]=bufferCalib[3] + '0';
+			}else{
 				dataPrintChar[0]=bufferCalib[0] + '0';
 				dataPrintChar[1]=bufferCalib[1] + '0';
 				dataPrintChar[3]=bufferCalib[2] + '0';
 				dataPrintChar[4]=bufferCalib[3] + '0';
-//			}
+			}
 			dataPrintChar[2]='.';
 			stateCursor = ~stateCursor;
 			ht1622UpdateRamChar(NONE, FOUR_DIGIT,  3, dataPrintChar);
@@ -351,23 +352,24 @@ void displayLoop(){
 		}else if(paramLv1 == MENU_ENERGY){
 			dataPrintChar[0]='e';dataPrintChar[1]='.';dataPrintChar[2]='c';dataPrintChar[3]='l';dataPrintChar[4]='r';
 			ht1622UpdateRamChar(NONE, FOUR_DIGIT, 2, dataPrintChar);
-//			if(stateCursor == 1){
-//				if(bufferCalibIndeks!=0)dataPrintChar[0]=bufferCalib[0]+'0';
-//				if(bufferCalibIndeks!=1)dataPrintChar[1]=bufferCalib[1] + '0';
-//				if(bufferCalibIndeks!=3)dataPrintChar[3]=bufferCalib[2] + '0';
-//				if(bufferCalibIndeks!=4)dataPrintChar[4]=bufferCalib[3] + '0';
-//			}else if(stateCursor == -2){
+			if(stateCursor == 1){
+				if(bufferCalibIndeks!=0)dataPrintChar[0]=bufferCalib[0]+'0';
+				if(bufferCalibIndeks!=1)dataPrintChar[1]=bufferCalib[1] + '0';
+				if(bufferCalibIndeks!=3)dataPrintChar[3]=bufferCalib[2] + '0';
+				if(bufferCalibIndeks!=4)dataPrintChar[4]=bufferCalib[3] + '0';
+			}else if(stateCursor == -2){
 				dataPrintChar[0]=bufferCalib[0] + '0';
 				dataPrintChar[1]=bufferCalib[1] + '0';
 				dataPrintChar[3]=bufferCalib[2] + '0';
 				dataPrintChar[4]=bufferCalib[3] + '0';
-//			}
+			}
 			dataPrintChar[2]='.';
 			stateCursor = ~stateCursor;
 			ht1622UpdateRamChar(NONE, FOUR_DIGIT, 3, dataPrintChar);
 		}
 	}else if(menuLevel == MENU_LEVEL_SAVE){
 		if(paramLv3 == SAVE){
+
 		}
 		if(paramLv3 == BACK){
 		}
