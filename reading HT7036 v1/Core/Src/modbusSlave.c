@@ -26,6 +26,7 @@ void ModbusBegin(MODBUS *modbus, UART_HandleTypeDef * huart, int trigState, uint
 	modbus->enableGpioPort = gpioPort;
 	modbus->enableGpioPin = gpioPin;
 	modbus->holdingRegisterValueRX = holdingRegisterValueRX;
+	modbusReceive(modbus);
 }
 
 void modbusReceive(MODBUS * Modbus){

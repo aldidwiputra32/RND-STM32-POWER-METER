@@ -92,11 +92,10 @@ float 	rmsVoltageA,		rmsVoltageB,		rmsVoltageC,		rmsVoltageVector,
 		rmsCurrentA,		rmsCurrentB,		rmsCurrentC,		rmsCurrentVector;
 // POWER FACTOR REGISTER
 float 	powerFactorA,		powerFactorB,		powerFactorC, 		powerFactorCombine;
-
 // ENERGY REGISTER
 float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombine,
 		energyReactiveA,	energyReactiveB, 	energyReactiveC,	energyReactiveCombine;
-
+//
 float 	rmsVoltageAB,		rmsVoltageBC,		rmsVoltageCA;
 
 extern uint64_t energyModbus[8];
@@ -251,10 +250,6 @@ extern uint8_t menuParam;
 extern uint8_t 	flagGetDataOld;
 extern uint32_t paramLv1;
 
-
-//========================================================
-uint8_t dataTesting = 1;
-//========================================================
 //------------------------- GROUP VARIABLE DISPLAY 7-SEGMENT ---------------------------------
 /* USER CODE END PV */
 
@@ -339,8 +334,6 @@ int main(void)
   MX_I2C2_Init();
   MX_TIM14_Init();
   /* USER CODE BEGIN 2 */
-
-  // INIT & LOADING DATA FROM EEPROM EXTERNAL
   // MODBUS SETUP
   ModbusBegin(
 		  &Modbus,
@@ -354,8 +347,6 @@ int main(void)
 		  MODBUS_En_GPIO_Port,
 		  MODBUS_En_Pin
   );
-  // START MODBUS HANDLE
-  modbusReceive(&Modbus);
   // START EEPROM EXTERNAL
   ee24_init(&hi2c2, 0, 0, 0);
   eepromLoad();
@@ -374,22 +365,16 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  // TIMER SCHEMA
 	  powerTimerDelta = HAL_GetTick() - powerTimer;
 	  powerTimer = HAL_GetTick();
 	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
 	  powerSplitValue();
-
-	  // CALCULATE METER CONSTANT
-	  if(powerApparentBitA > 10)ECVal = calcMeterConstant(powerApparentBitA, HFconstVal, rmsVoltageA*rmsCurrentA);
-	  else if(powerApparentBitB > 10)ECVal = calcMeterConstant(powerApparentBitB, HFconstVal, rmsVoltageB*rmsCurrentB);
-	  else if(powerApparentBitC > 10)ECVal = calcMeterConstant(powerApparentBitC, HFconstVal, rmsVoltageC*rmsCurrentC);
-	  else ECVal = ECDef;
-
 	  powerCalibLoop();
 	  menuLoop();
 	  eepromLoop();
 	  modbusValueUpdate();
-	  HAL_Delay(500);
+	  HAL_Delay(250);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -1000,6 +985,12 @@ void powerSplitValue(){
 	powerApparentBitA = valueSensor[16];	powerApparentBitB = valueSensor[17];	powerApparentBitC = valueSensor[18];
 	powerHandleTreshold();
 	powerHandleCalib();
+
+	// CALCULATE METER CONSTANT
+	if(powerApparentBitA > 10)ECVal = calcMeterConstant(powerApparentBitA, HFconstVal, rmsVoltageA*rmsCurrentA);
+	else if(powerApparentBitB > 10)ECVal = calcMeterConstant(powerApparentBitB, HFconstVal, rmsVoltageB*rmsCurrentB);
+	else if(powerApparentBitC > 10)ECVal = calcMeterConstant(powerApparentBitC, HFconstVal, rmsVoltageC*rmsCurrentC);
+	else ECVal = ECDef;
 }
 
 void powerHandleTreshold(){
