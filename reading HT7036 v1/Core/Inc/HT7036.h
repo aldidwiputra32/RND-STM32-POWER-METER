@@ -251,12 +251,9 @@
 
 void spiDisable();
 void spiEnable();
-HAL_StatusTypeDef spiWrite16(uint8_t address, uint16_t dataSet);
-HAL_StatusTypeDef spiWrite24(uint8_t address, uint32_t dataSet);
 HAL_StatusTypeDef spiCommandSpecial(uint8_t address, uint32_t dataSet);
 uint32_t spiReadCalib(uint8_t address);
 HAL_StatusTypeDef spiWriteCalib(uint8_t address, uint32_t dataSet);
-uint16_t spiRead16(uint8_t address);
 uint32_t spiRead24(uint8_t address);
 void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataStatus, uint8_t numberCalib);
 int32_t unsignToSign(uint32_t * data, uint8_t bitsize);

@@ -44,39 +44,6 @@ extern uint16_t gainCurr_stm32;
 void spiDisable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);}
 void spiEnable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);}
 
-HAL_StatusTypeDef spiWrite16(uint8_t address, uint16_t dataSet){
-	HAL_StatusTypeDef status;
-
-	uint8_t dataTX[2];
-	uint8_t request = address | 0x80;
-	dataTX[0] = (uint8_t)(dataSet >> 8);
-	dataTX[1] = (uint8_t)(dataSet);
-
-	spiEnable();
-	status = HAL_SPI_Transmit(&hspi2, &request, 1, 75);
-	if(status == HAL_OK) HAL_SPI_Transmit(&hspi2,&dataTX[0],1,75);
-	if(status == HAL_OK) HAL_SPI_Transmit(&hspi2,&dataTX[1],1,75);
-	spiDisable();
-
-	return status;
-}
-
-HAL_StatusTypeDef spiWrite24(uint8_t address, uint32_t dataSet){
-	HAL_StatusTypeDef status;
-	uint8_t dataTX[3];
-	dataTX[0] = (uint8_t)(dataSet >> 16);
-	dataTX[1] = (uint8_t)(dataSet >> 8);
-	dataTX[2] = (uint8_t)(dataSet);
-	uint8_t request = address | 0x80;
-	spiEnable();
-	status = HAL_SPI_Transmit(&hspi2, &request, 1, 75);
-	if(status == HAL_OK)status = HAL_SPI_Transmit(&hspi2, &dataTX[0], 1, 75);
-	if(status == HAL_OK)status = HAL_SPI_Transmit(&hspi2, &dataTX[1], 1, 75);
-	if(status == HAL_OK)status = HAL_SPI_Transmit(&hspi2, &dataTX[2], 1, 75);
-	spiDisable();
-	return status;
-}
-
 HAL_StatusTypeDef spiCommandSpecial(uint8_t address, uint32_t dataSet){
 	HAL_StatusTypeDef status;
 	uint8_t dataTX[3];
@@ -128,25 +95,6 @@ HAL_StatusTypeDef spiWriteCalib(uint8_t address, uint32_t dataSet){
 	if(status == HAL_OK)status = HAL_SPI_Transmit(&hspi2, &dataTX[2], 1, 75);
 	spiDisable();
 	return status;
-}
-
-uint16_t spiRead16(uint8_t address){
-	HAL_StatusTypeDef buffer1, buffer2;
-	uint8_t request = address | 0x00;
-	uint8_t dataRX[2];
-	uint16_t dataRXbuffer[2];
-
-	spiEnable();
-	HAL_SPI_Transmit(&hspi2, &request, 1, 75);
-	HAL_SPI_Receive(&hspi2, &dataRX[0], 1, 75);
-	HAL_SPI_Receive(&hspi2, &dataRX[1], 1, 75);
-	spiDisable();
-
-	dataRXbuffer[0] = (uint16_t)(dataRX[0] << 8);
-	dataRXbuffer[1] = (uint16_t)dataRX[1];
-	uint16_t data = dataRXbuffer[0] | dataRXbuffer[1];
-
-	return data;
 }
 
 uint32_t spiRead24(uint8_t address){
@@ -420,7 +368,7 @@ void powerCalibMode(uint8_t state){
 	}
 }
 float calcVoltDif(float val1, float val2){
-	//((V A + V B)/2)*sqr(1/2)  | 1,4142135623730950488016887242097 >> akar2 dari 2
+	//  ((V A + V B)/2)*sqr(1/2)  | 1,4142135623730950488016887242097 >> akar2 dari 2
 	return ((val1 + val2)/2*1.4142135623730950488016887242097);
 }
 float calcMeterConstant(uint32_t dataBit, float hfConst, float dataAcual){

@@ -400,10 +400,10 @@ int main(void)
   ht1622_init();
   clean_all();
   //===========================================================
-  dataTesting = ~dataTesting;
-  dataTesting = ~dataTesting;
-  dataTesting = ~dataTesting;
-  dataTesting = ~dataTesting;
+//  dataTesting = ~dataTesting;
+//  dataTesting = ~dataTesting;
+//  dataTesting = ~dataTesting;
+//  dataTesting = ~dataTesting;
 //  write_seg_data_bit_4(1, 63, 1, 0, 0, 0);
 //  write_seg_data_bit_4(1, 44, 0, 0, 1, 0);
 //  uint8_t dataPrintChar[4] = "abcd";
@@ -438,7 +438,7 @@ int main(void)
 	  menuLoop();
 	  eepromLoop();
 	  modbusValueUpdateOld();
-	  HAL_Delay(1000);
+	  HAL_Delay(500);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

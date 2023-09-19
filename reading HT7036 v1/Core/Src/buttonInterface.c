@@ -72,26 +72,20 @@ void menuLoop(){
 			}else if(buttonStatus == BTN_SET){
 				// ACTION SAVE SETTING
 				if(paramLv3 == SAVE){
-					// WIRING TYPE
-					powerWiringType = (uint16_t)buttonWiringType;
-
 					// GROUP CALIBRATION POWER
-					offsetVolt_stm32 = (uint16_t)(buttonVoltageOffset*1000);
-					offsetCurr_stm32 = (uint16_t)(buttonCurrentOffset*1000);
-					gainVolt_stm32 = (uint16_t)(buttonVoltageGain*1000);
 					gainCurr_stm32 = (uint16_t)(buttonCurrentGain*1000);
-
 					// GROUP MODBUS SLAVE ID
 					Modbus.slaveAddrSlaveSecond = buttonSlaveID;
-
 					// GROUP ENERGY ACTIVE REACTIVE
 					if(buttonEnergyActive == RESET){
 						bufferEnergySUM[0] = bufferEnergySUM[1] = bufferEnergySUM[2] = bufferEnergySUM[3] = 0.00;
 						energyActiveA_uint = energyActiveB_uint = energyActiveC_uint = energyActiveCombine_uint = 0;
+						buttonEnergyActive = NON_RESET;
 					}
 					if(buttonEnergyReactive == RESET){
 						bufferEnergySUM[4] = bufferEnergySUM[5] = bufferEnergySUM[6] = bufferEnergySUM[7] = 0.00;
 						energyReactiveA_uint = energyReactiveB_uint = energyReactiveC_uint = energyReactiveCombine_uint = 0;
+						buttonEnergyReactive = NON_RESET;
 					}
 					menuLevel = MENU_LEVEL_0;
 					// TRIGGER FOR SAVING DATA TO EEPROM
@@ -116,9 +110,33 @@ void menuLoop(){
 				handleTreshold(&paramLv1, 2, 0);
 				buttonStatus = BTN_IDLE;
 			}else if(buttonStatus == BTN_NEXT){
-				paramLv1 = 0;
 				menuLevel = MENU_LEVEL_3;
 				buttonStatus = BTN_IDLE;
+				// REFRESH DATA OLD FROM EEPROM
+				if(paramLv1 == MENU_CURRENT){
+					if(flagdataOld){
+						floatTodisplay(bufferCalib, buttonCurrentGain);
+						flagdataOld = 0;
+						bufferCalibIndeks = 0;
+						// GET DATASET FROM EEPROM DATA TO BUFFER CALIB >> JUST ON COLUMN
+						paramLv3 = bufferCalib[bufferCalibIndeks];
+					}
+				}else if(paramLv1 == MENU_MODBUS){
+					if(flagdataOld){
+						uint8_t bufferOld = buttonSlaveID;
+						bufferCalib[2] = bufferOld%10; bufferOld/=10;
+						bufferCalib[1] = bufferOld%10; bufferOld/=10;
+						bufferCalib[0] = bufferOld%10; bufferOld/=10;
+						flagdataOld = 0;
+						bufferCalibIndeks = 0;
+						// GET DATASET FROM EEPROM DATA TO BUFFER CALIB >> JUST ON COLUMN
+						paramLv3 = bufferCalib[bufferCalibIndeks];
+					}
+				}else if(paramLv1 == MENU_ENERGY){
+					if(flagdataOld){
+						paramLv3 = (uint8_t)buttonEnergyActive && (uint8_t)buttonEnergyReactive;
+					}
+				}
 			// ACTION FOR SAVING DATA
 			}else if(buttonStatus == BTN_ENTER){
 				menuLevel = MENU_LEVEL_SAVE;
@@ -128,34 +146,31 @@ void menuLoop(){
 		}else if(menuLevel == MENU_LEVEL_3){
 			// GAIN CURRENT
 			if(paramLv1 == MENU_CURRENT){
-				// REFRESH DATA OLD
-				if(flagdataOld){
-					floatTodisplay(bufferCalib, buttonCurrentGain);
-					flagdataOld = 0;
-				}
 				if(buttonStatus == BTN_UP){
 					paramLv3++;
 					handleTreshold(&paramLv3, 9, 0);
 					bufferCalib[bufferCalibIndeks] = paramLv3;
 					buttonStatus = BTN_IDLE;
 				}else if(buttonStatus == BTN_NEXT){
+					// GET DATASET FROM PARAMLV3 TO BUFFERCALIB
 					bufferCalib[bufferCalibIndeks] = paramLv3;
+					// SWITCH TO THE NEXT COLUMN
 					bufferCalibIndeks++;
 					handleTreshold(&bufferCalibIndeks, 3, 0);
+					// GET DATASET FROM EEPROM DATA TO BUFFER CALIB
+					paramLv3 = bufferCalib[bufferCalibIndeks];
 					buttonStatus = BTN_IDLE;
 				}else if(buttonStatus == BTN_ENTER){
 					bufferCalibIndeks = 0;
 					menuLevel = MENU_LEVEL_1;
 					buttonStatus = BTN_IDLE;
+					flagdataOld = 1;
 				}else if(buttonStatus == BTN_SET){
 					uint8_t state = 0;
-					if(paramLv1 == MENU_CURRENT){
-						state = convertRawBtnToFloat(&buttonCurrentGain, bufferCalib, 65.535);
-					}
-					if(state){
+					if(convertRawBtnToFloat(&buttonCurrentGain, bufferCalib, 65.535)){
 						menuLevel = MENU_LEVEL_1;
 						bufferCalibIndeks = 0;
-							flagdataOld = 1;
+						flagdataOld = 1;
 						memset(bufferCalib, 0, sizeof(bufferCalib));
 					}else{
 						menuLevel = MENU_LEVEL_3;
@@ -166,14 +181,6 @@ void menuLoop(){
 			}
 			// MODBUS: SLAVE ID
 			else if(paramLv1 == MENU_MODBUS){
-				// REFRESH DATA OLD
-				if(flagdataOld){
-					uint8_t bufferOld = Modbus.slaveAddrSlaveSecond;
-					bufferCalib[2] = bufferOld%10; bufferOld/=10;
-					bufferCalib[1] = bufferOld%10; bufferOld/=10;
-					bufferCalib[0] = bufferOld%10; bufferOld/=10;
-					flagdataOld = 0;
-				}
 				if(buttonStatus == BTN_UP){
 					paramLv3++;
 					handleTreshold(&paramLv3, 9, 0);
@@ -183,6 +190,8 @@ void menuLoop(){
 					bufferCalib[bufferCalibIndeks] = paramLv3;
 					bufferCalibIndeks++;
 					handleTreshold(&bufferCalibIndeks, 2, 0);
+					// GET DATASET FROM EEPROM DATA TO BUFFER CALIB
+					paramLv3 = bufferCalib[bufferCalibIndeks];
 					buttonStatus = BTN_IDLE;
 				}else if(buttonStatus == BTN_SET){
 					// SAVE DATA SLAVE TO VARIABLE VOLATILE
@@ -201,6 +210,7 @@ void menuLoop(){
 				}else if(buttonStatus == BTN_ENTER){
 					menuLevel = MENU_LEVEL_1;
 					buttonStatus = BTN_IDLE;
+					flagdataOld = 1;
 				}
 			// RESET ENERGY
 			}else if(paramLv1 == MENU_ENERGY){
@@ -209,13 +219,14 @@ void menuLoop(){
 					handleTreshold(&paramLv3, 1, 0); // 0: RESET, 1: NON-RESET
 					buttonStatus = BTN_IDLE;
 				}else if(buttonStatus == BTN_ENTER){
-					menuLevel = MENU_LEVEL_2;
+					menuLevel = MENU_LEVEL_1;
+					flagdataOld = 1;
 					buttonStatus = BTN_IDLE;
 				}else if(buttonStatus == BTN_SET){
 					// SAVE DATA SLAVE TO VARIABLE VOLATILE
-//					if(paramLv2 == SUBMENU_E_ACTIVE)buttonEnergyActive = paramLv3;
-//					if(paramLv2 == SUBMENU_E_REACTIVE)buttonEnergyReactive = paramLv3;
-
+					buttonEnergyActive = (uint8_t)paramLv3;
+					buttonEnergyReactive = (uint8_t)paramLv3;
+					flagdataOld = 1;
 					buttonStatus = BTN_IDLE;
 					menuLevel = MENU_LEVEL_1;
 					paramLv3 = 0;
@@ -295,7 +306,7 @@ void displayLoop(){
 		dataPrintChar[0]='s';dataPrintChar[1]='e';dataPrintChar[2]='t';dataPrintChar[3]='t';								// sett
 		ht1622UpdateRamChar(NONE, FOUR_DIGIT, 1, dataPrintChar);
 		if(paramLv1 == MENU_CURRENT){
-			dataPrintChar[0]='g';dataPrintChar[1]='.';dataPrintChar[2]='c';dataPrintChar[3]='r';dataPrintChar[4]='t';		// G.Crt
+			dataPrintChar[0]='g';dataPrintChar[1]='a';dataPrintChar[2]='i';dataPrintChar[3]='n';							// G.Crt
 			ht1622UpdateRamChar(NONE, FOUR_DIGIT, 2, dataPrintChar);
 		}else if(paramLv1 == MENU_MODBUS){
 			dataPrintChar[0]='s';dataPrintChar[1]='.';dataPrintChar[2]='a';dataPrintChar[3]='d';dataPrintChar[4]='r';		// s.adr
@@ -310,114 +321,52 @@ void displayLoop(){
 		ht1622UpdateRamChar(NONE, FOUR_DIGIT, 1, dataPrintChar);
 		// DISPLAY SET VALUE CURRENT
 		if(paramLv1 == MENU_CURRENT){
-			dataPrintChar[0]='g';dataPrintChar[1]='.';dataPrintChar[2]='c';dataPrintChar[3]='r';dataPrintChar[4]='t';		// G.Crt
-			ht1622UpdateRamChar(NONE, FOUR_DIGIT, 2, dataPrintChar);
 			// DISPLAY SETTING DATA BLINKING CURSOR
-			if(stateCursor == 1){
-				if(bufferCalibIndeks!=0)dataPrintChar[0]=bufferCalib[0]+'0';
-				if(bufferCalibIndeks!=1)dataPrintChar[1]=bufferCalib[1] + '0';
-				if(bufferCalibIndeks!=3)dataPrintChar[3]=bufferCalib[2] + '0';
-				if(bufferCalibIndeks!=4)dataPrintChar[4]=bufferCalib[3] + '0';
-			}else if(stateCursor == -2){
-				dataPrintChar[0]=bufferCalib[0] + '0';
-				dataPrintChar[1]=bufferCalib[1] + '0';
-				dataPrintChar[3]=bufferCalib[2] + '0';
-				dataPrintChar[4]=bufferCalib[3] + '0';
-			}
+			if((bufferCalibIndeks==0) && (stateCursor==1)){dataPrintChar[0]='/';}
+			else{dataPrintChar[0]=bufferCalib[0] + '0';}
+			if((bufferCalibIndeks==1) && (stateCursor==1)){dataPrintChar[1]='/';}
+			else{dataPrintChar[1]=bufferCalib[1] + '0';}
+			if((bufferCalibIndeks==2) && (stateCursor==1)){dataPrintChar[3]='/';}
+			else{dataPrintChar[3]=bufferCalib[2] + '0';}
+			if((bufferCalibIndeks==3) && (stateCursor==1)){dataPrintChar[4]='/';}
+			else{dataPrintChar[4]=bufferCalib[3] + '0';}
 			dataPrintChar[2]='.';
 			stateCursor = ~stateCursor;
 			ht1622UpdateRamChar(NONE, FOUR_DIGIT, 3, dataPrintChar);
-			ht1622Print();
+			dataPrintChar[0]='g';dataPrintChar[1]='a';dataPrintChar[2]='i';dataPrintChar[3]='n';		// G.Crt
+			ht1622UpdateRamChar(NONE, FOUR_DIGIT, 2, dataPrintChar);
 
 		// DISPLAY SET VALUE MODBUS
 		}else if(paramLv1 == MENU_MODBUS){
-			dataPrintChar[0]='s';dataPrintChar[1]='.';dataPrintChar[2]='a';dataPrintChar[3]='d';dataPrintChar[4]='r';		// e.clr
+			dataPrintChar[0]='s';dataPrintChar[1]='.';dataPrintChar[2]='a';dataPrintChar[3]='d';dataPrintChar[4]='r';		// S.Adr
 			ht1622UpdateRamChar(NONE, FOUR_DIGIT, 2, dataPrintChar);
 			// DISPLAY SETTING DATA BLINKING CURSOR
-			if(stateCursor){
-				if(bufferCalibIndeks!=0)dataPrintChar[0]=bufferCalib[0]+'0';
-				if(bufferCalibIndeks!=1)dataPrintChar[1]=bufferCalib[1] + '0';
-				if(bufferCalibIndeks!=3)dataPrintChar[3]=bufferCalib[2] + '0';
-				if(bufferCalibIndeks!=4)dataPrintChar[4]=bufferCalib[3] + '0';
-			}else{
-				dataPrintChar[0]=bufferCalib[0] + '0';
-				dataPrintChar[1]=bufferCalib[1] + '0';
-				dataPrintChar[3]=bufferCalib[2] + '0';
-				dataPrintChar[4]=bufferCalib[3] + '0';
-			}
-			dataPrintChar[2]='.';
-			stateCursor = ~stateCursor;
-			ht1622UpdateRamChar(NONE, FOUR_DIGIT,  3, dataPrintChar);
-		// DISPLAY SET VALUE ENERGY
-		}else if(paramLv1 == MENU_ENERGY){
-			dataPrintChar[0]='e';dataPrintChar[1]='.';dataPrintChar[2]='c';dataPrintChar[3]='l';dataPrintChar[4]='r';
-			ht1622UpdateRamChar(NONE, FOUR_DIGIT, 2, dataPrintChar);
-			if(stateCursor == 1){
-				if(bufferCalibIndeks!=0)dataPrintChar[0]=bufferCalib[0]+'0';
-				if(bufferCalibIndeks!=1)dataPrintChar[1]=bufferCalib[1] + '0';
-				if(bufferCalibIndeks!=3)dataPrintChar[3]=bufferCalib[2] + '0';
-				if(bufferCalibIndeks!=4)dataPrintChar[4]=bufferCalib[3] + '0';
-			}else if(stateCursor == -2){
-				dataPrintChar[0]=bufferCalib[0] + '0';
-				dataPrintChar[1]=bufferCalib[1] + '0';
-				dataPrintChar[3]=bufferCalib[2] + '0';
-				dataPrintChar[4]=bufferCalib[3] + '0';
-			}
-			dataPrintChar[2]='.';
+			if((bufferCalibIndeks==0) && (stateCursor==1)){dataPrintChar[0]='/';}
+			else{dataPrintChar[0]=bufferCalib[0] + '0';}
+			if((bufferCalibIndeks==1) && (stateCursor==1)){dataPrintChar[1]='/';}
+			else{dataPrintChar[1]=bufferCalib[1] + '0';}
+			if((bufferCalibIndeks==2) && (stateCursor==1)){dataPrintChar[2]='/';}
+			else{dataPrintChar[2]=bufferCalib[2] + '0';}
+			dataPrintChar[3] = '/';
 			stateCursor = ~stateCursor;
 			ht1622UpdateRamChar(NONE, FOUR_DIGIT, 3, dataPrintChar);
+		// DISPLAY SET VALUE ENERGY
+		}else if(paramLv1 == MENU_ENERGY){
+			if(paramLv3 == RESET){dataPrintChar[0]='y';dataPrintChar[1]='e';dataPrintChar[2]='s';dataPrintChar[3]='/';}
+			else if(paramLv3 == NON_RESET){dataPrintChar[0]='n';dataPrintChar[1]='o';dataPrintChar[2]='/';dataPrintChar[3]='/';}
+			ht1622UpdateRamChar(NONE, FOUR_DIGIT, 3, dataPrintChar);
+			dataPrintChar[0]='e';dataPrintChar[1]='.';dataPrintChar[2]='c';dataPrintChar[3]='l';dataPrintChar[4]='r';
+			ht1622UpdateRamChar(NONE, FOUR_DIGIT, 2, dataPrintChar);
 		}
 	}else if(menuLevel == MENU_LEVEL_SAVE){
-		if(paramLv3 == SAVE){
-
-		}
-		if(paramLv3 == BACK){
-		}
-		if(paramLv3 == CANCEL){
-		}
+		dataPrintChar[0]='s';dataPrintChar[1]='e';dataPrintChar[2]='t';dataPrintChar[3]='t';								// sett
+		ht1622UpdateRamChar(NONE, FOUR_DIGIT, 1, dataPrintChar);
+		dataPrintChar[0]='s';dataPrintChar[1]='a';dataPrintChar[2]='v';dataPrintChar[3]='e';
+		ht1622UpdateRamChar(NONE, FOUR_DIGIT, 2, dataPrintChar);
+		if(paramLv3 == SAVE){dataPrintChar[0]='y';dataPrintChar[1]='e';dataPrintChar[2]='s';dataPrintChar[3]='/';}
+		if(paramLv3 == BACK){dataPrintChar[0]='b';dataPrintChar[1]='a';dataPrintChar[2]='c';dataPrintChar[3]='k';}
+		if(paramLv3 == CANCEL){dataPrintChar[0]='c';dataPrintChar[1]='n';dataPrintChar[2]='c';dataPrintChar[3]='l';	}
+		ht1622UpdateRamChar(NONE, FOUR_DIGIT, 3, dataPrintChar);
 	}
 	ht1622Print();
 }
-
-//// WIRING TYPE
-//					powerWiringType = (uint16_t)buttonWiringType;
-//
-//					// GROUP CALIBRATION POWER
-//					offsetVolt_stm32 = buttonVoltageOffset;
-//					offsetCurr_stm32 = buttonCurrentOffset;
-//					gainVolt_stm32 = buttonVoltageGain;
-//					gainCurr_stm32 = buttonCurrentGain;
-//
-//					// GROUP MODBUS SLAVE ID
-//					Modbus.slaveAddrSlaveSecond = buttonSlaveID;
-
-//uint8_t buttonStatus = 0;
-//uint8_t buttonAntiBounce = 0;
-
-
-//void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef * htim){
-//	if(htim == &htim14){
-//		buttonAntiBounce = 0;
-//		HAL_TIM_Base_Stop(&htim14);
-//	}
-//}
-//
-//void HAL_GPIO_EXTI_Callback(uint16_t GPIOPin){
-//	// ANTI BOUNCING
-//	if(buttonAntiBounce){
-//		return;
-//	}
-//
-//	if((GPIOPin == GPIO_PIN_6) || (GPIOPin == GPIO_PIN_4) || (GPIOPin == GPIO_PIN_3) || (GPIOPin == GPIO_PIN_15)){
-//		buttonAntiBounce = 1;
-//		HAL_TIM_Base_Start(&htim14);
-//		// BUTTON NEXT " > "
-//		if(GPIOPin == GPIO_PIN_6){buttonStatus = BTN_NEXT;}
-//		// BUTTON UP " ^ "
-//		else if(GPIOPin == GPIO_PIN_4){buttonStatus = BTN_UP;}
-//		// BUTTON SET
-//		else if(GPIOPin == GPIO_PIN_3){buttonStatus = BTN_SET;}
-//		// BUTTON ENTER =
-//		else if(GPIOPin == GPIO_PIN_15){buttonStatus = BTN_ENTER;}
-//	}
-//}

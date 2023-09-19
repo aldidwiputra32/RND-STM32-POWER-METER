@@ -401,7 +401,7 @@ uint8_t lcdRam22[32][7]={
 		{31,	63,	0,	0,	0,	0,	0}
 };
 
-uint8_t alphaNumeric[37][2]={
+uint8_t alphaNumeric[38][2]={
 		// CHAR | BIT DISPLAY SEVEN SEGMENT
 		{'0',	63},
 		{'1',	6},
@@ -439,7 +439,8 @@ uint8_t alphaNumeric[37][2]={
 		{'x',	118},
 		{'y',	110},
 		{'z',	91},
-		{'.',	255}
+		{'.',	255},
+		{'/',	0}
 };
 
 uint8_t ht1622BuferWrite[3][13] = {
@@ -518,7 +519,7 @@ void ht1622HandleUpdateRam(uint8_t type, uint8_t typeDigit, uint8_t column, uint
 				// FILTER FOF NUMBBER SEGMENT >>= 7-SEGMENT
 				if((dataPrint[indeks] != 0xF) && (dataPrint[indeks] != 0xFF)){ // bit NULL & bit coma
 					// ITERATE CONVERT DATA FROM CHAR TO BIT SEGMENT
-					for(uint8_t indeks1=0;indeks1<37;indeks1++){
+					for(uint8_t indeks1=0;indeks1<38;indeks1++){
 						if(dataPrint[indeks] == (uint8_t)alphaNumeric[indeks1][0]){
 							dataBit = alphaNumeric[indeks1][1];
 							integerToArray(dataBit, dataBitArray);
@@ -596,7 +597,7 @@ void ht1622HandleUpdateRam(uint8_t type, uint8_t typeDigit, uint8_t column, uint
 				// FILTER FOF NUMBBER SEGMENT >>= 7-SEGMENT
 				if((dataPrint[indeks] != 0xF) && (dataPrint[indeks] != 0xFF)){ // bit NULL & bit coma
 					// ITERATE CONVERT DATA FROM CHAR TO BIT SEGMENT
-					for(uint8_t indeks1=0;indeks1<37;indeks1++){
+					for(uint8_t indeks1=0;indeks1<38;indeks1++){
 						if(dataPrint[indeks] == (uint8_t)alphaNumeric[indeks1][0]){
 							dataBit = alphaNumeric[indeks1][1];
 							integerToArray(dataBit, dataBitArray);
@@ -672,7 +673,7 @@ void ht1622HandleUpdateRam(uint8_t type, uint8_t typeDigit, uint8_t column, uint
 				// FILTER FOF NUMBBER SEGMENT >>= 7-SEGMENT
 				if((dataPrint[indeks] != 0xF) && (dataPrint[indeks] != 0xFF)){ // bit NULL & bit coma
 					// ITERATE CONVERT DATA FROM CHAR TO BIT SEGMENT
-					for(uint8_t indeks1=0;indeks1<37;indeks1++){
+					for(uint8_t indeks1=0;indeks1<38;indeks1++){
 						if(dataPrint[indeks] == (uint8_t)alphaNumeric[indeks1][0]){
 							dataBit = alphaNumeric[indeks1][1];
 							integerToArray(dataBit, dataBitArray);
@@ -748,7 +749,7 @@ void ht1622HandleUpdateRam(uint8_t type, uint8_t typeDigit, uint8_t column, uint
 				// FILTER FOF NUMBBER SEGMENT >>= 7-SEGMENT
 				if((dataPrint[indeks] != 0xF) && (dataPrint[indeks] != 0xFF)){ // bit NULL & bit coma
 					// ITERATE CONVERT DATA FROM CHAR TO BIT SEGMENT
-					for(uint8_t indeks1=0;indeks1<37;indeks1++){
+					for(uint8_t indeks1=0;indeks1<38;indeks1++){
 						if(dataPrint[indeks] == (uint8_t)alphaNumeric[indeks1][0]){
 							dataBit = alphaNumeric[indeks1][1];
 							integerToArray(dataBit, dataBitArray);
@@ -856,7 +857,7 @@ void ht1622HandleUpdateRam(uint8_t type, uint8_t typeDigit, uint8_t column, uint
 			// FILTER FOF NUMBBER SEGMENT >>= 7-SEGMENT
 			if((dataPrint[indeks7] != 0xF) && (dataPrint[indeks7] != 0xFF)){ // bit NULL & bit coma
 				// ITERATE CONVERT DATA FROM CHAR TO BIT SEGMENT
-				for(uint8_t indeks1=0;indeks1<37;indeks1++){
+				for(uint8_t indeks1=0;indeks1<38;indeks1++){
 					if(dataPrint[indeks7] == (uint8_t)alphaNumeric[indeks1][0]){
 						dataBit = alphaNumeric[indeks1][1];
 						integerToArray(dataBit, dataBitArray);
@@ -1045,7 +1046,7 @@ uint16_t ht1622EncodeSingle(uint8_t address, uint8_t * data){
 
 uint8_t ht1622GenerateBit(uint8_t dataRaw){
 	uint8_t buffer = 0;
-	for(uint8_t indeks=0; indeks<37; indeks++){
+	for(uint8_t indeks=0; indeks<38; indeks++){
 		if(dataRaw == alphaNumeric[indeks][0]){
 			buffer =  alphaNumeric[indeks][1];
 			break;
