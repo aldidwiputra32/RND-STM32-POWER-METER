@@ -30,10 +30,26 @@
 #define CS1					1
 #define CS2					2
 
+// REGISTER ADDDRESS >> CONFIG REGISTER
+#define  BIAS          	0x29
+#define  RC256         	0x18
+#define  RC128         	0xA7
+#define  RC64         	0xA6
+#define  RC32        	0xA5
+#define  RC16        	0xA4
+#define  RC8         	0xA3
+#define  RC4         	0xA2
+#define  RC2         	0xA1
+#define  RC1         	0xA0
+#define  SYSEN         	0x01
+#define  LCDON         	0x03
+#define  NORMAL_MODE	0xE3
+#define	 NONE			0
+
 uint8_t ht1622GenerateBit(uint8_t dataRaw);
 void ht1622ProcessDataPrint(uint8_t type ,uint8_t * dataPrint, uint8_t len, uint8_t * dataBuffer);
 uint8_t ht1622SizeOf(uint8_t * buffer);
-void ht1622UpdateRamChar(uint8_t type, uint8_t typeDigit, uint8_t column, uint8_t * dataPrintChar);
+void ht1622UpdateRamChar(uint8_t type, uint8_t typeDigit, uint8_t column, uint8_t * dataPrintChar, uint8_t len);
 void ht1622UpdateRamFloat(uint8_t type, uint8_t typeDigit, uint8_t column, float dataPrintFloat);
 void ht1622HandleUpdateRam(uint8_t type, uint8_t typeDigit, uint8_t column, uint8_t * dataPrint);
 void integerToArray(uint8_t data, uint8_t * buffer);
@@ -58,22 +74,6 @@ void handleUnitSegment(
 void ht1622EncodeGroup();
 uint8_t ht1622GenerateBit(uint8_t dataRaw);
 uint16_t ht1622EncodeSingle(uint8_t address, uint8_t * data);
-
-#define  BIAS          	0x29
-#define  RC256         	0x18
-#define  RC128         	0xA7
-#define  RC64         	0xA6
-#define  RC32        	0xA5
-#define  RC16        	0xA4
-#define  RC8         	0xA3
-#define  RC4         	0xA2
-#define  RC2         	0xA1
-#define  RC1         	0xA0
-#define  SYSEN         	0x01
-#define  LCDON         	0x03
-#define  NORMAL_MODE	0xE3
-#define	 NONE			0
-
 void send_command(uint8_t type, uint8_t cmd);
 void write_seg_data_4(uint8_t type, uint8_t seg_addr, uint8_t com_data);
 void write_seg_data_44(uint8_t type, uint8_t seg_addr, uint8_t *com_data, uint16_t count);

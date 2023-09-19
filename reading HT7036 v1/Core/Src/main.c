@@ -287,8 +287,7 @@ void eepromEncode(
 );
 uint16_t byteLow32(uint32_t buf){return (uint16_t)((buf & 0x0000FFFF));}
 uint16_t byteHigh32(uint32_t buf){return (uint16_t)((buf & 0xFFFF0000) >> 16);}
-void modbusValueUpdateNew();
-void modbusValueUpdateOld();
+void modbusValueUpdate();
 void powerCalibLoop();
 void powerSplitValue();
 void powerHandleCalib();
@@ -297,43 +296,7 @@ void eepromLoad();
 void powerHandleTreshold();
 
 // TESTING BEGIN
-float altitudeOld = 0;
-float altitudeOld1 = 0;
-float altitudeArray[] = {
-		10,
-		30,
-		90,
-		10,
-		20,
-		65538,
-		70,
-		65540,
-		80,
-		90,
-		100
-};
-float altitudeNew = 0;
-void handleConfirmAltitude(float * valueOld, float * valueNew){
-	if(*valueNew >= 65535){
-		*valueNew = *valueOld;
-	}else if(*valueNew < 65535){
-		*valueOld = *valueNew;
-	}
-}
-
-void handleErrorDiff(uint8_t type, float * valueOld, float * valueNew){
-	uint16_t diff;
-	if(type == 1){
-		if(*valueNew > *valueOld)diff=*valueNew - *valueOld;
-		else if(*valueNew < *valueOld)diff=*valueOld - *valueNew;
-		if(diff > 40){
-			if(*valueNew < 65535)*valueOld = *valueNew;
-			*valueNew = 0;
-		}else{
-			*valueOld = *valueNew;
-		}
-	}
-}
+//uint32_t testing32;
 // TESTING END
 
 /* USER CODE END PFP */
@@ -400,18 +363,6 @@ int main(void)
   ht1622_init();
   clean_all();
   //===========================================================
-//  dataTesting = ~dataTesting;
-//  dataTesting = ~dataTesting;
-//  dataTesting = ~dataTesting;
-//  dataTesting = ~dataTesting;
-//  write_seg_data_bit_4(1, 63, 1, 0, 0, 0);
-//  write_seg_data_bit_4(1, 44, 0, 0, 1, 0);
-//  uint8_t dataPrintChar[4] = "abcd";
-//  ht1622UpdateRamChar(1, FOUR_DIGIT, 1, dataPrintChar);
-//  dataPrintChar[0] = 'e';dataPrintChar[1] = 'f';dataPrintChar[2] = 'g';dataPrintChar[3] = 'h';
-//  ht1622UpdateRamChar(1, FOUR_DIGIT, 2, dataPrintChar);
-//  ht1622Print();
-//  for(;;);
   //===========================================================
   // SETUP POWER METER
   powerMeterSetup();
@@ -437,7 +388,7 @@ int main(void)
 	  powerCalibLoop();
 	  menuLoop();
 	  eepromLoop();
-	  modbusValueUpdateOld();
+	  modbusValueUpdate();
 	  HAL_Delay(500);
     /* USER CODE END WHILE */
 
@@ -528,41 +479,7 @@ void powerMeterSetup(){
 	powerSplitValue();
 }
 
-void modbusValueUpdateNew(){
-	uint32_t bufferUnsign32;
-	int32_t bufferSign32;
-	uint16_t bufferUnsign16;
-	uint8_t address = 0;
-	for(int indeks=0;indeks<28;indeks++){
-		// CONFERT FLOAT DATA TO INTEGER SIGN/UNSGIN & 2BYTE/4BYTE
-		// GROUP POWER
-		if(indeks >= 0 && indeks <12){
-			bufferSign32  = (int32_t)(valueFloat[indeks] * 100);
-			bufferUnsign32 = (uint32_t)bufferSign32;
-			Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
-			Modbus.holdingRegisterValue[address++] = byteLow32(bufferUnsign32);
-		}
-		// GROUP RMS
-		if(indeks>=12 && indeks<20){
-			bufferUnsign16 = (uint16_t)(valueFloat[indeks] * 100);
-			Modbus.holdingRegisterValue[address++] = bufferUnsign16;
-		}
-		// GROUP POWER FACTOR
-		if(indeks>=20 && indeks<24){
-			bufferUnsign16 = (uint16_t)(valueFloat[indeks]*100);
-			Modbus.holdingRegisterValue[address++] = bufferUnsign16;
-		}
-		// GROUP ENERGY
-		if(indeks>=24 && indeks<32){
-			bufferSign32 = (int32_t)(valueFloat[indeks]*100);
-			bufferUnsign32 = (uint32_t)bufferSign32;
-			Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
-			Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
-		}
-	}
-}
-
-void modbusValueUpdateOld(){
+void modbusValueUpdate(){
 	float bufferFloat;
 	int32_t bufferUnsign16;
 	uint32_t bufferUnsign32;
@@ -606,6 +523,15 @@ void modbusValueUpdateOld(){
 	for(uint8_t i=0;i<3;i++){
 		Modbus.holdingRegisterValue[address++] = 0;
 		Modbus.holdingRegisterValue[address++] = 0;
+	}
+	// UPDATE VALUE SETTING PARAMETER
+	// slave address
+	address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x1000, Modbus.holdingRegisterSize);
+	Modbus.holdingRegisterValue[address] = Modbus.slaveAddrSlaveSecond;
+	// gain Current A B C  >> 0x200A 0x200B 0x200C
+	for(uint16_t addressIndeks=0x200A;addressIndeks<=0x200C;addressIndeks++){
+		address = modbusGetIndeks(Modbus.holdingRegisterAddress, addressIndeks, Modbus.holdingRegisterSize);
+		Modbus.holdingRegisterValue[address] = gainCurr_stm32;
 	}
 }
 
@@ -967,7 +893,7 @@ void eepromLoop(){
 		// RE-READING POWER METER FOR NEW CONFIG
 		powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
 		powerSplitValue();
-		phase=PHASE_RST;
+		phase = PHASE_RST;
 		stateConfig = 0;
 
 		// ENCODE DATA & WRITE EEPROM

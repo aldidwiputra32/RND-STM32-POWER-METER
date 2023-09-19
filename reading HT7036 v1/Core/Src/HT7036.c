@@ -150,7 +150,7 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 
 	/* WRITE CONFIG HFCONST */
 	HFconstVal = (float)spiReadCalib(w_Hfconst);
-	// READING VALUE PARAMETER
+	// READING VALUE PARAMETERd
 	check = spiReadCalib(w_ModeCfg);
 	check = spiReadCalib(w_EMUIE);
 	check = spiReadCalib(w_EMCfg);

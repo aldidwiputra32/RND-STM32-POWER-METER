@@ -488,16 +488,33 @@ uint8_t ht1622SizeOf(uint8_t * buffer){
 	return value;
 }
 
-void ht1622UpdateRamChar(uint8_t type, uint8_t typeDigit, uint8_t column, uint8_t * dataPrintChar){
+void ht1622UpdateRamChar(uint8_t type, uint8_t typeDigit, uint8_t column, uint8_t * dataPrintChar, uint8_t len){
 	uint8_t dataPrint[7];
 	// PROCESSING DATA PRINT
-	ht1622ProcessDataPrint(typeDigit, dataPrintChar, 5, dataPrint);
+	ht1622ProcessDataPrint(typeDigit, dataPrintChar, len, dataPrint);
 	ht1622HandleUpdateRam(type, typeDigit, column, dataPrint);
 }
 
 void ht1622UpdateRamFloat(uint8_t type, uint8_t typeDigit, uint8_t column, float dataPrintFloat){
 	uint8_t dataPrint[17];
 	uint8_t dataPrintRaw[10];
+	// PROCESSING DATA MINUS >> SIGNED VALUE
+	if(dataPrintFloat < 0){
+		if(column==1){
+			lcdRam11[22][3]=1;
+			lcdRam11[22][6]=1;
+		}else if(column==2){
+			lcdRam12[22][2]=1;
+			lcdRam12[22][6]=1;
+		}else if(column==3){
+			lcdRam22[13][5]=1;
+			lcdRam22[13][6]=1;
+		}else if(column==4){
+			lcdRam21[13][5]=1;
+			lcdRam21[13][6]=1;
+		}
+		dataPrintFloat *= (-1);
+	}
 	// PROCESSING DATA PRINT
 	sprintf(dataPrintRaw,"%.1f\n",dataPrintFloat);
 	ht1622ProcessDataPrint(typeDigit, dataPrintRaw, ht1622SizeOf(dataPrintRaw), dataPrint);
