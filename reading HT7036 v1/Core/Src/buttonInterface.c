@@ -6,6 +6,7 @@ uint8_t buttonTrigger = 0;
 uint8_t menuLevel = MENU_LEVEL_0;
 uint8_t menuParam = MENU_CURRENT;
 uint8_t bufferCalib[4];
+uint8_t stateConfigButton = 0;
 
 static uint8_t flagdataOld = 1;
 uint8_t flagGetDataOld = 0;
@@ -39,6 +40,7 @@ extern float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombi
 				energyReactiveA,	energyReactiveB, 	energyReactiveC,	energyReactiveCombine;
 
 extern float 	rmsVoltageAB,		rmsVoltageBC,		rmsVoltageCA;
+extern float	gainCurrent;
 
 void menuLoop(){
 	// STATE MACHINE PROCESSING
@@ -49,7 +51,7 @@ void menuLoop(){
 			buttonVoltageOffset = (float)offsetVolt_stm32/1000;
 			buttonCurrentOffset = (float)offsetCurr_stm32/1000;
 			buttonVoltageGain = (float)gainVolt_stm32/1000;
-			buttonCurrentGain = (float)gainCurr_stm32/1000;
+			buttonCurrentGain = (float)gainCurr_stm32;
 
 			buttonSlaveID = Modbus.slaveAddrSlaveSecond;
 
@@ -73,7 +75,8 @@ void menuLoop(){
 				// ACTION SAVE SETTING
 				if(paramLv3 == SAVE){
 					// GROUP CALIBRATION POWER >> GIAN CURRENT
-					gainCurr_stm32 = (uint16_t)(buttonCurrentGain*1000);
+					gainCurr_stm32 = (uint16_t)(buttonCurrentGain);
+					gainCurrent = buttonCurrentGain;
 					// GROUP MODBUS SLAVE ID >> MIDBUS ID
 					Modbus.slaveAddrSlaveSecond = buttonSlaveID;
 					// GROUP ENERGY ACTIVE REACTIVE
@@ -90,6 +93,7 @@ void menuLoop(){
 					menuLevel = MENU_LEVEL_0;
 					// TRIGGER FOR SAVING DATA TO EEPROM
 					stateConfig = 1;
+					stateConfigButton = 1;
 				// ACTION CANCEL SETTING
 				}else if(paramLv3 == BACK){
 					stateConfig = 0;
@@ -167,7 +171,7 @@ void menuLoop(){
 					flagdataOld = 1;
 				}else if(buttonStatus == BTN_SET){
 					uint8_t state = 0;
-					if(convertRawBtnToFloat(&buttonCurrentGain, bufferCalib, 65.535)){
+					if(convertRawBtnToFloat(&buttonCurrentGain, bufferCalib, 65535)){
 						menuLevel = MENU_LEVEL_1;
 						bufferCalibIndeks = 0;
 						flagdataOld = 1;
@@ -240,7 +244,7 @@ void menuLoop(){
 }
 
 uint8_t convertRawBtnToFloat(float * buffer, uint8_t * data, float max){
-	*buffer = ((float)data[0]*10) + ((float)data[1]) + ((float)data[2]/10) + ((float)data[3]/100);
+	*buffer = ((float)data[0]*1000) + ((float)data[1]*100) + ((float)data[2]*10) + ((float)data[3]);
 	if(*buffer > (float)max){
 		return 0;
 	}else{
@@ -249,7 +253,7 @@ uint8_t convertRawBtnToFloat(float * buffer, uint8_t * data, float max){
 }
 
 void floatTodisplay(uint8_t * bufferDisplay, float dataFloat){
-	uint16_t data16 = (uint16_t)(dataFloat*100);
+	uint16_t data16 = (uint16_t)(dataFloat);
 	bufferDisplay[3] = data16%10; data16 /= 10;
 	bufferDisplay[2] = data16%10; data16 /= 10;
 	bufferDisplay[1] = data16%10; data16 /= 10;
@@ -266,10 +270,13 @@ void displayLoop(){
 	// ---------------------------------------STATE DISPLAY ----------------------------------------------
 	ht1622ClearSegment();
 	if(menuLevel == MENU_LEVEL_0){
+		float energyBuffer;
 		if((paramLv1 == DISPLAY_CURRENT_RMS)||(paramLv1 == DISPLAY_VOLTAGE_RMS)||(paramLv1 == DISPLAY_APPARENT_POWER)||(paramLv1 == DISPLAY_VOLTAGE_RMS_DIV)||(paramLv1 == DISPLAY_ACTIVE_POWER)||(paramLv1 == DISPLAY_POWER_FACTOR)){
-			ht1622UpdateRamFloat(ACTIVE_ENERGY, NINE_DIGIT, NONE, energyActiveCombine);
+			energyBuffer = (float)(energyActiveA_uint + energyActiveB_uint + energyActiveC_uint)/1000;
+			ht1622UpdateRamFloat(ACTIVE_ENERGY, NINE_DIGIT, NONE, energyBuffer);
 		}else if(paramLv1 == DISPLAY_REACTIVE_POWER){
-			ht1622UpdateRamFloat(REACTIVE_ENERGY, NINE_DIGIT, NONE, energyReactiveCombine);
+			energyBuffer = (float)(energyReactiveA_uint + energyReactiveB_uint + energyReactiveC_uint)/1000;
+			ht1622UpdateRamFloat(REACTIVE_ENERGY, NINE_DIGIT, NONE, energyBuffer);
 		}
 		if(paramLv1 == DISPLAY_CURRENT_RMS){
 			ht1622UpdateRamFloat(CURRENT_RMS, FOUR_DIGIT, 1, rmsCurrentA);
@@ -328,13 +335,12 @@ void displayLoop(){
 			else{dataPrintChar[0]=bufferCalib[0] + '0';}
 			if((bufferCalibIndeks==1) && (stateCursor==1)){dataPrintChar[1]='/';}
 			else{dataPrintChar[1]=bufferCalib[1] + '0';}
-			if((bufferCalibIndeks==2) && (stateCursor==1)){dataPrintChar[3]='/';}
-			else{dataPrintChar[3]=bufferCalib[2] + '0';}
-			if((bufferCalibIndeks==3) && (stateCursor==1)){dataPrintChar[4]='/';}
-			else{dataPrintChar[4]=bufferCalib[3] + '0';}
-			dataPrintChar[2]='.';
+			if((bufferCalibIndeks==2) && (stateCursor==1)){dataPrintChar[2]='/';}
+			else{dataPrintChar[2]=bufferCalib[2] + '0';}
+			if((bufferCalibIndeks==3) && (stateCursor==1)){dataPrintChar[3]='/';}
+			else{dataPrintChar[3]=bufferCalib[3] + '0';}
 			stateCursor = ~stateCursor;
-			ht1622UpdateRamChar(NONE, FOUR_DIGIT, 3, dataPrintChar,5);
+			ht1622UpdateRamChar(NONE, FOUR_DIGIT, 3, dataPrintChar,4);
 
 		// DISPLAY SET VALUE MODBUS
 		}else if(paramLv1 == MENU_MODBUS){

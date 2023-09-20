@@ -239,9 +239,7 @@ uint8_t eepromBufferWrite[68];
 uint32_t eepromTimerDelta = 0;
 uint32_t eepromTimer = 0;
 
-
 //------------------------- GROUP VARIABLE BUTTON INTERFACE ---------------------------------
-
 uint8_t buttonAntiBounce = 0;
 extern uint16_t buttonStatus;
 extern uint8_t buttonTrigger;
@@ -249,6 +247,7 @@ extern uint8_t menuLevel;
 extern uint8_t menuParam;
 extern uint8_t 	flagGetDataOld;
 extern uint32_t paramLv1;
+extern uint8_t stateConfigButton;
 
 //------------------------- GROUP VARIABLE DISPLAY 7-SEGMENT ---------------------------------
 /* USER CODE END PV */
@@ -288,7 +287,8 @@ void powerSplitValue();
 void powerHandleCalib();
 void eepromLoop();
 void eepromLoad();
-void powerHandleTreshold();
+void powerHandleTresholdGroup();
+void powerHandleTreshold(float * data, float max, float min);
 
 // TESTING BEGIN
 //uint32_t testing32;
@@ -353,26 +353,27 @@ int main(void)
   // START HT1622
   ht1622_init();
   clean_all();
-  //===========================================================
-  //===========================================================
+  //=======================LINE TESTING BEGIN====================================
+  //=======================LINE TESTING END======================================
   // SETUP POWER METER
   powerMeterSetup();
-  // INITIAL TIMER SAMPLING POWER & EEPROM
-  powerTimer = eepromTimer = HAL_GetTick();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  // TIMER SCHEMA
-	  powerTimerDelta = HAL_GetTick() - powerTimer;
-	  powerTimer = HAL_GetTick();
+	  // POWER GROUP FUNCTION (TIMER, READ SENSOR, DATA PROCESSING, CALIB HANDLING)
+	  powerTimerDelta = HAL_GetTick() - powerTimer; powerTimer = HAL_GetTick();
 	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
 	  powerSplitValue();
 	  powerCalibLoop();
+	  // LCD CUSTOM GROUP FUNCTION
 	  menuLoop();
+	  // EEPROM GROUP FUNCTION
 	  eepromLoop();
+	  // MODBUS UPDATE
 	  modbusValueUpdate();
 	  HAL_Delay(250);
     /* USER CODE END WHILE */
@@ -462,6 +463,8 @@ void powerMeterSetup(){
 	powerSetup(address,addressData,spiStatus,12);
 	powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
 	powerSplitValue();
+	// INITIAL TIMER SAMPLING POWER & EEPROM
+	powerTimer = eepromTimer = HAL_GetTick();
 }
 
 void modbusValueUpdate(){
@@ -493,30 +496,21 @@ void modbusValueUpdate(){
 	}
 	// VOLTAGE DIFFERENTIAL GROUP
 	// TOTAL HARMONIC DISTORTION
-	rmsVoltageAB = bufferFloat = calcVoltDif(rmsVoltageA, rmsVoltageB);
+	bufferFloat = rmsVoltageAB;
 	bufferUnsign32 = floatToInt32(&bufferFloat);
 	Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
 	Modbus.holdingRegisterValue[address++] = byteLow32(bufferUnsign32);
-	rmsVoltageBC = bufferFloat = calcVoltDif(rmsVoltageB, rmsVoltageC);
+	bufferFloat = rmsVoltageBC;
 	bufferUnsign32 = floatToInt32(&bufferFloat);
 	Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
 	Modbus.holdingRegisterValue[address++] = byteLow32(bufferUnsign32);
-	rmsVoltageCA = bufferFloat = calcVoltDif(rmsVoltageC, rmsVoltageA);
+	bufferFloat = rmsVoltageCA;
 	bufferUnsign32 = floatToInt32(&bufferFloat);
 	Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
 	Modbus.holdingRegisterValue[address++] = byteLow32(bufferUnsign32);
 	for(uint8_t i=0;i<3;i++){
-		Modbus.holdingRegisterValue[address++] = 0;
-		Modbus.holdingRegisterValue[address++] = 0;
-	}
-	// UPDATE VALUE SETTING PARAMETER
-	// slave address
-	address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x1000, Modbus.holdingRegisterSize);
-	Modbus.holdingRegisterValue[address] = Modbus.slaveAddrSlaveSecond;
-	// gain Current A B C  >> 0x200A 0x200B 0x200C
-	for(uint16_t addressIndeks=0x200A;addressIndeks<=0x200C;addressIndeks++){
-		address = modbusGetIndeks(Modbus.holdingRegisterAddress, addressIndeks, Modbus.holdingRegisterSize);
-		Modbus.holdingRegisterValue[address] = gainCurr_stm32;
+		Modbus.holdingRegisterValue[address++] = ZERO_VAL;
+		Modbus.holdingRegisterValue[address++] = ZERO_VAL;
 	}
 }
 
@@ -623,14 +617,14 @@ void powerCalibLoop(){
 				if(addressModbus == 0x2008){gainVoltageB = (float)dataCalib16/1000;phase=PHASE_B;}
 				if(addressModbus == 0x2009){gainVoltageC = (float)dataCalib16/1000;phase=PHASE_C;}
 			}
-			// FILTER REGISTER GAIN CURRENT RMS
+			// FILTER REGISTER GAIN CURRENT RMS >> NOT 1000 MULTIPLICATION COZ USER REQUIREMENT
 			else if ((addressModbus == 0x200A) || (addressModbus == 0x200B) || (addressModbus == 0x200C)){
 				stateConfig = Modbus.trigState;
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
 				gainCurr_stm32 = dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
-				if(addressModbus == 0x200A){gainCurrentA = (float)dataCalib16/1000;phase=PHASE_A;}
-				if(addressModbus == 0x200B){gainCurrentB = (float)dataCalib16/1000;phase=PHASE_B;}
-				if(addressModbus == 0x200C){gainCurrentC = (float)dataCalib16/1000;phase=PHASE_C;}
+				if(addressModbus == 0x200A){gainCurrentA = (float)dataCalib16/1;phase=PHASE_A;}
+				if(addressModbus == 0x200B){gainCurrentB = (float)dataCalib16/1;phase=PHASE_B;}
+				if(addressModbus == 0x200C){gainCurrentC = (float)dataCalib16/1;phase=PHASE_C;}
 			}
 			else if(addressModbus == 0x4001){
 				stateConfig = Modbus.trigState;
@@ -827,7 +821,7 @@ void eepromLoad(){
 	offsetVoltage = (float)offsetVolt_stm32/1000;
 	offsetCurrent = (float)offsetCurr_stm32/1000;
 	gainVoltage = (float)gainVolt_stm32/1000;
-	gainCurrent = (float)gainCurr_stm32/1000;
+	gainCurrent = (float)gainCurr_stm32;
 	// SYNCRON FROM DATA EEPROM TO MODBUS REGISTER
 	uint16_t addressSlave[3];
 	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x3001, Modbus.holdingRegisterSize);		// offset Voltage HT7036
@@ -874,7 +868,19 @@ void eepromLoop(){
 	eepromTimerDelta = HAL_GetTick() - eepromTimer;
 	if(stateConfig || (eepromTimerDelta > 5000)){
 		eepromTimer = HAL_GetTick();
-
+		// UPDATE VALUE SETTING PARAMETER VIA BUTTON
+		if(stateConfigButton){
+			// slave address
+			uint8_t address;
+			address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x1000, Modbus.holdingRegisterSize);
+			Modbus.holdingRegisterValue[address] = Modbus.slaveAddrSlaveSecond;
+			// gain Current A B C  >> 0x200A 0x200B 0x200C
+			for(uint16_t addressIndeks=0x200A;addressIndeks<=0x200C;addressIndeks++){
+				address = modbusGetIndeks(Modbus.holdingRegisterAddress, addressIndeks, Modbus.holdingRegisterSize);
+				Modbus.holdingRegisterValue[address] = gainCurr_stm32;
+			}
+			stateConfigButton = 0;
+		}
 		// RE-READING POWER METER FOR NEW CONFIG
 		powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
 		powerSplitValue();
@@ -970,6 +976,7 @@ void eepromEncode(
 }
 
 void powerSplitValue(){
+	// GETTING DATA FROM FLOAT ARRAY TO FLOAT32 (GENERAL GROUP SENSOR) >> DECODE
 	rmsVoltageA = valueFloat[0];			rmsVoltageB = valueFloat[1];			rmsVoltageC = valueFloat[2];		rmsVoltageVector = valueFloat[3];
 	rmsCurrentA = valueFloat[4];			rmsCurrentB = valueFloat[5];			rmsCurrentC = valueFloat[6];		rmsCurrentVector = valueFloat[7];
 	powerActiveA = valueFloat[8];			powerActiveB = valueFloat[9];			powerActiveC = valueFloat[10];		PowerActiveCombine = valueFloat[11];
@@ -978,42 +985,72 @@ void powerSplitValue(){
 	powerFactorA = valueFloat[20];			powerFactorB = valueFloat[21];			powerFactorC = valueFloat[22];		powerFactorCombine = valueFloat[23];
 	energyActiveA = valueFloat[24];			energyActiveB = valueFloat[25];			energyActiveC = valueFloat[26];		energyActiveCombine = valueFloat[27];
 	energyReactiveA = valueFloat[28];		energyReactiveB = valueFloat[29];		energyReactiveC = valueFloat[30];	energyReactiveCombine = valueFloat[31];
-
+	// GETTING DATA FROM FLOAT ARRAY TO FLOAT32 (ENERGY GROUP SENSOR) >> DECODE
 	energyActiveA_uint = energyModbus[0];	energyActiveB_uint = energyModbus[1];	energyActiveC_uint = energyModbus[2];
 	energyReactiveA_uint = energyModbus[4];	energyReactiveB_uint = energyModbus[5];	energyReactiveC_uint = energyModbus[6];
-
-	powerApparentBitA = valueSensor[16];	powerApparentBitB = valueSensor[17];	powerApparentBitC = valueSensor[18];
-	powerHandleTreshold();
+	// CALCULATE AND GET VOLTAGE DIFFRENCE
+	rmsVoltageAB = calcVoltDif(rmsVoltageA, rmsVoltageB);
+	rmsVoltageBC = calcVoltDif(rmsVoltageB, rmsVoltageC);
+	rmsVoltageCA = calcVoltDif(rmsVoltageC, rmsVoltageA);
+	// DATA PROCESSING
+	powerHandleTresholdGroup();
 	powerHandleCalib();
-
+	// GETTING DATA FROM FLOAT32 TO FLOAT ARRAY (GENERAL GROUP SENSOR) >> ENCODE
+	valueFloat[0] = rmsVoltageA;			valueFloat[1] = rmsVoltageB;			valueFloat[2] = rmsVoltageC;		valueFloat[3] = rmsVoltageVector;
+	valueFloat[4] = rmsCurrentA;			valueFloat[5] = rmsCurrentB;			valueFloat[6] = rmsCurrentC;		valueFloat[7] = rmsCurrentVector;
+	valueFloat[8] = powerActiveA;			valueFloat[9] = powerActiveB;			valueFloat[10] = powerActiveC;		valueFloat[11] = (float)(energyActiveA_uint + energyActiveB_uint + energyActiveC_uint)/1000;
+	valueFloat[12] = powerReactiveA;		valueFloat[13] = powerReactiveB;		valueFloat[14] = powerReactiveC;	valueFloat[15] = (float)(energyReactiveA_uint + energyReactiveB_uint + energyReactiveC_uint)/1000;
+	valueFloat[16] = powerApparentA;		valueFloat[17] = powerApparentB;		valueFloat[18] = powerApparentC;	valueFloat[19] = powerApparentCombine;
+	valueFloat[20] = powerFactorA;			valueFloat[21] = powerFactorB;			valueFloat[22] = powerFactorC;		valueFloat[23] = powerFactorCombine;
+	valueFloat[24] = energyActiveA;			valueFloat[25] = energyActiveB;			valueFloat[26] = energyActiveC;		valueFloat[27] = energyActiveCombine;
+	valueFloat[28] = energyReactiveA;		valueFloat[29] = energyReactiveB;		valueFloat[30] = energyReactiveC;	valueFloat[31] = energyReactiveCombine;
 	// CALCULATE METER CONSTANT
+	powerApparentBitA = valueSensor[16];	powerApparentBitB = valueSensor[17];	powerApparentBitC = valueSensor[18];
 	if(powerApparentBitA > 10)ECVal = calcMeterConstant(powerApparentBitA, HFconstVal, rmsVoltageA*rmsCurrentA);
 	else if(powerApparentBitB > 10)ECVal = calcMeterConstant(powerApparentBitB, HFconstVal, rmsVoltageB*rmsCurrentB);
 	else if(powerApparentBitC > 10)ECVal = calcMeterConstant(powerApparentBitC, HFconstVal, rmsVoltageC*rmsCurrentC);
 	else ECVal = ECDef;
 }
 
-void powerHandleTreshold(){
-	if((powerActiveA<1)&&(powerActiveA>(-1)))powerActiveA=0;
-	if((powerActiveB<1)&&(powerActiveB>(-1)))powerActiveB=0;
-	if((powerActiveC<1)&&(powerActiveC>-1))powerActiveC=0;
-	if(powerActiveA<=(-1))powerActiveA*=(-1);
-	if(powerActiveB<=(-1))powerActiveB*=(-1);
-	if(powerActiveC<=(-1))powerActiveC*=(-1);
+void powerHandleTresholdGroup(){
+	// HANDLE TRESHOLD FOR ZEROIING
+	// RMS VOLAGE
+	powerHandleTreshold(&rmsVoltageA,0.5,-0.5);
+	powerHandleTreshold(&rmsVoltageB,0.5,-0.5);
+	powerHandleTreshold(&rmsVoltageC,0.5,-0.5);
+	powerHandleTreshold(&rmsVoltageVector,0.5,-0.5);
+	// RMS VOLTAGE DIV
+	powerHandleTreshold(&rmsVoltageAB,0.5,-0.5);
+	powerHandleTreshold(&rmsVoltageBC,0.5,-0.5);
+	powerHandleTreshold(&rmsVoltageCA,0.5,-0.5);
+	// RMS CURRENT
+	powerHandleTreshold(&rmsCurrentA,0.05,-0.05);
+	powerHandleTreshold(&rmsCurrentB,0.05,-0.05);
+	powerHandleTreshold(&rmsCurrentC,0.05,-0.05);
+	powerHandleTreshold(&rmsCurrentVector,0.05,-0.05);
+	// POWER ACTIVE
+	powerHandleTreshold(&powerActiveA,0.5,-0.5);
+	powerHandleTreshold(&powerActiveB,0.5,-0.5);
+	powerHandleTreshold(&powerActiveC,0.5,-0.5);
+	powerHandleTreshold(&PowerActiveCombine,0.5,-0.5);
+	// POWER REACTIVE
+	powerHandleTreshold(&powerReactiveA,0.5,-0.5);
+	powerHandleTreshold(&powerReactiveB,0.5,-0.5);
+	powerHandleTreshold(&powerReactiveC,0.5,-0.5);
+	powerHandleTreshold(&powerReactiveCombine,0.5,-0.5);
+	// POWER APPARENT
+	powerHandleTreshold(&powerApparentA,0.5,-0.5);
+	powerHandleTreshold(&powerApparentB,0.5,-0.5);
+	powerHandleTreshold(&powerApparentC,0.5,-0.5);
+	powerHandleTreshold(&powerApparentCombine,0.5,-0.5);
+	// ENERGY ACTIVE TOTAL
+	if(energyActiveCombine == 0)energyActiveCombine = ZERO_VAL;
+	// ENERGY REACTIVR TOTAL
+	if(energyReactiveCombine == 0)energyReactiveCombine = ZERO_VAL;
+}
 
-	if((powerReactiveA<1)&&(powerReactiveA>(-1)))powerReactiveA=0;
-	if((powerReactiveB<1)&&(powerReactiveB>(-1)))powerReactiveB=0;
-	if((powerReactiveC<1)&&(powerReactiveC>-1))powerReactiveC=0;
-	if(powerReactiveA<=(-1))powerReactiveA*=(-1);
-	if(powerReactiveB<=(-1))powerReactiveB*=(-1);
-	if(powerReactiveC<=(-1))powerReactiveC*=(-1);
-
-	if((powerApparentA<1)&&(powerApparentA>(-1)))powerApparentA=0;
-	if((powerApparentB<1)&&(powerApparentB>(-1)))powerApparentB=0;
-	if((powerApparentC<1)&&(powerApparentC>-1))powerApparentC=0;
-	if(powerApparentA<=(-1))powerApparentA*=(-1);
-	if(powerApparentB<=(-1))powerApparentB*=(-1);
-	if(powerApparentC<=(-1))powerApparentC*=(-1);
+void powerHandleTreshold(float * data, float max, float min){
+	if((*data<max)&&(*data>min))*data=ZERO_VAL;
 }
 
 void powerHandleCalib(){
@@ -1139,3 +1176,26 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
+
+
+
+// TEMPLATE DUMMY
+////===========================================================
+//		  float dataDummy;
+//		  uint32_t dataDummy32;
+//		  address = modbusGetIndeks(Modbus.holdingRegisterAddress, 3027, Modbus.holdingRegisterSize); // A
+//		  dataDummy = 220.1;
+//		  dataDummy32 = floatToInt32(&dataDummy);
+//		  Modbus.holdingRegisterValue[address] = byteHigh32(daStaDummy32);
+//		  Modbus.holdingRegisterValue[address+1] = byteLow32(dataDummy32);
+//		  address = modbusGetIndeks(Modbus.holdingRegisterAddress, 3029, Modbus.holdingRegisterSize); // B
+//		  dataDummy = 220.2;
+//		  dataDummy32 = floatToInt32(&dataDummy);
+//		  Modbus.holdingRegisterValue[address] = byteHigh32(dataDummy32);
+//		  Modbus.holdingRegisterValue[address+1] = byteLow32(dataDummy32);
+//		  address = modbusGetIndeks(Modbus.holdingRegisterAddress, 3031, Modbus.holdingRegisterSize); // C
+//		  dataDummy = 220.3;
+//		  dataDummy32 = floatToInt32(&dataDummy);
+//		  Modbus.holdingRegisterValue[address] = byteHigh32(dataDummy32);
+//		  Modbus.holdingRegisterValue[address+1] = byteLow32(dataDummy32);
+//	//===========================================================

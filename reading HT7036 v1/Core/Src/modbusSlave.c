@@ -14,7 +14,18 @@ extern triggerTX;
 uint16_t addressModbus;
 uint16_t holdingRegisterValueRX[256];
 
-void ModbusBegin(MODBUS *modbus, UART_HandleTypeDef * huart, int trigState, uint8_t slaveAddrSlave, uint8_t slaveAddrSlaveSecond, uint16_t * holdingRegisterAddress, uint16_t * holdingRegisterValue, uint16_t * holdingRegisterSize, GPIO_TypeDef * gpioPort, uint16_t gpioPin){
+void ModbusBegin(
+		MODBUS *modbus,
+		UART_HandleTypeDef * huart,
+		int trigState,
+		uint8_t slaveAddrSlave,
+		uint8_t slaveAddrSlaveSecond,
+		uint16_t * holdingRegisterAddress,
+		uint16_t * holdingRegisterValue,
+		uint16_t * holdingRegisterSize,
+		GPIO_TypeDef * gpioPort,
+		uint16_t gpioPin
+	){
 	modbus->trigState = trigState;
 	modbus->huart = huart;
 	modbus->huartInstance = huart->Instance;
