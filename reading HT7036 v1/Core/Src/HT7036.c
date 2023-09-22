@@ -40,6 +40,7 @@ extern uint16_t offsetVolt_stm32;
 extern uint16_t offsetCurr_stm32;
 extern uint16_t gainVolt_stm32;
 extern uint16_t gainCurr_stm32;
+extern float gainCurrent;
 
 void spiDisable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);}
 void spiEnable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);}
@@ -217,6 +218,9 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 		// GROUPING DATA ENERGY
 		if(indeks>=24 && indeks<32){
 			handleAbsolute(&bufferEnergy[indeks-24]);
+			// MULTIPLICATION FOR USER REQUIREMENT
+			// bufferEnergy[indeks-24] = bufferEnergy[indeks-24] * gainCurrent;
+			bufferEnergy[indeks-24] = bufferEnergy[indeks-24];
 			// CALCULATION MANUAL DATA SENSOR ENERGY => power*deltaSampling/3600000 >> all value must be uin64_t type variable
 			bufferEnergySUM[indeks-24] += (double)(bufferEnergy[indeks-24]*((float)powerTimerDelta/1000.00f)/3600.00f);  // watt hour
 			energyModbus[indeks-24] = (uint64_t)bufferEnergySUM[indeks-24];
@@ -369,7 +373,7 @@ void powerCalibMode(uint8_t state){
 }
 float calcVoltDif(float val1, float val2){
 	//  ((V A + V B)/2)*sqr(1/2)  | 1,4142135623730950488016887242097 >> akar2 dari 2
-	return ((val1 + val2)/2*1.4142135623730950488016887242097);
+	return ((val1 + val2)/2*1.7320508075688772935274463415);
 }
 float calcMeterConstant(uint32_t dataBit, float hfConst, float dataAcual){
 	if(dataAcual > 0){

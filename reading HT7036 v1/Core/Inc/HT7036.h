@@ -247,6 +247,7 @@
 #define GAIN_VOLT_STM_DEF		1000
 #define GAIN_CURR_STM_DEF		1000
 #define ZERO_VAL				0.0001
+#define ZERO_VAL_ENERGY			1
 
 // -------------------------------PRIVATE VARIABLE--------------------------------------
 

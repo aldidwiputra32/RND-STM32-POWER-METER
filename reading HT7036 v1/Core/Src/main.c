@@ -42,7 +42,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define INTERVAL_EEPROM 	120000
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -120,36 +120,6 @@ uint32_t powerApparentBitA,	powerApparentBitB,	powerApparentBitC;
 
 
 //------------------------- GROUP VARIABLE MODBUS ---------------------------------
-/* A. NOTE
- * 	Group Power 			>> 4 byte Sign 		>> division 100
- * 	Group RMS				>> 2 byte unsgin	>> division 100
- * 	Gruop power factor 		>> 2 byte unsign	>> division 100
- * 	Group energy 			>> 4 byte unsign 	>> division 100
- *
- * B. MAPPING REGISTER EXISTING
- * 		V A-N(VAB)				>> 3027, 3028		>> (int32_t)float32
- * 		V B-N(VBC)				>> 3029, 3030		>> (int32_t)float32
- * 		V C-N(VCA)				>> 3031, 3032		>> (int32_t)float32
- * 		I A						>> 2999, 3000		>> (int32_t)float32
- * 		I B						>> 3001, 3002		>> (int32_t)float32
- * 		I C						>> 3003, 3004		>> (int32_t)float32
- * 		active Pow A			>> 3053, 3054		>> (int32_t)float32
- * 		active Pow B			>> 3055, 3056		>> (int32_t)float32
- * 		active Pow C			>> 3057, 3058		>> (int32_t)float32
- * 		active Pow Tot			>> 3059, 3060		>> (int32_t)float32
- *X		THD V-A					>> 21329, 21330		>> (int32_t)float32 // total harmonic distorision (%)
- *X		THD V-B					>> 21331, 21332		>> (int32_t)float32
- *X		THD V-C					>> 21333, 21334		>> (int32_t)float32
- * 		PF A					>> 3077, 3078		>> (int32_t)4Q FP PF // power factor
- *	 	PF B					>> 3079, 3080		>> (int32_t)4Q FP PF
- *	 	PF C 					>> 3081, 3082		>> (int32_t)4Q FP PF
- * 		Reactive Energy	(VARH) 	>> 3219, 3220, 3221, 3222		>> (int64_t)int64	// Reactive Energy Delivered
- * 		Energy (WH)				>> 3203, 3204, 3205, 3206		>> (int64_t)int64	// Active Energy Delivered (Into Load)
- *	 	V A-B 					>> 3019, 3020		>> (int32_t)float32 // ((V A + V B)/2)*sqr(1/2)  | 1,4142135623730950488016887242097 >> akar2 dari 2
- *	 	V B-C 					>> 3021, 3022		>> (int32_t)float32	//
- *		V C-A 					>> 3023, 3024		>> (int32_t)float32
- */
-
 extern MODBUS Modbus;						//  ADDRESS REGISTER VALUE POWER SENSOR >> 92 Register
 uint16_t holdingRegisterAddress[] 	= 	{	3027,  3028,  3029,  3030,  3031,  3032, 				// [v] Vrms ABC (V)
 											3035,  3036,											// [x] Vrms Vector (V)
@@ -196,44 +166,6 @@ uint16_t holdingRegisterValue[121]	= {0};
 extern uint16_t addressModbus;
 
 //------------------------- GROUP VARIABLE EEPROM EXTERNAL 8K ---------------------------------
-/*
---------------group sensor--------------
-
-| Address | Description               | size   |
-| ------- | ------------------------- | ------ |
-| 0       | active energy A           | 8 byte |
-| 8       | active energy B           | 8 byte |
-| 16      | active energy C           | 8 byte |
-| 24      | reactive energy A         | 8 byte |
-| 32      | reactive energy B         | 8 byte |
-| 40      | reactive energy C         | 8 byte |
-
--------------group calibration------------------
-
-| Address | Description               | size   |
-| ------- | ------------------------- | ------ |
-| 48      | offset Voltage super User | 2 byte |
-| 50      | offset current super user | 2 byte |
-| 52      | gain voltage super user   | 2 byte |
-| 54      | gain current super user   | 2 byte |
-| 56      | offset Voltage User       | 2 byte |
-| 58      | offset current user       | 2 byte |
-| 60      | gain voltage user         | 2 byte |
-| 62      | gain current user         | 2 byte |
-
--------group Other Sensor---------
-
-| Address | Description               | size   |
-| ------- | ------------------------- | ------ |
-| 64      | Slave ID                  | 2 byte |
-| 66      | Wiring type               | 2 byte |
-
-
- * -------------schema write and read------------------
- * encode buffer(grouping data) >> 64 byte
- * decode buffer(split data)
- * data Frame buffer(type:uint8_t[64 indeks array]) in EEPROM >> Based on table "group sensor & group calibration"
- */
 uint8_t eepromBufferRead[68];
 uint8_t eepromBufferWrite[68];
 uint32_t eepromTimerDelta = 0;
@@ -250,6 +182,9 @@ extern uint32_t paramLv1;
 extern uint8_t stateConfigButton;
 
 //------------------------- GROUP VARIABLE DISPLAY 7-SEGMENT ---------------------------------
+uint32_t backlightTimer;
+uint8_t backlightState=1;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -289,7 +224,7 @@ void eepromLoop();
 void eepromLoad();
 void powerHandleTresholdGroup();
 void powerHandleTreshold(float * data, float max, float min);
-
+void backlightHandle();
 // TESTING BEGIN
 //uint32_t testing32;
 // TESTING END
@@ -371,6 +306,7 @@ int main(void)
 	  powerCalibLoop();
 	  // LCD CUSTOM GROUP FUNCTION
 	  menuLoop();
+	  backlightHandle();
 	  // EEPROM GROUP FUNCTION
 	  eepromLoop();
 	  // MODBUS UPDATE
@@ -422,6 +358,13 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+void backlightHandle(){
+	if(backlightState && (HAL_GetTick() - backlightTimer > 60000)){
+		HAL_GPIO_WritePin(BACKLIGHT_En_GPIO_Port, BACKLIGHT_En_Pin, GPIO_PIN_RESET);
+		backlightState = 0;
+	}
+}
+
 void powerMeterSetup(){
 	uint8_t address[] = {
 			  // OFFSET CURRENT HT7036
@@ -473,21 +416,38 @@ void modbusValueUpdate(){
 	uint32_t bufferUnsign32;
 	uint64_t bufferUnsign64;
 	uint8_t address = 0;
+	uint16_t byteHigh,byteLow;
 	for(uint8_t indeks=0; indeks<32; indeks++){
 		// RMS GROUP SENSOR >> if(indeks>=0 && indeks<8)
-		// POWER GROUP SENSOR >> if(indeks>=8 && indeks<20)
-		// POWER FACTOR GROUP SENSOR >> if(indeks>=20 && indeks<24)
-		// ENERGY GROUOP SENSOR >> if(indeks>=24 && indeks<32)
-		if(indeks>=0 && indeks<24){
-			uint16_t byteHigh,byteLow;
+		if(indeks>=0 && indeks<8){
 			bufferUnsign32 = floatToInt32(&valueFloat[indeks]);
 			byteHigh = byteHigh32(bufferUnsign32);
 			byteLow = byteLow32(bufferUnsign32);
 			Modbus.holdingRegisterValue[address++] = byteHigh;
 			Modbus.holdingRegisterValue[address++] = byteLow;
 		}
+		// POWER GROUP SENSOR >> if(indeks>=8 && indeks<20)
+		if(indeks>=8 && indeks<20){
+			bufferFloat = valueFloat[indeks]/1000;
+			bufferUnsign32 = floatToInt32(&bufferFloat);
+			byteHigh = byteHigh32(bufferUnsign32);
+			byteLow = byteLow32(bufferUnsign32);
+			Modbus.holdingRegisterValue[address++] = byteHigh;
+			Modbus.holdingRegisterValue[address++] = byteLow;
+		}
+		// POWER FACTOR GROUP SENSOR >> if(indeks>=20 && indeks<24)
+		if(indeks>=20 && indeks<24){
+			bufferUnsign32 = floatToInt32(&valueFloat[indeks]);
+			byteHigh = byteHigh32(bufferUnsign32);
+			byteLow = byteLow32(bufferUnsign32);
+			Modbus.holdingRegisterValue[address++] = byteHigh;
+			Modbus.holdingRegisterValue[address++] = byteLow;
+		}
+ 		// ENERGY GROUOP SENSOR >> if(indeks>=24 && indeks<32)
 		if(indeks>=24 && indeks<32){
 			bufferUnsign64 = energyModbus[indeks-24];
+			// haNDLING VALUE FOR SMART LOAD
+			//if(bufferUnsign64 == 0)bufferUnsign64 = ZERO_VAL_ENERGY;
 			Modbus.holdingRegisterValue[address++] = byte64High1(bufferUnsign64);
 			Modbus.holdingRegisterValue[address++] = byte64High2(bufferUnsign64);
 			Modbus.holdingRegisterValue[address++] = byte64Low1(bufferUnsign64);
@@ -508,9 +468,12 @@ void modbusValueUpdate(){
 	bufferUnsign32 = floatToInt32(&bufferFloat);
 	Modbus.holdingRegisterValue[address++] = byteHigh32(bufferUnsign32);
 	Modbus.holdingRegisterValue[address++] = byteLow32(bufferUnsign32);
+	// bufferFloat = ZERO_VAL;
 	for(uint8_t i=0;i<3;i++){
-		Modbus.holdingRegisterValue[address++] = ZERO_VAL;
-		Modbus.holdingRegisterValue[address++] = ZERO_VAL;
+		// Modbus.holdingRegisterValue[address++] = byteHigh32(floatToInt32(&bufferFloat));
+		// Modbus.holdingRegisterValue[address++] = byteLow32(floatToInt32(&bufferFloat));
+		Modbus.holdingRegisterValue[address++] = 0;
+		Modbus.holdingRegisterValue[address++] = 0;
 	}
 }
 
@@ -852,21 +815,11 @@ void eepromLoad(){
 	Modbus.holdingRegisterValue[addressSlave[0]] = Modbus.slaveAddrSlaveSecond;
 	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x4001, Modbus.holdingRegisterSize);		// wiring Type
 	Modbus.holdingRegisterValue[addressSlave[0]] = powerWiringType;
-//	uint8_t dataPrint[1100];
-//	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port, MODBUS_En_Pin, GPIO_PIN_RESET);
-//	serialPrint("\r\n----------EEPROM LOAD----------\r\n", 36);
-//	sprintf(dataPrint,"\r\noffsetVoltSTM:%d, offsetCurrSTM:%d, gainVoltSTM:%d, gainCurrSTM:%d, WiringType:%d, slaveAddr:%d\r\noffsetVoltHT:%d, offsetCurrHT:%d, gainVoltHT:%d, gainCurrHT:%d\r\nActive:%lu, Reactive:%lu\r\n",
-//			offsetVolt_stm32,offsetCurr_stm32,gainVolt_stm32,gainCurr_stm32,powerWiringType,Modbus.slaveAddrSlaveSecond,
-//			offsetVolt_ht7036,offsetCurr_ht7036,gainVolt_ht7036,gainCurr_ht7036,
-//			bufferEnergySUM[3],bufferEnergySUM[7]
-//	);
-//	HAL_UART_Transmit(&huart2, dataPrint, 500, 2000);
-//	HAL_GPIO_WritePin(MODBUS_En_GPIO_Port, MODBUS_En_Pin, GPIO_PIN_SET);
 }
 
 void eepromLoop(){
 	eepromTimerDelta = HAL_GetTick() - eepromTimer;
-	if(stateConfig || (eepromTimerDelta > 5000)){
+	if(stateConfig || (eepromTimerDelta > INTERVAL_EEPROM)){
 		eepromTimer = HAL_GetTick();
 		// UPDATE VALUE SETTING PARAMETER VIA BUTTON
 		if(stateConfigButton){
@@ -976,6 +929,7 @@ void eepromEncode(
 }
 
 void powerSplitValue(){
+
 	// GETTING DATA FROM FLOAT ARRAY TO FLOAT32 (GENERAL GROUP SENSOR) >> DECODE
 	rmsVoltageA = valueFloat[0];			rmsVoltageB = valueFloat[1];			rmsVoltageC = valueFloat[2];		rmsVoltageVector = valueFloat[3];
 	rmsCurrentA = valueFloat[4];			rmsCurrentB = valueFloat[5];			rmsCurrentC = valueFloat[6];		rmsCurrentVector = valueFloat[7];
@@ -988,6 +942,8 @@ void powerSplitValue(){
 	// GETTING DATA FROM FLOAT ARRAY TO FLOAT32 (ENERGY GROUP SENSOR) >> DECODE
 	energyActiveA_uint = energyModbus[0];	energyActiveB_uint = energyModbus[1];	energyActiveC_uint = energyModbus[2];
 	energyReactiveA_uint = energyModbus[4];	energyReactiveB_uint = energyModbus[5];	energyReactiveC_uint = energyModbus[6];
+	energyModbus[3] = energyActiveA_uint + energyActiveB_uint + energyActiveC_uint;
+	energyModbus[7] = energyReactiveA_uint + energyReactiveB_uint + energyReactiveC_uint;
 	// CALCULATE AND GET VOLTAGE DIFFRENCE
 	rmsVoltageAB = calcVoltDif(rmsVoltageA, rmsVoltageB);
 	rmsVoltageBC = calcVoltDif(rmsVoltageB, rmsVoltageC);
@@ -998,12 +954,13 @@ void powerSplitValue(){
 	// GETTING DATA FROM FLOAT32 TO FLOAT ARRAY (GENERAL GROUP SENSOR) >> ENCODE
 	valueFloat[0] = rmsVoltageA;			valueFloat[1] = rmsVoltageB;			valueFloat[2] = rmsVoltageC;		valueFloat[3] = rmsVoltageVector;
 	valueFloat[4] = rmsCurrentA;			valueFloat[5] = rmsCurrentB;			valueFloat[6] = rmsCurrentC;		valueFloat[7] = rmsCurrentVector;
-	valueFloat[8] = powerActiveA;			valueFloat[9] = powerActiveB;			valueFloat[10] = powerActiveC;		valueFloat[11] = (float)(energyActiveA_uint + energyActiveB_uint + energyActiveC_uint)/1000;
-	valueFloat[12] = powerReactiveA;		valueFloat[13] = powerReactiveB;		valueFloat[14] = powerReactiveC;	valueFloat[15] = (float)(energyReactiveA_uint + energyReactiveB_uint + energyReactiveC_uint)/1000;
+	valueFloat[8] = powerActiveA;			valueFloat[9] = powerActiveB;			valueFloat[10] = powerActiveC;		valueFloat[11] = (powerActiveA + powerActiveB + powerActiveC);
+	valueFloat[12] = powerReactiveA;		valueFloat[13] = powerReactiveB;		valueFloat[14] = powerReactiveC;	valueFloat[15] = (powerReactiveA + powerReactiveB + powerReactiveC);
 	valueFloat[16] = powerApparentA;		valueFloat[17] = powerApparentB;		valueFloat[18] = powerApparentC;	valueFloat[19] = powerApparentCombine;
 	valueFloat[20] = powerFactorA;			valueFloat[21] = powerFactorB;			valueFloat[22] = powerFactorC;		valueFloat[23] = powerFactorCombine;
 	valueFloat[24] = energyActiveA;			valueFloat[25] = energyActiveB;			valueFloat[26] = energyActiveC;		valueFloat[27] = energyActiveCombine;
 	valueFloat[28] = energyReactiveA;		valueFloat[29] = energyReactiveB;		valueFloat[30] = energyReactiveC;	valueFloat[31] = energyReactiveCombine;
+
 	// CALCULATE METER CONSTANT
 	powerApparentBitA = valueSensor[16];	powerApparentBitB = valueSensor[17];	powerApparentBitC = valueSensor[18];
 	if(powerApparentBitA > 10)ECVal = calcMeterConstant(powerApparentBitA, HFconstVal, rmsVoltageA*rmsCurrentA);
@@ -1029,28 +986,30 @@ void powerHandleTresholdGroup(){
 	powerHandleTreshold(&rmsCurrentC,0.05,-0.05);
 	powerHandleTreshold(&rmsCurrentVector,0.05,-0.05);
 	// POWER ACTIVE
-	powerHandleTreshold(&powerActiveA,0.5,-0.5);
-	powerHandleTreshold(&powerActiveB,0.5,-0.5);
-	powerHandleTreshold(&powerActiveC,0.5,-0.5);
-	powerHandleTreshold(&PowerActiveCombine,0.5,-0.5);
+	powerHandleTreshold(&powerActiveA,0.0005,-0.0005);
+	powerHandleTreshold(&powerActiveB,0.0005,-0.0005);
+	powerHandleTreshold(&powerActiveC,0.0005,-0.0005);
+	powerHandleTreshold(&PowerActiveCombine,0.0005,-0.0005);
 	// POWER REACTIVE
-	powerHandleTreshold(&powerReactiveA,0.5,-0.5);
-	powerHandleTreshold(&powerReactiveB,0.5,-0.5);
-	powerHandleTreshold(&powerReactiveC,0.5,-0.5);
-	powerHandleTreshold(&powerReactiveCombine,0.5,-0.5);
+	powerHandleTreshold(&powerReactiveA,0.0005,-0.0005);
+	powerHandleTreshold(&powerReactiveB,0.0005,-0.0005);
+	powerHandleTreshold(&powerReactiveC,0.0005,-0.0005);
+	powerHandleTreshold(&powerReactiveCombine,0.0005,-0.0005);
 	// POWER APPARENT
-	powerHandleTreshold(&powerApparentA,0.5,-0.5);
-	powerHandleTreshold(&powerApparentB,0.5,-0.5);
-	powerHandleTreshold(&powerApparentC,0.5,-0.5);
-	powerHandleTreshold(&powerApparentCombine,0.5,-0.5);
+	powerHandleTreshold(&powerApparentA,0.0005,-0.0005);
+	powerHandleTreshold(&powerApparentB,0.0005,-0.0005);
+	powerHandleTreshold(&powerApparentC,0.0005,-0.0005);
+	powerHandleTreshold(&powerApparentCombine,0.0005,-0.0005);
+	// NOT USED >> REPLACE ON ModbusValueUPdate();
 	// ENERGY ACTIVE TOTAL
-	if(energyActiveCombine == 0)energyActiveCombine = ZERO_VAL;
+	// if(energyActiveCombine == 0)energyActiveCombine = ZERO_VAL;
 	// ENERGY REACTIVR TOTAL
-	if(energyReactiveCombine == 0)energyReactiveCombine = ZERO_VAL;
+	// if(energyReactiveCombine == 0)energyReactiveCombine = ZERO_VAL;
 }
 
 void powerHandleTreshold(float * data, float max, float min){
-	if((*data<max)&&(*data>min))*data=ZERO_VAL;
+	//if((*data<max)&&(*data>min))*data=ZERO_VAL;
+	if((*data<max)&&(*data>min))*data=0;
 }
 
 void powerHandleCalib(){
@@ -1129,6 +1088,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIOPin){
 	}
 	// TRIGGER BUTTON
 	if((GPIOPin == BTN_Next_Pin) || (GPIOPin == BTN_Up_Pin) || (GPIOPin == BTN_Set_Pin) || (GPIOPin == BTN_Enter_Pin)){
+		// HANDLE BACKLIGHT
+		backlightState = 1;
+		backlightTimer = HAL_GetTick();
+		HAL_GPIO_WritePin(BACKLIGHT_En_GPIO_Port, BACKLIGHT_En_Pin, GPIO_PIN_SET);
+
 		buttonAntiBounce = 1;
 		buttonTrigger=1;
 		HAL_TIM_Base_Start_IT(&htim14);
@@ -1177,25 +1141,70 @@ void assert_failed(uint8_t *file, uint32_t line)
 }
 #endif /* USE_FULL_ASSERT */
 
+/* A. NOTE
+ * 	Group Power 			>> 4 byte Sign 		>> division 100
+ * 	Group RMS				>> 2 byte unsgin	>> division 100
+ * 	Gruop power factor 		>> 2 byte unsign	>> division 100
+ * 	Group energy 			>> 4 byte unsign 	>> division 100
+ *
+ * B. MAPPING REGISTER EXISTING
+ * 		V A-N(VAB)				>> 3027, 3028		>> (int32_t)float32
+ * 		V B-N(VBC)				>> 3029, 3030		>> (int32_t)float32
+ * 		V C-N(VCA)				>> 3031, 3032		>> (int32_t)float32
+ * 		I A						>> 2999, 3000		>> (int32_t)float32
+ * 		I B						>> 3001, 3002		>> (int32_t)float32
+ * 		I C						>> 3003, 3004		>> (int32_t)float32
+ * 		active Pow A			>> 3053, 3054		>> (int32_t)float32
+ * 		active Pow B			>> 3055, 3056		>> (int32_t)float32
+ * 		active Pow C			>> 3057, 3058		>> (int32_t)float32
+ * 		active Pow Tot			>> 3059, 3060		>> (int32_t)float32
+ *X		THD V-A					>> 21329, 21330		>> (int32_t)float32 // total harmonic distorision (%)
+ *X		THD V-B					>> 21331, 21332		>> (int32_t)float32
+ *X		THD V-C					>> 21333, 21334		>> (int32_t)float32
+ * 		PF A					>> 3077, 3078		>> (int32_t)4Q FP PF // power factor
+ *	 	PF B					>> 3079, 3080		>> (int32_t)4Q FP PF
+ *	 	PF C 					>> 3081, 3082		>> (int32_t)4Q FP PF
+ * 		Reactive Energy	(VARH) 	>> 3219, 3220, 3221, 3222		>> (int64_t)int64	// Reactive Energy Delivered
+ * 		Energy (WH)				>> 3203, 3204, 3205, 3206		>> (int64_t)int64	// Active Energy Delivered (Into Load)
+ *	 	V A-B 					>> 3019, 3020		>> (int32_t)float32 // ((V A + V B)/2)*sqr(1/2)  | 1,4142135623730950488016887242097 >> akar2 dari 2
+ *	 	V B-C 					>> 3021, 3022		>> (int32_t)float32	//
+ *		V C-A 					>> 3023, 3024		>> (int32_t)float32
+ */
+/*
+--------------group sensor--------------
+
+| Address | Description               | size   |
+| ------- | ------------------------- | ------ |
+| 0       | active energy A           | 8 byte |
+| 8       | active energy B           | 8 byte |
+| 16      | active energy C           | 8 byte |
+| 24      | reactive energy A         | 8 byte |
+| 32      | reactive energy B         | 8 byte |
+| 40      | reactive energy C         | 8 byte |
+
+-------------group calibration------------------
+
+| Address | Description               | size   |
+| ------- | ------------------------- | ------ |
+| 48      | offset Voltage super User | 2 byte |
+| 50      | offset current super user | 2 byte |
+| 52      | gain voltage super user   | 2 byte |
+| 54      | gain current super user   | 2 byte |
+| 56      | offset Voltage User       | 2 byte |
+| 58      | offset current user       | 2 byte |
+| 60      | gain voltage user         | 2 byte |
+| 62      | gain current user         | 2 byte |
+
+-------group Other Sensor---------
+
+| Address | Description               | size   |
+| ------- | ------------------------- | ------ |
+| 64      | Slave ID                  | 2 byte |
+| 66      | Wiring type               | 2 byte |
 
 
-// TEMPLATE DUMMY
-////===========================================================
-//		  float dataDummy;
-//		  uint32_t dataDummy32;
-//		  address = modbusGetIndeks(Modbus.holdingRegisterAddress, 3027, Modbus.holdingRegisterSize); // A
-//		  dataDummy = 220.1;
-//		  dataDummy32 = floatToInt32(&dataDummy);
-//		  Modbus.holdingRegisterValue[address] = byteHigh32(daStaDummy32);
-//		  Modbus.holdingRegisterValue[address+1] = byteLow32(dataDummy32);
-//		  address = modbusGetIndeks(Modbus.holdingRegisterAddress, 3029, Modbus.holdingRegisterSize); // B
-//		  dataDummy = 220.2;
-//		  dataDummy32 = floatToInt32(&dataDummy);
-//		  Modbus.holdingRegisterValue[address] = byteHigh32(dataDummy32);
-//		  Modbus.holdingRegisterValue[address+1] = byteLow32(dataDummy32);
-//		  address = modbusGetIndeks(Modbus.holdingRegisterAddress, 3031, Modbus.holdingRegisterSize); // C
-//		  dataDummy = 220.3;
-//		  dataDummy32 = floatToInt32(&dataDummy);
-//		  Modbus.holdingRegisterValue[address] = byteHigh32(dataDummy32);
-//		  Modbus.holdingRegisterValue[address+1] = byteLow32(dataDummy32);
-//	//===========================================================
+ * -------------schema write and read------------------
+ * encode buffer(grouping data) >> 64 byte
+ * decode buffer(split data)
+ * data Frame buffer(type:uint8_t[64 indeks array]) in EEPROM >> Based on table "group sensor & group calibration"
+ */

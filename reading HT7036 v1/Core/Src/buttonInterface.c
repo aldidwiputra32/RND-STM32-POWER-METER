@@ -42,6 +42,8 @@ extern float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombi
 extern float 	rmsVoltageAB,		rmsVoltageBC,		rmsVoltageCA;
 extern float	gainCurrent;
 
+uint32_t menuTimer;
+
 void menuLoop(){
 	// STATE MACHINE PROCESSING
 	// MODE SAVE SETTING
@@ -65,6 +67,9 @@ void menuLoop(){
 			if(buttonStatus == BTN_NEXT){
 				paramLv1++;
 				if(paramLv1 > 6)paramLv1 = 0;
+			}else if(buttonStatus == BTN_UP){
+				paramLv1--;
+				if(paramLv1 > 6)paramLv1 = 6; // becouse unsigned type variable 0 - 1 = -1(0xFFFF 0xFFFE) >>  FFFF FFFE >> 4.294.967.294 in uinsgin
 			}
 		}
 		if(menuLevel == MENU_LEVEL_SAVE){
@@ -237,10 +242,12 @@ void menuLoop(){
 				}
 			}
 		}
-		buttonTrigger = 0;
 	}
-	displayLoop(menuLevel,paramLv1,paramLv2,paramLv3);
-	// LEVEL DISPLAY
+	if((HAL_GetTick() - menuTimer >= 1000) || buttonTrigger){
+		menuTimer = HAL_GetTick();
+		displayLoop(menuLevel,paramLv1,paramLv2,paramLv3);
+	}
+	buttonTrigger = 0;
 }
 
 uint8_t convertRawBtnToFloat(float * buffer, uint8_t * data, float max){
@@ -264,6 +271,7 @@ void handleTreshold(uint32_t * val, uint8_t max, uint8_t min){
 	if(*val < min)*val = min;
 	if(*val > max)*val = min;
 }
+
 
 void displayLoop(){
 	uint8_t dataPrintChar[8];
@@ -291,17 +299,17 @@ void displayLoop(){
 			ht1622UpdateRamFloat(VOLTAGE_RMS_DIV, FOUR_DIGIT, 2, rmsVoltageBC);
 			ht1622UpdateRamFloat(VOLTAGE_RMS_DIV, FOUR_DIGIT, 3, rmsVoltageCA);
 		}else if(paramLv1 == DISPLAY_ACTIVE_POWER){
-			ht1622UpdateRamFloat(ACTIVE_POWER, FOUR_DIGIT, 1, powerActiveA);
-			ht1622UpdateRamFloat(ACTIVE_POWER, FOUR_DIGIT, 2, powerActiveB);
-			ht1622UpdateRamFloat(ACTIVE_POWER, FOUR_DIGIT, 3, powerActiveC);
+			ht1622UpdateRamFloat(ACTIVE_POWER, FOUR_DIGIT, 1, powerActiveA/1000);
+			ht1622UpdateRamFloat(ACTIVE_POWER, FOUR_DIGIT, 2, powerActiveB/1000);
+			ht1622UpdateRamFloat(ACTIVE_POWER, FOUR_DIGIT, 3, powerActiveC/1000);
 		}else if(paramLv1 == DISPLAY_REACTIVE_POWER){
-			ht1622UpdateRamFloat(REACTIVE_POWER, FOUR_DIGIT, 1, powerReactiveA);
-			ht1622UpdateRamFloat(REACTIVE_POWER, FOUR_DIGIT, 2, powerReactiveB);
-			ht1622UpdateRamFloat(REACTIVE_POWER, FOUR_DIGIT, 3, powerReactiveC);
+			ht1622UpdateRamFloat(REACTIVE_POWER, FOUR_DIGIT, 1, powerReactiveA/1000);
+			ht1622UpdateRamFloat(REACTIVE_POWER, FOUR_DIGIT, 2, powerReactiveB/1000);
+			ht1622UpdateRamFloat(REACTIVE_POWER, FOUR_DIGIT, 3, powerReactiveC/1000);
 		}else if(paramLv1 == DISPLAY_APPARENT_POWER){
-			ht1622UpdateRamFloat(APPARENT_POWER, FOUR_DIGIT, 1, powerApparentA);
-			ht1622UpdateRamFloat(APPARENT_POWER, FOUR_DIGIT, 2, powerApparentB);
-			ht1622UpdateRamFloat(APPARENT_POWER, FOUR_DIGIT, 3, powerApparentC);
+			ht1622UpdateRamFloat(APPARENT_POWER, FOUR_DIGIT, 1, powerApparentA/1000);
+			ht1622UpdateRamFloat(APPARENT_POWER, FOUR_DIGIT, 2, powerApparentB/1000);
+			ht1622UpdateRamFloat(APPARENT_POWER, FOUR_DIGIT, 3, powerApparentC/1000);
 		}else if(paramLv1 == DISPLAY_POWER_FACTOR){
 			ht1622UpdateRamFloat(POWER_FACTOR, FOUR_DIGIT, 1, powerFactorA);
 			ht1622UpdateRamFloat(POWER_FACTOR, FOUR_DIGIT, 2, powerFactorB);

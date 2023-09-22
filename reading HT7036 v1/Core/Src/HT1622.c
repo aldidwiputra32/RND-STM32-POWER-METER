@@ -516,7 +516,23 @@ void ht1622UpdateRamFloat(uint8_t type, uint8_t typeDigit, uint8_t column, float
 		dataPrintFloat *= (-1);
 	}
 	// PROCESSING DATA PRINT
-	sprintf(dataPrintRaw,"%.1f\n",dataPrintFloat);
+	if(typeDigit == FOUR_DIGIT){
+		if(dataPrintFloat < 10)sprintf(dataPrintRaw,"%.3f\n",dataPrintFloat);
+		else if(dataPrintFloat < 100)sprintf(dataPrintRaw,"%.2f\n",dataPrintFloat);
+		else if(dataPrintFloat < 1000)sprintf(dataPrintRaw,"%.1f\n",dataPrintFloat);
+		else sprintf(dataPrintRaw,"%d\n",(uint32_t)dataPrintFloat);
+		if(dataPrintFloat > 9999){
+			sprintf(dataPrintRaw,"9999\n");
+		}
+	}else if(typeDigit == NINE_DIGIT){
+		if(dataPrintFloat < 1000000)sprintf(dataPrintRaw,"%.3f\n",dataPrintFloat);
+		else if(dataPrintFloat < 10000000)sprintf(dataPrintRaw,"%.2f\n",dataPrintFloat);
+		else if(dataPrintFloat < 100000000)sprintf(dataPrintRaw,"%.1f\n",dataPrintFloat);
+		else sprintf(dataPrintRaw,"%d\n",(uint32_t)dataPrintFloat);
+		if(dataPrintFloat > 999999999){
+			sprintf(dataPrintRaw,"999999999\n");
+		}
+	}
 	ht1622ProcessDataPrint(typeDigit, dataPrintRaw, ht1622SizeOf(dataPrintRaw), dataPrint);
 	ht1622HandleUpdateRam(type, typeDigit, column, dataPrint);
 }
@@ -1183,14 +1199,12 @@ void ht1622_init(void)
 {
 	// IC1
 	send_command(CS1, BIAS);
-//	send_command(CS1, RC32);
-	send_command(CS1, RC1);
+	send_command(CS1, RC32);
 	send_command(CS1, SYSEN);
 	send_command(CS1, LCDON);
 	// IC2
 	send_command(CS2, BIAS);
-//	send_command(CS2, RC32);
-	send_command(CS2, RC1);
+	send_command(CS2, RC32);
 	send_command(CS2, SYSEN);
 	send_command(CS2, LCDON);
 }
@@ -1238,6 +1252,7 @@ void ht1622Print(void){
 		if(lcdRam22[indeks][6] == 1){write_seg_data_bit_4(2, lcdRam22[indeks][1], lcdRam22[indeks][5], lcdRam22[indeks][4], lcdRam22[indeks][3], lcdRam22[indeks][2]);}
 	}
 }
+
 
 
 
