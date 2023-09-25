@@ -758,13 +758,6 @@ void eepromLoad(){
 			}
 			indeksAddress = 0;
 		}
-//		// DECPDE WIRING TYPE POWER
-//		sif(indeks>=66 && indeks<68)buffer8[indeksAddress++] = eepromBufferRead[indeks];
-//		if(indeks==67){
-//			powerWiringType = uint8ToUint16(buffer8[0], buffer8[1]);
-//			if(powerWiringType == 0xFFFF)powerWiringType = WIRING_TYPE_DEF;
-//			indeksAddress = 0;
-//		}
 	}
 	// SYNCRON FROM DATA EEPROM TO ENERGY[BUFFER ARRAY]
 	bufferEnergySUM[0] = (double)energyActiveA_uint;

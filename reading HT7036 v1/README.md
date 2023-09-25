@@ -15,9 +15,82 @@ Perangkat Monitoring Power 3 fase kompetibel protokol Modbus RTU
 - Pembacaan sensor Power 3 fase
 - Pembacaan Nilai Energy Sensor Non-Volatile 
 
+## Power Meter Configution
+#### **1. FOR USER**
+konfigurasi **_for user_** ditujukan untuk user karena skema kalibrasi nya hanya sebatas oprasi matematika saja tidak kalibrasi langsung ke IC HT7036, gain (perkalian) dan offset (pertambahan). untuk melakukan kalibrasi perlu menentukan channel phase mana yang akan digunakan sebagai referensi, setelah itu tentukan nilai kalibrasi dan pack ke dataframe modbus rtu sesuai dengan register dan function code yang tuju
+
+**_example:_**
+Kalibrasi _tegangan pada gain parameter-nya di channel phase A_ senilai 2x maka dataframe modbusnya adalah
+
+* slave address: ```0x01```
+* function code: ```0x06```
+* register address: ```0x2007```
+* value (```2*1000 = 2000```): ```0x07D0```
+
+| slave addr | function code | register addr | value        | CRC          |
+| ---------- | ------------- | ------------- | ------------ | ------------ |
+| ```0x01``` | ```0x06```    | ```0x2007```  | ```0x07D0``` | ```0x3067``` |
+
+#### 1.A List Calibration Voltage for User 
+
+| Address (HEX) | Address (DEC) | Description               | Encode | Decode      |
+| ------------- | ------------- | ------------------------- | ------ | ---------- |
+| 2001          | 8193          | Offset Voltage A STM32    | ```value*1000``` | ```value/1000``` |
+| 2002          | 8194          | Offset Voltage B STM32    | ```value*1000``` | ```value/1000``` |
+| 2003          | 8195          | Offset Voltage C STM32    | ```value*1000``` | ```value/1000``` |
+| 2007          | 8199          | Gain Voltage A STM32      | ```value*1000``` | ```value/1000``` |
+| 2008          | 8200          | Gain Voltage B STM32      | ```value*1000``` | ```value/1000``` |
+| 2009          | 8201          | Gain Voltage C STM32      | ```value*1000``` | ```value/1000``` |
+
+
+#### 1.B List Calibration Current For User
+
+| Address (HEX) | Address (DEC) | Description                     | Encode | Decode      |
+| ------------- | ------------- | ------------------------------- | ------ | ---------- |
+| 200A          | 8202          | Gain Current A STM32            | ```value*1``` | ```value/1``` |
+| 200B          | 8203          | Gain Current B STM32            | ```value*1``` | ```value/1``` |
+| 200C          | 8204          | Gain Current C STM32            | ```value*1``` | ```value/1``` |
+| 2004          | 8196          | Offset Current A STM32          | ```value*1000``` | ```value/1000``` |
+| 2005          | 8197          | Offset Current B STM32          | ```value*1000``` | ```value/1000``` |
+| 2006          | 8198          | Offset Current C STM32          | ```value*1000``` | ```value/1000``` |
+
+#### **2. FOR SUPER USER**
+sedangkan pada konfigurasi **_for super user_** ditujukan untuk developer karena konfigurasi yang dilakukan langsung ke IC HT7036, serta skema kalibrasi yang berbeda dengan **_for user_**. untuk melakukan **_kalibrasi offset(zeroing)_** perlu menentukan channel phase referensi nilai data yang akan dikirim (```valueCommand=1``` >> auto zeroing, ```valueCommand!=1``` >> manual zeroing(unit data)), sedangkan untuk **_kalibrasi gain(multiplication)_** hanya perlu memasukkan data aktual pembacaan(dengan encode-nya yaitu ```value*100```)
+
+**_example:_** 
+* _kalibrasi offset_, kalibrasi tegangan offset menggunakan auto zeroing(```value=1```) dengan channel phase referensi nya yaitu A, maka dataframe sebagai berikut 
+| slave addr | function code | register addr | value        | CRC          |
+| ---------- | ------------- | ------------- | ------------ | ------------ |
+| ```0x01``` | ```0x06```    | ```0x1001```  | ```0x0001``` | ```0x1D0A``` |
+
+* _kalibrasi gain_, kalibrasi tegangan gain yang memiliki data aktual 220.3(```value=220.3*100=22030[0x560E]```) dengan channel phase referensi nya yaitu A, maka dataframe sebagai berikut
+| slave addr | function code | register addr | value        | CRC          |
+| ---------- | ------------- | ------------- | ------------ | ------------ |
+| ```0x01``` | ```0x06```    | ```0x1007```  | ```0x560E``` | ```0x82AF``` |
+
+#### 2.A List Calibration Voltage For Super User
+
+| Address (HEX) | Address (DEC) | Description                     | Encode | Decode      |
+| ------------- | ------------- | ------------------------------- | ------ | ---------- |
+| 1001          | 4097          | Offset Voltage A HT7036         | ```value*1``` | ```value*1``` |
+| 1002          | 4098          | Offset Voltage B HT7036         | ```value*1``` | ```value*1``` |
+| 1003          | 4099          | Offset Voltage C HT7036         | ```value*1``` | ```value*1``` |
+| 1007          | 4103          | Gain Voltage A HT7036           | ```value*100``` | ```value/100``` |
+| 1008          | 4104          | Gain Voltage B HT7036           | ```value*100``` | ```value/100``` |
+| 1009          | 4105          | Gain Voltage C HT7036           | ```value*100``` | ```value/100``` |
+
+#### C. List Calibration Current For Super User
+
+| Address (HEX) | Address (DEC) | Description                     | Encode | Decode      |
+| ------------- | ------------- | ------------------------------- | ------ | ---------- |
+| 1004          | 4100          | Offset Current A HT7036         | ```value*1``` | ```value*1``` |
+| 1005          | 4101          | Offset Current B HT7036         | ```value*1``` | ```value*1``` |
+| 1006          | 4102          | Offset Current C HT7036         | ```value*1``` | ```value*1``` |
+| 100A          | 4106          | Gain Current A HT7036           | ```value*100``` | ```value/100``` |
+| 100B          | 4107          | Gain Current B HT7036           | ```value*100``` | ```value/100``` |
+| 100C          | 4108          | Gain Current C HT7036           | ```value*100``` | ```value/100``` |
 
 ## Mapping Register Power Meter
-
 
 | Address (HEX) | Address (DEC) | Description                     | Size   | State      |
 | ------------- | ------------- | ------------------------------- | ------ | ---------- |
