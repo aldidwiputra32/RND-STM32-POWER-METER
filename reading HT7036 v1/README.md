@@ -59,11 +59,13 @@ sedangkan pada konfigurasi **_for super user_** ditujukan untuk developer karena
 
 **_example:_** 
 * _kalibrasi offset_, kalibrasi tegangan offset menggunakan auto zeroing(```value=1```) dengan channel phase referensi nya yaitu A, maka dataframe sebagai berikut 
+
 | slave addr | function code | register addr | value        | CRC          |
 | ---------- | ------------- | ------------- | ------------ | ------------ |
 | ```0x01``` | ```0x06```    | ```0x1001```  | ```0x0001``` | ```0x1D0A``` |
 
 * _kalibrasi gain_, kalibrasi tegangan gain yang memiliki data aktual 220.3(```value=220.3*100=22030[0x560E]```) dengan channel phase referensi nya yaitu A, maka dataframe sebagai berikut
+
 | slave addr | function code | register addr | value        | CRC          |
 | ---------- | ------------- | ------------- | ------------ | ------------ |
 | ```0x01``` | ```0x06```    | ```0x1007```  | ```0x560E``` | ```0x82AF``` |
