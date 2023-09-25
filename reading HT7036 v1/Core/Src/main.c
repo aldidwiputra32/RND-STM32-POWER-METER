@@ -225,9 +225,6 @@ void eepromLoad();
 void powerHandleTresholdGroup();
 void powerHandleTreshold(float * data, float max, float min);
 void backlightHandle();
-// TESTING BEGIN
-//uint32_t testing32;
-// TESTING END
 
 /* USER CODE END PFP */
 
@@ -288,8 +285,6 @@ int main(void)
   // START HT1622
   ht1622_init();
   clean_all();
-  //=======================LINE TESTING BEGIN====================================
-  //=======================LINE TESTING END======================================
   // SETUP POWER METER
   powerMeterSetup();
 
