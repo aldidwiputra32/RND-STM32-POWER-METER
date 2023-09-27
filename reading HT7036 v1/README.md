@@ -58,7 +58,7 @@ Kalibrasi _tegangan pada gain parameter-nya di channel phase A_ senilai 2x maka 
 sedangkan pada konfigurasi **_for super user_** ditujukan untuk developer karena konfigurasi yang dilakukan langsung ke IC HT7036, serta skema kalibrasi yang berbeda dengan **_for user_**. untuk melakukan **_kalibrasi offset(zeroing)_** perlu menentukan channel phase referensi nilai data yang akan dikirim (```valueCommand=1``` >> auto zeroing, ```valueCommand!=1``` >> manual zeroing(unit data)), sedangkan untuk **_kalibrasi gain(multiplication)_** hanya perlu memasukkan data aktual pembacaan(dengan encode-nya yaitu ```value*100```)
 
 **_example:_** 
-* _kalibrasi offset_, kalibrasi tegangan offset menggunakan auto zeroing(```value=1```) dengan channel phase referensi nya yaitu A, maka dataframe sebagai berikut 
+* _kalibrasi offset_, kalibrasi tegangan offset menggunakan auto zeroing(```value=1```) dengan channel phase referensi nya yaitu A, maka dataframe sebagai berikut
 
 | slave addr | function code | register addr | value        | CRC          |
 | ---------- | ------------- | ------------- | ------------ | ------------ |
@@ -92,6 +92,29 @@ sedangkan pada konfigurasi **_for super user_** ditujukan untuk developer karena
 | 100B          | 4107          | Gain Current B HT7036           | ```value*100``` | ```value/100``` |
 | 100C          | 4108          | Gain Current C HT7036           | ```value*100``` | ```value/100``` |
 
+## Structure Menu in LCD
+    Startup Device
+    │
+    ├── Monitoring Mode                      
+    │   ├── Current Sensor (A)              
+    │   ├── Voltage Sensor (V)
+    │   ├── Voltage Sensor Dif (V)
+    │   ├── Power Active (kW)
+    │   ├── Power Readctive (Kvar)
+    │   └── Power Factor 
+    └── Setting Mode  
+        ├── Multiplication Trafo
+        │   └── Setting Value (0-9999)                           
+        ├── Slave Address
+        │   └── Setting Value (0-254)                             
+        ├── Energy Reset 
+        │   ├── no 
+        │   └── yes                        
+        └── Confirmation Setting
+            ├── save 
+            ├── cancel  
+            └── back
+    
 ## Mapping Register Power Meter
 
 | Address (HEX) | Address (DEC) | Description                     | Size   | State      |
