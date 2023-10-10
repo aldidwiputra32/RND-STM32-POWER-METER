@@ -1199,12 +1199,12 @@ void ht1622_init(void)
 {
 	// IC1
 	send_command(CS1, BIAS);
-	send_command(CS1, RC32);
+	send_command(CS1, RC128);
 	send_command(CS1, SYSEN);
 	send_command(CS1, LCDON);
 	// IC2
 	send_command(CS2, BIAS);
-	send_command(CS2, RC32);
+	send_command(CS2, RC128);
 	send_command(CS2, SYSEN);
 	send_command(CS2, LCDON);
 }

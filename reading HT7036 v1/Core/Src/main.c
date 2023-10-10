@@ -287,14 +287,13 @@ int main(void)
   clean_all();
   // SETUP POWER METER
   powerMeterSetup();
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  // POWER GROUP FUNCTION (TIMER, READ SENSOR, DATA PROCESSING, CALIB HANDLING)
+	  // POWER GROUP FUNCTION (TIMER, READ SENSOR, DATA PROCESSING, CALIB HANDLING) >> ASYNCRONOUS TASK
 	  powerTimerDelta = HAL_GetTick() - powerTimer; powerTimer = HAL_GetTick();
 	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
 	  powerSplitValue();

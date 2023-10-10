@@ -245,7 +245,7 @@
 #define OFFSET_VOLT_STM_DEF		0
 #define OFFSET_CURR_STM_DEF		0
 #define GAIN_VOLT_STM_DEF		1000
-#define GAIN_CURR_STM_DEF		1000
+#define GAIN_CURR_STM_DEF		1
 #define ZERO_VAL				0.0001
 #define ZERO_VAL_ENERGY			1
 

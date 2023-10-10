@@ -117,7 +117,6 @@ void modbusEncode(MODBUS * Modbus){
 	Modbus->dataTX[1] = Modbus->functionCode;
 	int offsetByte;
 	if(Modbus->functionCode==0x03){
-//		powerDebug();
 		Modbus->dataTX[2] = Modbus->numReg+Modbus->numReg;
 		offsetByte = 3;
 		for(int indeks=0;indeks<Modbus->numReg;indeks++){
