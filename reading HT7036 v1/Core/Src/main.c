@@ -275,7 +275,7 @@ int main(void)
 		  0x01,
 		  holdingRegisterAddress,
 		  holdingRegisterValue,
-		  holdingRegisterSize,
+		  &holdingRegisterSize,
 		  MODBUS_En_GPIO_Port,
 		  MODBUS_En_Pin
   );
@@ -406,7 +406,6 @@ void powerMeterSetup(){
 
 void modbusValueUpdate(){
 	float bufferFloat;
-	int32_t bufferUnsign16;
 	uint32_t bufferUnsign32;
 	uint64_t bufferUnsign64;
 	uint8_t address = 0;
