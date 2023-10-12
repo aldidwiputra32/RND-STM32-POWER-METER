@@ -157,7 +157,7 @@ uint16_t holdingRegisterAddress[] 	= 	{	3027,  3028,  3029,  3030,  3031,  3032,
 											0x3002, 												// offset current super user (2 byte) >> HT7036
 											0x3003, 												// gain voltage super user (2 byte) >> HT7036
 											0x3004,													// gain current super user (2 byte) >> HT7036
-											0x4001													// Wiring Type
+											0x4001													// power phase corrction
 };
 											// VALUE REGISTER POWER SENSOR
 //uint16_t holdingRegisterSize = (uint16_t)sizeof(holdingRegisterAddress)/sizeof(uint16_t);
@@ -275,7 +275,7 @@ int main(void)
 		  0x01,
 		  holdingRegisterAddress,
 		  holdingRegisterValue,
-		  &holdingRegisterSize,
+		  holdingRegisterSize,
 		  MODBUS_En_GPIO_Port,
 		  MODBUS_En_Pin
   );
@@ -930,13 +930,13 @@ void powerSplitValue(){
 	energyReactiveA_uint = energyModbus[4];	energyReactiveB_uint = energyModbus[5];	energyReactiveC_uint = energyModbus[6];
 	energyModbus[3] = energyActiveA_uint + energyActiveB_uint + energyActiveC_uint;
 	energyModbus[7] = energyReactiveA_uint + energyReactiveB_uint + energyReactiveC_uint;
+	// DATA PROCESSING
+	powerHandleTresholdGroup();
+	powerHandleCalib();
 	// CALCULATE AND GET VOLTAGE DIFFRENCE
 	rmsVoltageAB = calcVoltDif(rmsVoltageA, rmsVoltageB);
 	rmsVoltageBC = calcVoltDif(rmsVoltageB, rmsVoltageC);
 	rmsVoltageCA = calcVoltDif(rmsVoltageC, rmsVoltageA);
-	// DATA PROCESSING
-	powerHandleTresholdGroup();
-	powerHandleCalib();
 	// GETTING DATA FROM FLOAT32 TO FLOAT ARRAY (GENERAL GROUP SENSOR) >> ENCODE
 	valueFloat[0] = rmsVoltageA;			valueFloat[1] = rmsVoltageB;			valueFloat[2] = rmsVoltageC;		valueFloat[3] = rmsVoltageVector;
 	valueFloat[4] = rmsCurrentA;			valueFloat[5] = rmsCurrentB;			valueFloat[6] = rmsCurrentC;		valueFloat[7] = rmsCurrentVector;

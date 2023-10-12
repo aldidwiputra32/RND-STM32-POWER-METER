@@ -16,6 +16,7 @@ float bufferEnergy[8];
 double bufferEnergySUM[8];
 double bufferEnergyOffset[8];
 uint64_t energyModbus[8];
+uint32_t check;
 
 extern float	gainVoltageA,		gainVoltageB,		gainVoltageC,
 				gainCurrentA,		gainCurrentB,		gainCurrentC,
@@ -126,7 +127,7 @@ void powerInit(){
 }
 
 void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataStatus, uint8_t numberCalib){
-	uint32_t check;
+
 	// ENABLE CALIBRATION MODE & ENABLE READ CALIRATION MODE
 	spiCommandSpecial(w_calib_state, BYTE_ENABLE);
 	spiCommandSpecial(w_read_calib, BYTE_ENABLE);
@@ -147,13 +148,23 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 	 * turn on the high-pass filter; turn on the BOR power monitoring circuit;
 	 */
 	spiWriteCalib(w_ModuleCFG,0x3427);	// 0011 0100 0010 0111
-	// -------------------------------------------------------------------------------------
+	// -------------------------------PHASE CORRETION---------------------------------------------
+	// power factor A
+	// spiWriteCalib(w_PhSregApq0, PHASE_CORRECTION_ZERO);
+	spiWriteCalib(w_PhSregApq1, PHASE_CORRECTION_ONE);
+	// power factor B
+	// spiWriteCalib(w_PhSregBpq0, PHASE_CORRECTION_ZERO);
+	spiWriteCalib(w_PhSregBpq1, PHASE_CORRECTION_ONE);
+	// power factor C
+	// spiWriteCalib(w_PhSregCpq0, PHASE_CORRECTION_ZERO);
+	spiWriteCalib(w_PhSregCpq1, PHASE_CORRECTION_ONE);
 
+	// -------------------------------------------------------------------------------------------
 	/* WRITE CONFIG HFCONST */
 	HFconstVal = (float)spiReadCalib(w_Hfconst);
 	// READING VALUE PARAMETERd
 	check = spiReadCalib(w_ModeCfg);
-	check = spiReadCalib(w_EMUIE);
+	check = spiReadCalib(w_PhSregApq1);
 	check = spiReadCalib(w_EMCfg);
 	check = spiReadCalib(w_ModuleCFG);
 	check = spiReadCalib(w_PGACtrl);

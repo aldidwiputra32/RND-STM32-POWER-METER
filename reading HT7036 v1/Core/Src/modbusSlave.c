@@ -10,10 +10,9 @@
 #define MODBUS_HANDLE_RESPONS 0
 
 MODBUS Modbus;
-extern triggerTX;
 uint16_t addressModbus;
 uint16_t holdingRegisterValueRX[256];
-
+HAL_StatusTypeDef status;
 void ModbusBegin(
 		MODBUS *modbus,
 		UART_HandleTypeDef * huart,
@@ -22,7 +21,7 @@ void ModbusBegin(
 		uint8_t slaveAddrSlaveSecond,
 		uint16_t * holdingRegisterAddress,
 		uint16_t * holdingRegisterValue,
-		uint16_t * holdingRegisterSize,
+		uint16_t holdingRegisterSize,
 		GPIO_TypeDef * gpioPort,
 		uint16_t gpioPin
 	){
@@ -49,7 +48,7 @@ void modbusReceive(MODBUS * Modbus){
 void modbusTransmit(MODBUS * Modbus){
 	HAL_GPIO_WritePin(Modbus->enableGpioPort,Modbus->enableGpioPin,GPIO_PIN_RESET); 	// DEFAULT >> HIGH/SET
 //	HAL_GPIO_WritePin(Modbus->enableGpioPort,Modbus->enableGpioPin,GPIO_PIN_SET);
-	HAL_UART_Transmit_DMA(Modbus->huart,Modbus->dataTX,Modbus->startAddr);
+	status = HAL_UART_Transmit_DMA(Modbus->huart,Modbus->dataTX,Modbus->startAddr);
 }
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef * huart , uint16_t Size){
