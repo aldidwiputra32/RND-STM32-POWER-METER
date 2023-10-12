@@ -31,6 +31,7 @@
 #define IRMS_OFFSET 	5
 #define IRMS_GAIN		6
 #define METER_CONSTANT	7
+#define PF_CALIB	 	8
 
 #define COEF_POWER(n) 	((2.592*10000000000)/(n*43.700f*8388608.000f)) // K = 2.592*10^10/(HFconst*EC*2^23)
 
@@ -249,7 +250,8 @@
 #define ZERO_VAL				0.0001
 #define ZERO_VAL_ENERGY			1
 #define PHASE_CORRECTION_ZERO	0
-#define PHASE_CORRECTION_ONE	0x2928
+#define PHASE_CORRECTION_ONE	0xDDFF
+//#define PHASE_CORRECTION_ONE	0x0
 
 // -------------------------------PRIVATE VARIABLE--------------------------------------
 

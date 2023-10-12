@@ -42,6 +42,7 @@ extern uint16_t offsetCurr_stm32;
 extern uint16_t gainVolt_stm32;
 extern uint16_t gainCurr_stm32;
 extern float gainCurrent;
+extern uint16_t calibPF_ht7036;
 
 void spiDisable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);}
 void spiEnable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);}
@@ -151,13 +152,13 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 	// -------------------------------PHASE CORRETION---------------------------------------------
 	// power factor A
 	// spiWriteCalib(w_PhSregApq0, PHASE_CORRECTION_ZERO);
-	spiWriteCalib(w_PhSregApq1, PHASE_CORRECTION_ONE);
+	spiWriteCalib(w_PhSregApq1, calibPF_ht7036);
 	// power factor B
 	// spiWriteCalib(w_PhSregBpq0, PHASE_CORRECTION_ZERO);
-	spiWriteCalib(w_PhSregBpq1, PHASE_CORRECTION_ONE);
+	spiWriteCalib(w_PhSregBpq1, calibPF_ht7036);
 	// power factor C
 	// spiWriteCalib(w_PhSregCpq0, PHASE_CORRECTION_ZERO);
-	spiWriteCalib(w_PhSregCpq1, PHASE_CORRECTION_ONE);
+	spiWriteCalib(w_PhSregCpq1, calibPF_ht7036);
 
 	// -------------------------------------------------------------------------------------------
 	/* WRITE CONFIG HFCONST */
@@ -356,6 +357,9 @@ uint32_t powerSingleRecalib(uint8_t type, uint8_t addressWrite, uint32_t * dataS
 			dataWrite = buffer32;
 			powerSingleCalib(addressWrite, &dataWrite, status);
 		}else dataWrite = dataOld;
+	}
+	if(type == PF_CALIB){
+		powerSingleCalib(addressWrite, dataSet, status);
 	}
 	return dataWrite;
 }

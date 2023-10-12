@@ -42,7 +42,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define INTERVAL_EEPROM 	120000
+#define INTERVAL_EEPROM 	10000
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -100,6 +100,7 @@ float 	rmsVoltageAB,		rmsVoltageBC,		rmsVoltageCA;
 
 extern uint64_t energyModbus[8];
 extern double bufferEnergySUM[8];
+extern uint32_t check;
 
 uint64_t 	energyActiveA_uint,		energyActiveB_uint, 		energyActiveC_uint,		energyActiveCombine_uint,
 			energyReactiveA_uint,	energyReactiveB_uint, 		energyReactiveC_uint,	energyReactiveCombine_uint;
@@ -114,7 +115,7 @@ float 	offsetVoltageA = 0, offsetVoltageB = 0,	offsetVoltageC = 0,
 
 uint16_t offsetVolt_ht7036,	offsetCurr_ht7036,	gainVolt_ht7036,	gainCurr_ht7036,
 		 offsetVolt_stm32,	offsetCurr_stm32,	gainVolt_stm32,		gainCurr_stm32,
-		 powerWiringType;
+		 calibPF_ht7036;
 
 uint32_t powerApparentBitA,	powerApparentBitB,	powerApparentBitC;
 
@@ -161,8 +162,8 @@ uint16_t holdingRegisterAddress[] 	= 	{	3027,  3028,  3029,  3030,  3031,  3032,
 };
 											// VALUE REGISTER POWER SENSOR
 //uint16_t holdingRegisterSize = (uint16_t)sizeof(holdingRegisterAddress)/sizeof(uint16_t);
-uint16_t holdingRegisterSize = 121;
-uint16_t holdingRegisterValue[121]	= {0};
+uint16_t holdingRegisterSize = 122;
+uint16_t holdingRegisterValue[122]	= {0};
 extern uint16_t addressModbus;
 
 //------------------------- GROUP VARIABLE EEPROM EXTERNAL 8K ---------------------------------
@@ -544,6 +545,17 @@ void powerCalibLoop(){
 					else if(addressModbus == 0x100C){gainCurr_ht7036 = Modbus.holdingRegisterValue[addressSlave] = powerSingleRecalib(IRMS_GAIN, w_IgainC, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0],gainCurr_ht7036);phase=PHASE_C;}
 				}else __NOP();
 			}
+			// FILTER POWER FACTOR CALIBRATION
+			else if(addressModbus == 0x4001){
+				stateConfig = Modbus.trigState;
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
+				calibPF_ht7036 = Modbus.holdingRegisterValue[addressSlave];
+				dataCalib32 = (uint32_t)calibPF_ht7036;
+				// WRITE REGISTER VALUE
+				powerSingleRecalib(PF_CALIB, w_PhSregApq1, &dataCalib32, w_PhSregApq1,  &spiStatus[0], check);  // variable check just buffer not important
+				powerSingleRecalib(PF_CALIB, w_PhSregBpq1, &dataCalib32, w_PhSregBpq1,  &spiStatus[0], check);  // variable check just buffer not important
+				powerSingleRecalib(PF_CALIB, w_PhSregCpq1, &dataCalib32, w_PhSregCpq1,  &spiStatus[0], check);  // variable check just buffer not important
+			}
 
 			// --------------------------------------------------CALIBRATION STM32 FOR USER------------------------------------------------------------------
 			// FILTER REGISTER OFFSET VOLTAGE RMS
@@ -581,11 +593,6 @@ void powerCalibLoop(){
 				if(addressModbus == 0x200A){gainCurrentA = (float)dataCalib16/1;phase=PHASE_A;}
 				if(addressModbus == 0x200B){gainCurrentB = (float)dataCalib16/1;phase=PHASE_B;}
 				if(addressModbus == 0x200C){gainCurrentC = (float)dataCalib16/1;phase=PHASE_C;}
-			}
-			else if(addressModbus == 0x4001){
-				stateConfig = Modbus.trigState;
-				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
-				powerWiringType = Modbus.holdingRegisterValue[addressSlave];
 			}
 		}
 		// --------------------------------------------------HANDLE RESET VALUE REGISTER[ENERGY]------------------------------------------------------------------
@@ -756,6 +763,17 @@ void eepromLoad(){
 			}
 			indeksAddress = 0;
 		}
+		// DECODE POWER FACTOR CALIBRATION
+		if (indeks>=66 && indeks<68)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks==67){
+			uint16_t buffer16;
+			buffer16 = uint8ToUint16(buffer8[0], buffer8[1]);
+			if(buffer16 == 0xFFFF){
+				calibPF_ht7036 = PHASE_CORRECTION_ONE;
+			}else{
+				calibPF_ht7036 = buffer16;
+			}
+		}
 	}
 	// SYNCRON FROM DATA EEPROM TO ENERGY[BUFFER ARRAY]
 	bufferEnergySUM[0] = (double)energyActiveA_uint;
@@ -800,7 +818,7 @@ void eepromLoad(){
 	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x1000, Modbus.holdingRegisterSize);		// modbus slave id
 	Modbus.holdingRegisterValue[addressSlave[0]] = Modbus.slaveAddrSlaveSecond;
 	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x4001, Modbus.holdingRegisterSize);		// wiring Type
-	Modbus.holdingRegisterValue[addressSlave[0]] = powerWiringType;
+	Modbus.holdingRegisterValue[addressSlave[0]] = calibPF_ht7036;
 }
 
 void eepromLoop(){
@@ -832,7 +850,7 @@ void eepromLoop(){
 				energyReactiveA_uint,			energyReactiveB_uint,	energyReactiveC_uint,
 				offsetVolt_ht7036,				offsetCurr_ht7036,		gainVolt_ht7036,		gainCurr_ht7036,
 				offsetVolt_stm32,				offsetCurr_stm32,		gainVolt_stm32,			gainCurr_stm32,
-				Modbus.slaveAddrSlaveSecond, 	powerWiringType
+				Modbus.slaveAddrSlaveSecond, 	calibPF_ht7036
 		);
 		ee24_write(0, (uint8_t*)eepromBufferWrite, sizeof(eepromBufferWrite), 1000);
 	}
@@ -854,7 +872,7 @@ void eepromEncode(
 			uint16_t gainVolt_stm32,		// indeks 60 - 62
 			uint16_t gainCurr_stm32,		// indeks 62 - 63
 			uint16_t slaveAddress,			// indeks 64 - 65
-			uint16_t wiringType				// indeks 66 - 67
+			uint16_t calibPF_ht7036			// indeks 66 - 67
 		){
 	uint8_t buffer8[8];
 	uint8_t indeksBuffer=0;
@@ -909,8 +927,8 @@ void eepromEncode(
 	eepromBufferWrite[64] = byte16High(slaveAddress);
 	eepromBufferWrite[65] = byte16Low(slaveAddress);
 	// WIRING TYPE
-	eepromBufferWrite[66] = byte16High(wiringType);
-	eepromBufferWrite[67] = byte16Low(wiringType);
+	eepromBufferWrite[66] = byte16High(calibPF_ht7036);
+	eepromBufferWrite[67] = byte16Low(calibPF_ht7036);
 
 }
 

@@ -23,7 +23,6 @@ extern uint64_t	energyActiveA_uint,		energyActiveB_uint,		energyActiveC_uint,		e
 				energyReactiveA_uint,	energyReactiveB_uint, 	energyReactiveC_uint,	energyReactiveCombine_uint;
 extern uint8_t 	stateConfig;
 extern MODBUS 	Modbus;
-extern uint16_t	powerWiringType;
 extern double bufferEnergySUM[8];
 
 extern float 	powerActiveA,		powerActiveB,		powerActiveC,		PowerActiveCombine,   // V x i x cos phi
@@ -56,8 +55,6 @@ void menuLoop(){
 			buttonCurrentGain = (float)gainCurr_stm32;
 
 			buttonSlaveID = Modbus.slaveAddrSlaveSecond;
-
-			buttonWiringType = (uint8_t)powerWiringType;
 
 			flagGetDataOld = 0;
 		}
