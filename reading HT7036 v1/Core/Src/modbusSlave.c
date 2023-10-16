@@ -46,6 +46,7 @@ void modbusReceive(MODBUS * Modbus){
 }
 
 void modbusTransmit(MODBUS * Modbus){
+	HAL_Delay(100);
 	HAL_GPIO_WritePin(Modbus->enableGpioPort,Modbus->enableGpioPin,GPIO_PIN_RESET); 	// DEFAULT >> HIGH/SET
 //	HAL_GPIO_WritePin(Modbus->enableGpioPort,Modbus->enableGpioPin,GPIO_PIN_SET);
 	status = HAL_UART_Transmit_DMA(Modbus->huart,Modbus->dataTX,Modbus->startAddr);
