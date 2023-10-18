@@ -111,11 +111,12 @@ float	gainVoltageA = 1,	gainVoltageB = 1,	gainVoltageC = 1,
 
 float 	offsetVoltageA = 0, offsetVoltageB = 0,	offsetVoltageC = 0,
 		offsetCurrentA = 0,	offsetCurrentB = 0,	offsetCurrentC = 0,
-		offsetVoltage = 0,	offsetCurrent = 0;
+		offsetVoltage = 0,	offsetCurrent = 0, 	offsetPF_stm32 = 0,
+		gainPF_stm32 = 1;
 
 uint16_t offsetVolt_ht7036,	offsetCurr_ht7036,	gainVolt_ht7036,	gainCurr_ht7036,
 		 offsetVolt_stm32,	offsetCurr_stm32,	gainVolt_stm32,		gainCurr_stm32,
-		 calibPF_ht7036;
+		 calibPF_ht7036,	offsetPF_stm32, 	gainPF_stm32;
 
 uint32_t powerApparentBitA,	powerApparentBitB,	powerApparentBitC;
 
@@ -158,17 +159,19 @@ uint16_t holdingRegisterAddress[] 	= 	{	3027,  3028,  3029,  3030,  3031,  3032,
 											0x3002, 												// offset current super user (2 byte) >> HT7036
 											0x3003, 												// gain voltage super user (2 byte) >> HT7036
 											0x3004,													// gain current super user (2 byte) >> HT7036
-											0x4001													// power phase corrction
+											0x4001,													// power phase corrction for super user >> HT7036
+											0x4002,													// gain power factor for user >> STM32
+											0x4003													// offset power factpr for user >> STM32
 };
 											// VALUE REGISTER POWER SENSOR
 //uint16_t holdingRegisterSize = (uint16_t)sizeof(holdingRegisterAddress)/sizeof(uint16_t);
-uint16_t holdingRegisterSize = 122;
-uint16_t holdingRegisterValue[122]	= {0};
+uint16_t holdingRegisterSize = 124;
+uint16_t holdingRegisterValue[124]	= {0};
 extern uint16_t addressModbus;
 
 //------------------------- GROUP VARIABLE EEPROM EXTERNAL 8K ---------------------------------
-uint8_t eepromBufferRead[68];
-uint8_t eepromBufferWrite[68];
+uint8_t eepromBufferRead[72];
+uint8_t eepromBufferWrite[72];
 uint32_t eepromTimerDelta = 0;
 uint32_t eepromTimer = 0;
 
@@ -213,7 +216,9 @@ void eepromEncode(
 			uint16_t gainVolt_stm32,		// indeks 60 - 62
 			uint16_t gainCurr_stm32,		// indeks 62 - 63
 			uint16_t slaveAddress,			// indeks 64 - 65
-			uint16_t wiringType				// indeks 66 - 67
+			uint16_t wiringType,			// indeks 66 - 67
+			uint16_t gainPF_stm32,			// indeks 68 - 69
+			uint16_t offset_stm32			// indeks 70 - 71
 );
 uint16_t byteLow32(uint32_t buf){return (uint16_t)((buf & 0x0000FFFF));}
 uint16_t byteHigh32(uint32_t buf){return (uint16_t)((buf & 0xFFFF0000) >> 16);}
@@ -594,6 +599,12 @@ void powerCalibLoop(){
 				if(addressModbus == 0x200B){gainCurrentB = (float)dataCalib16/1;phase=PHASE_B;}
 				if(addressModbus == 0x200C){gainCurrentC = (float)dataCalib16/1;phase=PHASE_C;}
 			}
+			else if((addressModbus == 0x4002) || (addressModbus == 0x4003)){
+				stateConfig = Modbus.trigState;
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterValue);
+				if(addressModbus == 0x4002){gainPF_stm32 = (float)Modbus.holdingRegisterValue[addressSlave] / 10000;}	// 0x40002
+				else{offsetPF_stm32 = (float)Modbus.holdingRegisterValue[addressSlave] / 10000;}						// 0x40003
+			}
 		}
 		// --------------------------------------------------HANDLE RESET VALUE REGISTER[ENERGY]------------------------------------------------------------------
 		if(Modbus.functionCode == 0x10){
@@ -763,15 +774,37 @@ void eepromLoad(){
 			}
 			indeksAddress = 0;
 		}
-		// DECODE POWER FACTOR CALIBRATION
+		// DECODE POWER FACTOR CALIBRATION SUPER USER
 		if (indeks>=66 && indeks<68)buffer8[indeksAddress++] = eepromBufferRead[indeks];
 		if(indeks==67){
 			uint16_t buffer16;
 			buffer16 = uint8ToUint16(buffer8[0], buffer8[1]);
 			if(buffer16 == 0xFFFF){
-				calibPF_ht7036 = PHASE_CORRECTION_ONE;
+				calibPF_ht7036 = (float)PHASE_CORRECTION_ONE;
 			}else{
 				calibPF_ht7036 = buffer16;
+			}
+		}
+		// DECODE GAIN POWER FACTOR CALIBRATION >> STM32
+		if (indeks>=68 && indeks<70)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks==69){
+			uint16_t buffer16;
+			buffer16 = uint8ToUint16(buffer8[0], buffer8[1]);
+			if(buffer16 == 0xFFFF){
+				gainPF_stm32 = (float)GAIN_PF_DEF;
+			}else{
+				gainPF_stm32 = (float)buffer16/10000;
+			}
+		}
+		// DECODE OFFSET POWER FACTOR CALIBRATION
+		if(indeks>=70 && indeks<72)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks==68){
+			uint16_t buffer16;
+			buffer16 = uint8ToUint16(buffer[0], buffer[1]);
+			if(buffer16 == 0xFFFF){
+				offsetPF_stm32 = (float)GAIN_PF_DEF;
+			}else{
+				offsetPF_stm32 = (float)buffer16/10000;
 			}
 		}
 	}
@@ -844,13 +877,16 @@ void eepromLoop(){
 		phase = PHASE_RST;
 		stateConfig = 0;
 
+		// CASTING FLOAT TO UINT16_T
+		uint16_t bufferGainPF_stm32 = (uint16_t)(gainPF_stm32*10000);
+		uint16_t bufferOffsetPF_stm32 = (uint16_t)(offsetPF_stm32*10000);
 		// ENCODE DATA & WRITE EEPROM
 		eepromEncode(
 				energyActiveA_uint,				energyActiveB_uint,		energyActiveC_uint,
 				energyReactiveA_uint,			energyReactiveB_uint,	energyReactiveC_uint,
 				offsetVolt_ht7036,				offsetCurr_ht7036,		gainVolt_ht7036,		gainCurr_ht7036,
 				offsetVolt_stm32,				offsetCurr_stm32,		gainVolt_stm32,			gainCurr_stm32,
-				Modbus.slaveAddrSlaveSecond, 	calibPF_ht7036
+				Modbus.slaveAddrSlaveSecond, 	calibPF_ht7036,			bufferGainPF_stm32, 	bufferOffsetPF_stm32
 		);
 		ee24_write(0, (uint8_t*)eepromBufferWrite, sizeof(eepromBufferWrite), 1000);
 	}
@@ -872,7 +908,9 @@ void eepromEncode(
 			uint16_t gainVolt_stm32,		// indeks 60 - 62
 			uint16_t gainCurr_stm32,		// indeks 62 - 63
 			uint16_t slaveAddress,			// indeks 64 - 65
-			uint16_t calibPF_ht7036			// indeks 66 - 67
+			uint16_t calibPF_ht7036,		// indeks 66 - 67
+			uint16_t gainPF_stm32,			// indeks 68 - 69
+			uint16_t offsetPF_stm32			// indeks 70 - 71
 		){
 	uint8_t buffer8[8];
 	uint8_t indeksBuffer=0;
@@ -929,7 +967,12 @@ void eepromEncode(
 	// WIRING TYPE
 	eepromBufferWrite[66] = byte16High(calibPF_ht7036);
 	eepromBufferWrite[67] = byte16Low(calibPF_ht7036);
-
+	// GAIN POWER FACTOR
+	eepromBufferWrite[68] = byte16High(gainPF_stm32);
+	eepromBufferWrite[69] = byte16Low(gainPF_stm32);
+	// OFFSET POWER FACTOR
+	eepromBufferWrite[70] = byte16High(offsetPF_stm32);
+	eepromBufferWrite[71] = byte16Low(offsetPF_stm32);
 }
 
 void powerSplitValue(){
@@ -949,8 +992,8 @@ void powerSplitValue(){
 	energyModbus[3] = energyActiveA_uint + energyActiveB_uint + energyActiveC_uint;
 	energyModbus[7] = energyReactiveA_uint + energyReactiveB_uint + energyReactiveC_uint;
 	// DATA PROCESSING
-	powerHandleTresholdGroup();
 	powerHandleCalib();
+	powerHandleTresholdGroup();
 	// CALCULATE AND GET VOLTAGE DIFFRENCE
 	rmsVoltageAB = calcVoltDif(rmsVoltageA, rmsVoltageB);
 	rmsVoltageBC = calcVoltDif(rmsVoltageB, rmsVoltageC);

@@ -12,6 +12,7 @@
 MODBUS Modbus;
 uint16_t addressModbus;
 uint16_t holdingRegisterValueRX[256];
+uint16_t requestState = 0; 	// testingg
 HAL_StatusTypeDef status;
 void ModbusBegin(
 		MODBUS *modbus,
@@ -40,7 +41,6 @@ void ModbusBegin(
 }
 
 void modbusReceive(MODBUS * Modbus){
-//	HAL_GPIO_WritePin(Modbus->enableGpioPort,Modbus->enableGpioPin,GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(Modbus->enableGpioPort,Modbus->enableGpioPin,GPIO_PIN_SET); 		// DEFAULT >> LOW/RESET
 	HAL_UARTEx_ReceiveToIdle_DMA(Modbus->huart,Modbus->dataRX,SIZE_DATA);
 }
@@ -48,7 +48,6 @@ void modbusReceive(MODBUS * Modbus){
 void modbusTransmit(MODBUS * Modbus){
 	HAL_Delay(100);
 	HAL_GPIO_WritePin(Modbus->enableGpioPort,Modbus->enableGpioPin,GPIO_PIN_RESET); 	// DEFAULT >> HIGH/SET
-//	HAL_GPIO_WritePin(Modbus->enableGpioPort,Modbus->enableGpioPin,GPIO_PIN_SET);
 	status = HAL_UART_Transmit_DMA(Modbus->huart,Modbus->dataTX,Modbus->startAddr);
 }
 

@@ -251,6 +251,8 @@
 #define ZERO_VAL_ENERGY			1
 #define PHASE_CORRECTION_ZERO	0
 #define PHASE_CORRECTION_ONE	0xDDFF
+#define GAIN_PF_DEF				1
+#define OFFSET_PF_DEF			0
 //#define PHASE_CORRECTION_ONE	0x0
 
 // -------------------------------PRIVATE VARIABLE--------------------------------------
