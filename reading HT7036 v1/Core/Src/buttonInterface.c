@@ -40,6 +40,7 @@ extern float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombi
 
 extern float 	rmsVoltageAB,		rmsVoltageBC,		rmsVoltageCA;
 extern float	gainCurrent;
+extern uint16_t gainCurrentButton_stm32;
 
 uint32_t menuTimer;
 
@@ -49,10 +50,7 @@ void menuLoop(){
 	if(buttonTrigger){
 		if(flagGetDataOld){
 			// GET DATA FROM EEPROM DATA
-			buttonVoltageOffset = (float)offsetVolt_stm32/1000;
-			buttonCurrentOffset = (float)offsetCurr_stm32/1000;
-			buttonVoltageGain = (float)gainVolt_stm32/1000;
-			buttonCurrentGain = (float)gainCurr_stm32;
+			buttonCurrentGain = (float)gainCurrentButton_stm32;
 
 			buttonSlaveID = Modbus.slaveAddrSlaveSecond;
 
@@ -77,7 +75,7 @@ void menuLoop(){
 				// ACTION SAVE SETTING
 				if(paramLv3 == SAVE){
 					// GROUP CALIBRATION POWER >> GIAN CURRENT
-					gainCurr_stm32 = (uint16_t)(buttonCurrentGain);
+					gainCurrentButton_stm32 = (uint16_t)(buttonCurrentGain);
 					gainCurrent = buttonCurrentGain;
 					// GROUP MODBUS SLAVE ID >> MIDBUS ID
 					Modbus.slaveAddrSlaveSecond = buttonSlaveID;
