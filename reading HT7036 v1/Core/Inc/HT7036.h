@@ -251,9 +251,9 @@
 #define ZERO_VAL_ENERGY			1
 #define PHASE_CORRECTION_ZERO	0
 #define PHASE_CORRECTION_ONE	0xDDFF
-#define GAIN_PF_DEF				2//1
-#define OFFSET_PF_DEF			2//0
-#define GAIN_BUTTON_DEF 		2//1
+#define GAIN_PF_DEF				1
+#define OFFSET_PF_DEF			0
+#define GAIN_BUTTON_DEF 		1
 //#define PHASE_CORRECTION_ONE	0x0
 
 // -------------------------------PRIVATE VARIABLE--------------------------------------
@@ -296,5 +296,5 @@ uint32_t uint16ToUint32(uint16_t high, uint16_t low);
 uint16_t uint8ToUint16(uint8_t high, uint8_t low);
 void uint8Touint64(uint64_t * buffer, uint8_t * data);
 void handleAbsolute32(int32_t * value);
-
+//void calculatePower();
 #endif

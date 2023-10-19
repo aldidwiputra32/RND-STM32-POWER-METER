@@ -162,12 +162,15 @@ uint16_t holdingRegisterAddress[] 	= 	{	3027,  3028,  3029,  3030,  3031,  3032,
 											0x4001,													// power phase corrction for super user >> HT7036
 											0x4002,													// gain power factor for user >> STM32
 											0x4003,													// offset power factpr for user >> STM32
-											0x4004													// gain button stm32
+											0x4004,													// gain button stm32
+											// TESTING
+											0x5001, 0x5002, 0x5003, 0x5004, 0x5005, 0x5006,			// power active
+											0x6001, 0x6002, 0x6003, 0x6004, 0x6005, 0x6006			// power reactive
 };
 											// VALUE REGISTER POWER SENSOR
 //uint16_t holdingRegisterSize = (uint16_t)sizeof(holdingRegisterAddress)/sizeof(uint16_t);
-uint16_t holdingRegisterSize = 125;
-uint16_t holdingRegisterValue[125]	= {0};
+uint16_t holdingRegisterSize = 137; // 125
+uint16_t holdingRegisterValue[137]	= {0}; // 125
 extern uint16_t addressModbus;
 
 //------------------------- GROUP VARIABLE EEPROM EXTERNAL 8K ---------------------------------
@@ -245,6 +248,7 @@ void backlightHandle();
   * @brief  The application entry point.
   * @retval int
   */
+
 int main(void)
 {
   /* USER CODE BEGIN 1 */
@@ -313,7 +317,7 @@ int main(void)
 	  eepromLoop();
 	  // MODBUS UPDATE
 	  modbusValueUpdate();
-	  HAL_Delay(250);
+	  HAL_Delay(50);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -605,8 +609,9 @@ void powerCalibLoop(){
 			else if((addressModbus == 0x4002) || (addressModbus == 0x4003)){
 				stateConfig = Modbus.trigState;
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
-				if(addressModbus == 0x4002){gainPF_stm32 = (float)Modbus.holdingRegisterValue[addressSlave] / 10000;}	// 0x40002
-				else{offsetPF_stm32 = (float)Modbus.holdingRegisterValue[addressSlave] / 10000;}						// 0x40003
+				int16_t bufferInt16 = (int16_t)Modbus.holdingRegisterValue[addressSlave];
+				if(addressModbus == 0x4002){gainPF_stm32 = (float)bufferInt16 / 10000;}	// 0x40002
+				else{offsetPF_stm32 = (float)bufferInt16 / 10000;}						// 0x40003
 			}
 			// FILTER REGISTER FOR GAIN CURRENT VIA BUTTON SET
 			else if(addressModbus == 0x4004){

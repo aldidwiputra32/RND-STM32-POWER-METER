@@ -76,7 +76,6 @@ void menuLoop(){
 				if(paramLv3 == SAVE){
 					// GROUP CALIBRATION POWER >> GIAN CURRENT
 					gainCurrentButton_stm32 = (uint16_t)(buttonCurrentGain);
-					gainCurrent = buttonCurrentGain;
 					// GROUP MODBUS SLAVE ID >> MIDBUS ID
 					Modbus.slaveAddrSlaveSecond = buttonSlaveID;
 					// GROUP ENERGY ACTIVE REACTIVE

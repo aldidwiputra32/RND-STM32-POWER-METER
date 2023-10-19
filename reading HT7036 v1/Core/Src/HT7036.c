@@ -1,6 +1,12 @@
 #include "HT7036.h"
 #include "usart.h"
 #include <stdio.h>
+#include "main.h"
+
+// testing start
+#include "modbusSlave.h"
+extern MODBUS Modbus;
+// testing end
 
 extern uint32_t valueSensor[32];
 extern float valueFloat[32];
@@ -21,7 +27,9 @@ uint32_t check;
 extern float	gainVoltageA,		gainVoltageB,		gainVoltageC,
 				gainCurrentA,		gainCurrentB,		gainCurrentC,
 				offsetVoltageA, 	offsetVoltageB,		offsetVoltageC,
-				offsetCurrentA,		offsetCurrentB,		offsetCurrentC;
+				offsetCurrentA,		offsetCurrentB,		offsetCurrentC,
+				rmsVoltageA,		rmsVoltageB,		rmsVoltageC,
+				rmsCurrentA,		rmsCurrentB,		rmsCurrentC;
 extern float 	rmsVoltageAB,		rmsVoltageBC,		rmsVoltageCA;
 
 extern uint64_t energyActiveA_uint;
@@ -41,7 +49,13 @@ extern uint16_t offsetVolt_stm32;
 extern uint16_t offsetCurr_stm32;
 extern uint16_t gainVolt_stm32;
 extern uint16_t gainCurr_stm32;
+extern float gainVoltage;
 extern float gainCurrent;
+extern float offsetVoltage;
+extern float offsetCurrent;
+extern float gainCurrentButton_stm32;
+extern float gainPF_stm32;
+extern float offsetPF_stm32;
 extern uint16_t calibPF_ht7036;
 
 void spiDisable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);}
@@ -217,6 +231,39 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 			// SAMPLING DATA ACTEVE REACTIVE POWER FOR ENERGY CALCULTION
 			if((indeks-8)>=0 && (indeks-8)<8){
 				bufferEnergy[indeks-8] = valueFloat[indeks];
+				// ---------------------TESTING DATA RAW POWER START--------------------------------
+				uint16_t address;
+				if((indeks-8) == 0){
+					address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x5001, Modbus.holdingRegisterSize);
+					Modbus.holdingRegisterValue[address++] = byteHigh32(valueBuffer[indeks]);
+					Modbus.holdingRegisterValue[address++] = byteLow32(valueBuffer[indeks]);
+				}
+				if((indeks-8) == 1){
+					address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x5003, Modbus.holdingRegisterSize);
+					Modbus.holdingRegisterValue[address++] = byteHigh32(valueBuffer[indeks]);
+					Modbus.holdingRegisterValue[address++] = byteLow32(valueBuffer[indeks]);
+				}
+				if((indeks-8) == 2){
+					address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x5005, Modbus.holdingRegisterSize);
+					Modbus.holdingRegisterValue[address++] = byteHigh32(valueBuffer[indeks]);
+					Modbus.holdingRegisterValue[address++] = byteLow32(valueBuffer[indeks]);
+				}
+				if((indeks-8) == 4){
+					address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x6001, Modbus.holdingRegisterSize);
+					Modbus.holdingRegisterValue[address++] = byteHigh32(valueBuffer[indeks]);
+					Modbus.holdingRegisterValue[address++] = byteLow32(valueBuffer[indeks]);
+				}
+				if((indeks-8) == 5){
+					address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x6003, Modbus.holdingRegisterSize);
+					Modbus.holdingRegisterValue[address++] = byteHigh32(valueBuffer[indeks]);
+					Modbus.holdingRegisterValue[address++] = byteLow32(valueBuffer[indeks]);
+				}
+				if((indeks-8) == 6){
+					address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x6005, Modbus.holdingRegisterSize);
+					Modbus.holdingRegisterValue[address++] = byteHigh32(valueBuffer[indeks]);
+					Modbus.holdingRegisterValue[address++] = byteLow32(valueBuffer[indeks]);
+				}
+				// ---------------------TESTING DATA RAW POWER  END --------------------------------
 			}
 		}
 		// GROUPING DATA POWER FACTOR
@@ -225,7 +272,10 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 			bufferSign = unsignToSign(&valueBuffer[indeks], BIT_SIZE_24);
 			handleAbsolute32(&bufferSign);
 			valueFloat[indeks] = (float)bufferSign / 8388608;
-			HAL_Delay(10);
+			// HANDLING REGRESION LINIER
+			valueFloat[indeks] = (valueFloat[indeks] * gainPF_stm32) + offsetPF_stm32;
+			if(valueFloat[indeks] > 1)valueFloat[indeks] = 1;
+			else if(valueFloat[indeks] < 0)valueFloat[indeks] = 0;
 		}
 		// GROUPING DATA ENERGY
 		if(indeks>=24 && indeks<32){
@@ -441,3 +491,18 @@ uint64_t uint32ToUint64(uint32_t high, uint32_t low){return (((uint64_t)high<<32
 uint32_t uint16ToUint32(uint16_t high, uint16_t low){return((uint32_t)high<<16 | (uint32_t)low);}
 uint16_t uint8ToUint16(uint8_t high, uint8_t low){return ((uint16_t)high<<8 | (uint16_t)low);}
 
+//void calculatePower(){
+//	float powerApparentA,powerApparentB,powerApparentC;
+//	// power Apparent A
+//	powerApparentA = ((valueFloat[0]*gainVoltage)+offsetVoltage) * ((valueFloat[4]*gainCurrent*gainCurrentButton_stm32)+offsetCurrent);
+//	// power Apparent B
+//	powerApparentB = ((valueFloat[1]*gainVoltage)+offsetVoltage) * ((valueFloat[4]*gainCurrent*gainCurrentButton_stm32)+offsetCurrent);
+//	// power Apparent C
+//	powerApparentC = ((valueFloat[2]*gainVoltage)+offsetVoltage) * ((valueFloat[5]*gainCurrent*gainCurrentButton_stm32)+offsetCurrent);
+//	// POWER ACTIVE A
+//	bufferEnergy[0] = powerApparentA * valueFloat[20];
+//	// POWER ACTIVE B
+//	bufferEnergy[1] = powerApparentB * valueFloat[21];
+//	// POWER ACTIVE C
+//	bufferEnergy[2] = powerApparentC * valueFloat[22];
+//}
