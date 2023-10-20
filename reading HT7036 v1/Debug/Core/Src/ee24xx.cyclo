@@ -1,7 +1,7 @@
-ee24xx.c:30:6:ee24_init	1
-ee24xx.c:38:6:ee24_isConnected	2
-ee24xx.c:47:6:ee24_read	4
-ee24xx.c:78:6:ee24_write	9
-ee24xx.c:136:6:ee24_eraseChip	3
-ee24xx.c:152:9:ee24VirtualWrite	3
-ee24xx.c:180:9:ee24VirtualRead	4
+../Core/Src/ee24xx.c:30:6:ee24_init	1
+../Core/Src/ee24xx.c:38:6:ee24_isConnected	2
+../Core/Src/ee24xx.c:47:6:ee24_read	4
+../Core/Src/ee24xx.c:78:6:ee24_write	9
+../Core/Src/ee24xx.c:136:6:ee24_eraseChip	3
+../Core/Src/ee24xx.c:152:9:ee24VirtualWrite	3
+../Core/Src/ee24xx.c:180:9:ee24VirtualRead	4

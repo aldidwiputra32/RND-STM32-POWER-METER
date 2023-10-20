@@ -159,18 +159,22 @@ uint16_t holdingRegisterAddress[] 	= 	{	3027,  3028,  3029,  3030,  3031,  3032,
 											0x3002, 												// offset current super user (2 byte) >> HT7036
 											0x3003, 												// gain voltage super user (2 byte) >> HT7036
 											0x3004,													// gain current super user (2 byte) >> HT7036
+											// ADDRESS REGISTER PARAMETER POWER METER CALIBRTION SUPER USER & USER
 											0x4001,													// power phase corrction for super user >> HT7036
 											0x4002,													// gain power factor for user >> STM32
 											0x4003,													// offset power factpr for user >> STM32
-											0x4004,													// gain button stm32
-											// TESTING
+											// ADDRESS REGISTER PARMATER CALIBRATION GAIN CURRENT VIA BUTTON SET &
+											0x4004,													// gain current button stm32
+											0x4005, 0x4006,											// decode param group power register >> HT7036
+											// [RAW DATA] PARAMETER POWER ACTIVE, REACTIVE, APPARENT >> 18 register
 											0x5001, 0x5002, 0x5003, 0x5004, 0x5005, 0x5006,			// power active
-											0x6001, 0x6002, 0x6003, 0x6004, 0x6005, 0x6006			// power reactive
+											0x6001, 0x6002, 0x6003, 0x6004, 0x6005, 0x6006,			// power reactive
+											0x7001, 0x7002, 0x7003, 0x7004, 0x7005, 0x7006			// power apparent
 };
 											// VALUE REGISTER POWER SENSOR
 //uint16_t holdingRegisterSize = (uint16_t)sizeof(holdingRegisterAddress)/sizeof(uint16_t);
-uint16_t holdingRegisterSize = 137; // 125
-uint16_t holdingRegisterValue[137]	= {0}; // 125
+uint16_t holdingRegisterSize = 143; // 125
+uint16_t holdingRegisterValue[143]	= {0}; // 125
 extern uint16_t addressModbus;
 
 //------------------------- GROUP VARIABLE EEPROM EXTERNAL 8K ---------------------------------
@@ -1066,10 +1070,10 @@ void powerHandleTresholdGroup(){
 	powerHandleTreshold(&rmsVoltageBC,0.5,-0.5);
 	powerHandleTreshold(&rmsVoltageCA,0.5,-0.5);
 	// RMS CURRENT
-	powerHandleTreshold(&rmsCurrentA,0.0005,-0.0005);
-	powerHandleTreshold(&rmsCurrentB,0.0005,-0.0005);
-	powerHandleTreshold(&rmsCurrentC,0.0005,-0.0005);
-	powerHandleTreshold(&rmsCurrentVector,0.005,-0.005);
+	powerHandleTreshold(&rmsCurrentA,0.009,-0.009);
+	powerHandleTreshold(&rmsCurrentB,0.009,-0.009);
+	powerHandleTreshold(&rmsCurrentC,0.009,-0.009);
+	powerHandleTreshold(&rmsCurrentVector,0.009,-0.009);
 	// POWER ACTIVE
 	powerHandleTreshold(&powerActiveA,0.0005,-0.0005);
 	powerHandleTreshold(&powerActiveB,0.0005,-0.0005);

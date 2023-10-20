@@ -9,7 +9,7 @@
 ../Core/Src/HT1622.c:1038:6:ht1622EncodeGroup	32	static
 ../Core/Src/HT1622.c:1080:9:ht1622GenerateBit	8	static
 ../Core/Src/HT1622.c:1093:6:integerToArray	8	static
-../Core/Src/HT1622.c:540:6:ht1622HandleUpdateRam	120	static
+../Core/Src/HT1622.c:540:6:ht1622HandleUpdateRam	112	static
 ../Core/Src/HT1622.c:491:6:ht1622UpdateRamChar	24	static
 ../Core/Src/HT1622.c:498:6:ht1622UpdateRamFloat	56	static
 ../Core/Src/HT1622.c:1139:6:send_command	16	static,ignoring_inline_asm

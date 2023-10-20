@@ -53,7 +53,7 @@ extern float gainVoltage;
 extern float gainCurrent;
 extern float offsetVoltage;
 extern float offsetCurrent;
-extern float gainCurrentButton_stm32;
+extern uint16_t gainCurrentButton_stm32;
 extern float gainPF_stm32;
 extern float offsetPF_stm32;
 extern uint16_t calibPF_ht7036;
@@ -225,14 +225,32 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 			if(ECVal == 0)ECVal = ECDef;
 			// FORMULA >> powerData * 2.592*10^10/(HFconst*EC*2^23)  | HFconst = 1280(def)  &  EC = 6400
 			bufferSign = unsignToSign(&valueBuffer[indeks], BIT_SIZE_24);
-			valueFloat[indeks] = (float)bufferSign * coefPower(HFconstVal, ECVal);
+//			valueFloat[indeks] = (float)bufferSign * coefPower(HFconstVal, ECVal);
+
+			// ----------------------------- TESTING POWER CALCULATE -----------------------------------
+			HFconstVal = 1280;
+			ECVal = 1000;
+//			valueFloat[indeks] = (float)bufferSign * coefPower(HFconstVal, ECVal) * gainCurrent * gainCurrentButton_stm32 * gainVoltage;
+			valueFloat[indeks] = (float)bufferSign * 0.00243833062130643 * gainCurrent * gainCurrentButton_stm32 * gainVoltage;
+
+			// ----------------------------- TESTING POWER CALCULATE -----------------------------------
+
 			// FORMULA >> powerdata * 2 * 2.592*10^10/(HFconst*EC*2^23)
-			if((indeks==11)||(indeks==15)||(indeks==19))valueFloat[indeks] = (float)bufferSign * 2 * coefPower(HFconstVal, ECVal); // (405000)/(128*64*8388608)
+//			if((indeks==11)||(indeks==15)||(indeks==19))valueFloat[indeks] = (float)bufferSign * 2 * coefPower(HFconstVal, ECVal); // (405000)/(128*64*8388608)
+
+			// ----------------------------- TESTING POWER CALCULATE -----------------------------------
+			if((indeks==11)||(indeks==15)||(indeks==19))valueFloat[indeks] = (float)bufferSign * 2 * 0.00243833062130643 * gainCurrent * gainCurrentButton_stm32 * gainVoltage; // (405000)/(128*64*8388608)
+			// ----------------------------- TESTING POWER CALCULATE -----------------------------------
+
+			// ---------------------TESTING DATA RAW POWER START--------------------------------
+			uint16_t address;
+			// ---------------------TESTING DATA RAW POWER START--------------------------------
+
 			// SAMPLING DATA ACTEVE REACTIVE POWER FOR ENERGY CALCULTION
 			if((indeks-8)>=0 && (indeks-8)<8){
 				bufferEnergy[indeks-8] = valueFloat[indeks];
+
 				// ---------------------TESTING DATA RAW POWER START--------------------------------
-				uint16_t address;
 				if((indeks-8) == 0){
 					address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x5001, Modbus.holdingRegisterSize);
 					Modbus.holdingRegisterValue[address++] = byteHigh32(valueBuffer[indeks]);
@@ -263,8 +281,24 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 					Modbus.holdingRegisterValue[address++] = byteHigh32(valueBuffer[indeks]);
 					Modbus.holdingRegisterValue[address++] = byteLow32(valueBuffer[indeks]);
 				}
-				// ---------------------TESTING DATA RAW POWER  END --------------------------------
 			}
+			if(indeks == 16){
+				address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x7001, Modbus.holdingRegisterSize);
+				Modbus.holdingRegisterValue[address++] = byteHigh32(valueBuffer[indeks]);
+				Modbus.holdingRegisterValue[address++] = byteLow32(valueBuffer[indeks]);
+			}
+			if(indeks == 17){
+				address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x7003, Modbus.holdingRegisterSize);
+				Modbus.holdingRegisterValue[address++] = byteHigh32(valueBuffer[indeks]);
+				Modbus.holdingRegisterValue[address++] = byteLow32(valueBuffer[indeks]);
+			}
+			if(indeks == 18){
+				address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x7005, Modbus.holdingRegisterSize);
+				Modbus.holdingRegisterValue[address++] = byteHigh32(valueBuffer[indeks]);
+				Modbus.holdingRegisterValue[address++] = byteLow32(valueBuffer[indeks]);
+			}
+			// ---------------------TESTING DATA RAW POWER  END --------------------------------
+
 		}
 		// GROUPING DATA POWER FACTOR
 		if(indeks>=20 && indeks<24){

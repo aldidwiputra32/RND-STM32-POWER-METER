@@ -1,5 +1,5 @@
-buttonInterface.c:247:9:convertRawBtnToFloat	1
-buttonInterface.c:256:6:floatTodisplay	1
-buttonInterface.c:264:6:handleTreshold	3
-buttonInterface.c:270:6:displayLoop	40
-buttonInterface.c:47:6:menuLoop	46
+../Core/Src/buttonInterface.c:247:9:convertRawBtnToFloat	1
+../Core/Src/buttonInterface.c:256:6:floatTodisplay	1
+../Core/Src/buttonInterface.c:264:6:handleTreshold	3
+../Core/Src/buttonInterface.c:270:6:displayLoop	40
+../Core/Src/buttonInterface.c:47:6:menuLoop	46
