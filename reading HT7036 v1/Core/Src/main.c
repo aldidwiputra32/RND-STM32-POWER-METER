@@ -112,7 +112,7 @@ float	gainVoltageA = 1,	gainVoltageB = 1,	gainVoltageC = 1,
 float 	offsetVoltageA = 0, offsetVoltageB = 0,	offsetVoltageC = 0,
 		offsetCurrentA = 0,	offsetCurrentB = 0,	offsetCurrentC = 0,
 		offsetVoltage = 0,	offsetCurrent = 0, 	offsetPF_stm32 = 0,
-		gainPF_stm32 = 1;
+		gainPF_stm32 = 1,	powerCoef = POWER_COEF_DEF;
 
 uint16_t offsetVolt_ht7036,	offsetCurr_ht7036,	gainVolt_ht7036,	gainCurr_ht7036,
 		 offsetVolt_stm32,	offsetCurr_stm32,	gainVolt_stm32,		gainCurr_stm32,
@@ -154,32 +154,28 @@ uint16_t holdingRegisterAddress[] 	= 	{	3027,  3028,  3029,  3030,  3031,  3032,
 											0x2004, 0x2005, 0x2006, 								// offset current ABC Phase
 											0x2007, 0x2008, 0x2009, 								// gain voltage ABC Phase
 											0x200A, 0x200B, 0x200C,									// gain current ABC Phase
-											// [RAW DATA] ADDRESS REGISTER PARAMETER CALIBRATION POWER SENSOR FOR SUPER USER >> 12 Register
+											// [RAW DATA] ADDRESS REGISTER PARAMETER CALIBRATION POWER SENSOR FOR SUPER USER >> 4 Register
 											0x3001,		 											// offset Voltage super User
 											0x3002, 												// offset current super user (2 byte) >> HT7036
 											0x3003, 												// gain voltage super user (2 byte) >> HT7036
 											0x3004,													// gain current super user (2 byte) >> HT7036
-											// ADDRESS REGISTER PARAMETER POWER METER CALIBRTION SUPER USER & USER
+											// ADDRESS REGISTER PARAMETER POWER METER CALIBRTION SUPER USER & USER >> 3 register
 											0x4001,													// power phase corrction for super user >> HT7036
 											0x4002,													// gain power factor for user >> STM32
 											0x4003,													// offset power factpr for user >> STM32
-											// ADDRESS REGISTER PARMATER CALIBRATION GAIN CURRENT VIA BUTTON SET &
+											// ADDRESS REGISTER PARMATER CALIBRATION GAIN CURRENT VIA BUTTON SET & DECODE PARAM GROUP POWER >> 3 register
 											0x4004,													// gain current button stm32
-											0x4005, 0x4006,											// decode param group power register >> HT7036
-											// [RAW DATA] PARAMETER POWER ACTIVE, REACTIVE, APPARENT >> 18 register
-											0x5001, 0x5002, 0x5003, 0x5004, 0x5005, 0x5006,			// power active
-											0x6001, 0x6002, 0x6003, 0x6004, 0x6005, 0x6006,			// power reactive
-											0x7001, 0x7002, 0x7003, 0x7004, 0x7005, 0x7006			// power apparent
+											0x4005, 0x4006											// decode param group power register >> HT7036
 };
 											// VALUE REGISTER POWER SENSOR
 //uint16_t holdingRegisterSize = (uint16_t)sizeof(holdingRegisterAddress)/sizeof(uint16_t);
-uint16_t holdingRegisterSize = 143; // 125
-uint16_t holdingRegisterValue[143]	= {0}; // 125
+uint16_t holdingRegisterSize = 127; // 125
+uint16_t holdingRegisterValue[127]	= {0}; // 125
 extern uint16_t addressModbus;
 
 //------------------------- GROUP VARIABLE EEPROM EXTERNAL 8K ---------------------------------
-uint8_t eepromBufferRead[74];
-uint8_t eepromBufferWrite[74];
+uint8_t eepromBufferRead[78];
+uint8_t eepromBufferWrite[78];
 uint32_t eepromTimerDelta = 0;
 uint32_t eepromTimer = 0;
 
@@ -209,25 +205,26 @@ void serialPrint(char* text, uint8_t size){
 }
 void powerMeterSetup();
 void eepromEncode(
-		uint64_t energyActiveA,			// indeks 0 - 7
-		uint64_t energyActiveB,			// indeks 8 - 15
-		uint64_t energyActiveC,			// indeks 16 - 23
-		uint64_t energyReactiveA,		// indeks 24 - 31
-		uint64_t energyReactiveB,		// indeks 32 - 39
-		uint64_t energyReactiveC,		// indeks 40 - 47
-		uint16_t offsetVolt_ht7036,		// indeks 48 - 49
-		uint16_t offsetCurr_ht7036,		// indeks 50 - 51
-		uint16_t gainVolt_ht7036,		// indeks 52 - 53
-		uint16_t gainCurr_ht7036,		// indeks 54 - 55
-		uint16_t offsetVolt_stm32,		// indeks 56 - 57
-		uint16_t offsetCurr_stm32,		// indeks 58 - 59
-		uint16_t gainVolt_stm32,		// indeks 60 - 62
-		uint16_t gainCurr_stm32,		// indeks 62 - 63
-		uint16_t slaveAddress,			// indeks 64 - 65
-		uint16_t calibPF_ht7036,		// indeks 66 - 67
-		uint16_t gainPF_stm32,			// indeks 68 - 69
-		uint16_t offsetPF_stm32,		// indeks 70 - 71
-		uint16_t gainCurrentButton_stm32// indeks 72 - 73
+			uint64_t energyActiveA,				// indeks 0 - 7
+			uint64_t energyActiveB,				// indeks 8 - 15
+			uint64_t energyActiveC,				// indeks 16 - 23
+			uint64_t energyReactiveA,			// indeks 24 - 31
+			uint64_t energyReactiveB,			// indeks 32 - 39
+			uint64_t energyReactiveC,			// indeks 40 - 47
+			uint16_t offsetVolt_ht7036,			// indeks 48 - 49
+			uint16_t offsetCurr_ht7036,			// indeks 50 - 51
+			uint16_t gainVolt_ht7036,			// indeks 52 - 53
+			uint16_t gainCurr_ht7036,			// indeks 54 - 55
+			uint16_t offsetVolt_stm32,			// indeks 56 - 57
+			uint16_t offsetCurr_stm32,			// indeks 58 - 59
+			uint16_t gainVolt_stm32,			// indeks 60 - 62
+			uint16_t gainCurr_stm32,			// indeks 62 - 63
+			uint16_t slaveAddress,				// indeks 64 - 65
+			uint16_t calibPF_ht7036,			// indeks 66 - 67
+			uint16_t gainPF_stm32,				// indeks 68 - 69
+			uint16_t offsetPF_stm32,			// indeks 70 - 71
+			uint16_t gainCurrentButton_stm32,	// indeks 72 - 73
+			uint32_t powerCoef					// indeks 74 - 77
 );
 uint16_t byteLow32(uint32_t buf){return (uint16_t)((buf & 0x0000FFFF));}
 uint16_t byteHigh32(uint32_t buf){return (uint16_t)((buf & 0xFFFF0000) >> 16);}
@@ -252,7 +249,9 @@ void backlightHandle();
   * @brief  The application entry point.
   * @retval int
   */
-
+uint32_t dataTesting = 0x12345678;
+uint32_t dataTesting1 = 1;
+uint8_t dataArrayTesting [4];
 int main(void)
 {
   /* USER CODE BEGIN 1 */
@@ -671,6 +670,11 @@ void powerCalibLoop(){
 					bufferEnergySUM[7] = (double)energyReactiveCombine_uint;
 				}
 			}
+			else if(addressModbus == 0x4005){
+				stateConfig = Modbus.trigState;
+				addressSlave = modbusGetIndeks( Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
+				powerCoef = uint16ToUint32(Modbus.holdingRegisterValue[addressSlave], Modbus.holdingRegisterValue[addressSlave+1])/1000000000; // deivide by 10 miliar
+			}
 		}else __NOP();
 		Modbus.trigState = 0;
 	}else __NOP();
@@ -684,7 +688,7 @@ void eepromLoad(){
 	// GET DATA FROM EEPROM EXTERNAL
 	ee24_read(0, (uint8_t*)eepromBufferRead, sizeof(eepromBufferRead), 1000);// for(uint8_t indeks=0;indeks<64;indeks++)ee24VirtualRead(&eepromBufferRead[indeks], 0, 1024, indeks);
 	// DECODE DATA
-	for(uint8_t indeks=0;indeks<74;indeks++){
+	for(uint8_t indeks=0;indeks<78;indeks++){
 		// DECODE ACTIVE ENERGY PHASE A >> valueuint64 [0];
 		if(indeks>=0 && indeks<8)buffer8[indeks] = eepromBufferRead[indeks];
 		if(indeks == 7){
@@ -839,6 +843,18 @@ void eepromLoad(){
 			}
 			indeksAddress = 0;
 		}
+		// DECODE POWER COEFFICIENT
+		if(indeks>=74 && indeks<78)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+		if(indeks==77){
+			uint32_t bufferUint32;
+			bufferUint32 = uint16ToUint32(uint8ToUint16(dataArrayTesting[0],dataArrayTesting[1]),uint8ToUint16(dataArrayTesting[2],dataArrayTesting[3]));
+			if(bufferUint16 == 0xFFFFFFFF){
+				powerCoef = POWER_COEF_DEF;
+			}else{
+				powerCoef = (float)bufferUint32/1000000000;
+			}
+			indeksAddress = 0;
+		}
 	}
 	// SYNCRON FROM DATA EEPROM TO ENERGY[BUFFER ARRAY]
 	bufferEnergySUM[0] = (double)energyActiveA_uint;
@@ -890,6 +906,10 @@ void eepromLoad(){
 	Modbus.holdingRegisterValue[addressSlave[0]] = (uint16_t)(offsetPF_stm32*10000);
 	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x4004, Modbus.holdingRegisterSize);		// gain current user via button set >> stm32
 	Modbus.holdingRegisterValue[addressSlave[0]] = gainCurrentButton_stm32;
+	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x4005, Modbus.holdingRegisterSize);		// decode param power coef
+	addressSlave[1] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x4006, Modbus.holdingRegisterSize);
+	Modbus.holdingRegisterValue[addressSlave[0]] = byte32High((uint32_t)(powerCoef*1000000000));
+	Modbus.holdingRegisterValue[addressSlave[1]] = byte32Low((uint32_t)(powerCoef*1000000000));
 }
 
 void eepromLoop(){
@@ -923,32 +943,33 @@ void eepromLoop(){
 				offsetVolt_ht7036,				offsetCurr_ht7036,		gainVolt_ht7036,		gainCurr_ht7036,
 				offsetVolt_stm32,				offsetCurr_stm32,		gainVolt_stm32,			gainCurr_stm32,
 				Modbus.slaveAddrSlaveSecond, 	calibPF_ht7036,			bufferGainPF_stm32, 	bufferOffsetPF_stm32,
-				gainCurrentButton_stm32
+				gainCurrentButton_stm32,		(uint32_t)(powerCoef*1000000000)
 		);
 		ee24_write(0, (uint8_t*)eepromBufferWrite, sizeof(eepromBufferWrite), 1000);
 	}
 }
 
 void eepromEncode(
-			uint64_t energyActiveA,			// indeks 0 - 7
-			uint64_t energyActiveB,			// indeks 8 - 15
-			uint64_t energyActiveC,			// indeks 16 - 23
-			uint64_t energyReactiveA,		// indeks 24 - 31
-			uint64_t energyReactiveB,		// indeks 32 - 39
-			uint64_t energyReactiveC,		// indeks 40 - 47
-			uint16_t offsetVolt_ht7036,		// indeks 48 - 49
-			uint16_t offsetCurr_ht7036,		// indeks 50 - 51
-			uint16_t gainVolt_ht7036,		// indeks 52 - 53
-			uint16_t gainCurr_ht7036,		// indeks 54 - 55
-			uint16_t offsetVolt_stm32,		// indeks 56 - 57
-			uint16_t offsetCurr_stm32,		// indeks 58 - 59
-			uint16_t gainVolt_stm32,		// indeks 60 - 62
-			uint16_t gainCurr_stm32,		// indeks 62 - 63
-			uint16_t slaveAddress,			// indeks 64 - 65
-			uint16_t calibPF_ht7036,		// indeks 66 - 67
-			uint16_t gainPF_stm32,			// indeks 68 - 69
-			uint16_t offsetPF_stm32,		// indeks 70 - 71
-			uint16_t gainCurrentButton_stm32// indeks 72 - 73
+			uint64_t energyActiveA,				// indeks 0 - 7
+			uint64_t energyActiveB,				// indeks 8 - 15
+			uint64_t energyActiveC,				// indeks 16 - 23
+			uint64_t energyReactiveA,			// indeks 24 - 31
+			uint64_t energyReactiveB,			// indeks 32 - 39
+			uint64_t energyReactiveC,			// indeks 40 - 47
+			uint16_t offsetVolt_ht7036,			// indeks 48 - 49
+			uint16_t offsetCurr_ht7036,			// indeks 50 - 51
+			uint16_t gainVolt_ht7036,			// indeks 52 - 53
+			uint16_t gainCurr_ht7036,			// indeks 54 - 55
+			uint16_t offsetVolt_stm32,			// indeks 56 - 57
+			uint16_t offsetCurr_stm32,			// indeks 58 - 59
+			uint16_t gainVolt_stm32,			// indeks 60 - 62
+			uint16_t gainCurr_stm32,			// indeks 62 - 63
+			uint16_t slaveAddress,				// indeks 64 - 65
+			uint16_t calibPF_ht7036,			// indeks 66 - 67
+			uint16_t gainPF_stm32,				// indeks 68 - 69
+			uint16_t offsetPF_stm32,			// indeks 70 - 71
+			uint16_t gainCurrentButton_stm32,	// indeks 72 - 73
+			uint32_t powerCoef					// indeks 74 - 77
 	){
 	uint8_t buffer8[8];
 	uint8_t indeksBuffer=0;
@@ -1014,7 +1035,11 @@ void eepromEncode(
 	// gain button stm32
 	eepromBufferWrite[72] = byte16High(gainCurrentButton_stm32);
 	eepromBufferWrite[73] = byte16Low(gainCurrentButton_stm32);
-
+	// decode param power coef
+	eepromBufferWrite[74] = byte16High(byte32High(powerCoef));
+	eepromBufferWrite[75] = byte16Low(byte32High(powerCoef));
+	eepromBufferWrite[76] = byte16High(byte32Low(powerCoef));
+	eepromBufferWrite[77] = byte16Low(byte32Low(powerCoef));
 }
 
 void powerSplitValue(){

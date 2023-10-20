@@ -225,80 +225,12 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 			if(ECVal == 0)ECVal = ECDef;
 			// FORMULA >> powerData * 2.592*10^10/(HFconst*EC*2^23)  | HFconst = 1280(def)  &  EC = 6400
 			bufferSign = unsignToSign(&valueBuffer[indeks], BIT_SIZE_24);
-//			valueFloat[indeks] = (float)bufferSign * coefPower(HFconstVal, ECVal);
-
-			// ----------------------------- TESTING POWER CALCULATE -----------------------------------
-			HFconstVal = 1280;
-			ECVal = 1000;
-//			valueFloat[indeks] = (float)bufferSign * coefPower(HFconstVal, ECVal) * gainCurrent * gainCurrentButton_stm32 * gainVoltage;
-			valueFloat[indeks] = (float)bufferSign * 0.00243833062130643 * gainCurrent * gainCurrentButton_stm32 * gainVoltage;
-
-			// ----------------------------- TESTING POWER CALCULATE -----------------------------------
-
-			// FORMULA >> powerdata * 2 * 2.592*10^10/(HFconst*EC*2^23)
-//			if((indeks==11)||(indeks==15)||(indeks==19))valueFloat[indeks] = (float)bufferSign * 2 * coefPower(HFconstVal, ECVal); // (405000)/(128*64*8388608)
-
-			// ----------------------------- TESTING POWER CALCULATE -----------------------------------
-			if((indeks==11)||(indeks==15)||(indeks==19))valueFloat[indeks] = (float)bufferSign * 2 * 0.00243833062130643 * gainCurrent * gainCurrentButton_stm32 * gainVoltage; // (405000)/(128*64*8388608)
-			// ----------------------------- TESTING POWER CALCULATE -----------------------------------
-
-			// ---------------------TESTING DATA RAW POWER START--------------------------------
-			uint16_t address;
-			// ---------------------TESTING DATA RAW POWER START--------------------------------
-
+			valueFloat[indeks] = (float)bufferSign * POWER_COEF_DEF * gainCurrent * gainCurrentButton_stm32 * gainVoltage;
+			if((indeks==11)||(indeks==15)||(indeks==19))valueFloat[indeks] = (float)bufferSign * 2 * POWER_COEF_DEF * gainCurrent * gainCurrentButton_stm32 * gainVoltage; // (405000)/(128*64*8388608)
 			// SAMPLING DATA ACTEVE REACTIVE POWER FOR ENERGY CALCULTION
 			if((indeks-8)>=0 && (indeks-8)<8){
 				bufferEnergy[indeks-8] = valueFloat[indeks];
-
-				// ---------------------TESTING DATA RAW POWER START--------------------------------
-				if((indeks-8) == 0){
-					address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x5001, Modbus.holdingRegisterSize);
-					Modbus.holdingRegisterValue[address++] = byteHigh32(valueBuffer[indeks]);
-					Modbus.holdingRegisterValue[address++] = byteLow32(valueBuffer[indeks]);
-				}
-				if((indeks-8) == 1){
-					address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x5003, Modbus.holdingRegisterSize);
-					Modbus.holdingRegisterValue[address++] = byteHigh32(valueBuffer[indeks]);
-					Modbus.holdingRegisterValue[address++] = byteLow32(valueBuffer[indeks]);
-				}
-				if((indeks-8) == 2){
-					address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x5005, Modbus.holdingRegisterSize);
-					Modbus.holdingRegisterValue[address++] = byteHigh32(valueBuffer[indeks]);
-					Modbus.holdingRegisterValue[address++] = byteLow32(valueBuffer[indeks]);
-				}
-				if((indeks-8) == 4){
-					address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x6001, Modbus.holdingRegisterSize);
-					Modbus.holdingRegisterValue[address++] = byteHigh32(valueBuffer[indeks]);
-					Modbus.holdingRegisterValue[address++] = byteLow32(valueBuffer[indeks]);
-				}
-				if((indeks-8) == 5){
-					address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x6003, Modbus.holdingRegisterSize);
-					Modbus.holdingRegisterValue[address++] = byteHigh32(valueBuffer[indeks]);
-					Modbus.holdingRegisterValue[address++] = byteLow32(valueBuffer[indeks]);
-				}
-				if((indeks-8) == 6){
-					address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x6005, Modbus.holdingRegisterSize);
-					Modbus.holdingRegisterValue[address++] = byteHigh32(valueBuffer[indeks]);
-					Modbus.holdingRegisterValue[address++] = byteLow32(valueBuffer[indeks]);
-				}
 			}
-			if(indeks == 16){
-				address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x7001, Modbus.holdingRegisterSize);
-				Modbus.holdingRegisterValue[address++] = byteHigh32(valueBuffer[indeks]);
-				Modbus.holdingRegisterValue[address++] = byteLow32(valueBuffer[indeks]);
-			}
-			if(indeks == 17){
-				address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x7003, Modbus.holdingRegisterSize);
-				Modbus.holdingRegisterValue[address++] = byteHigh32(valueBuffer[indeks]);
-				Modbus.holdingRegisterValue[address++] = byteLow32(valueBuffer[indeks]);
-			}
-			if(indeks == 18){
-				address = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x7005, Modbus.holdingRegisterSize);
-				Modbus.holdingRegisterValue[address++] = byteHigh32(valueBuffer[indeks]);
-				Modbus.holdingRegisterValue[address++] = byteLow32(valueBuffer[indeks]);
-			}
-			// ---------------------TESTING DATA RAW POWER  END --------------------------------
-
 		}
 		// GROUPING DATA POWER FACTOR
 		if(indeks>=20 && indeks<24){
@@ -315,7 +247,6 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 		if(indeks>=24 && indeks<32){
 			handleAbsolute(&bufferEnergy[indeks-24]);
 			// MULTIPLICATION FOR USER REQUIREMENT
-			// bufferEnergy[indeks-24] = bufferEnergy[indeks-24] * gainCurrent;
 			bufferEnergy[indeks-24] = bufferEnergy[indeks-24];
 			// CALCULATION MANUAL DATA SENSOR ENERGY => power*deltaSampling/3600000 >> all value must be uin64_t type variable
 			bufferEnergySUM[indeks-24] += (double)(bufferEnergy[indeks-24]*((float)powerTimerDelta/1000.00f)/3600.00f);  // watt hour
@@ -492,6 +423,8 @@ uint16_t byte64Low1(uint64_t buf){return(uint16_t)((buf & 0xFFFF0000) >> 16);}
 uint16_t byte64Low2(uint64_t buf){return (uint16_t)((buf & 0xFFFF));}
 uint8_t byte16Low(uint16_t buf){return (uint8_t)((buf & 0x00FF));}
 uint8_t byte16High(uint16_t buf){return (uint8_t)((buf & 0xFF00) >> 8);}
+uint16_t byte32High(uint32_t buf){return (uint16_t)((buf & 0xFFFF0000) >> 16);}
+uint16_t byte32Low(uint32_t buf){return (uint16_t)(buf & 0x0000FFFF);}
 void uint64ToUint8(uint8_t * buffer, uint64_t data){
 	buffer[0] = byte16High(byte64High1(data));
 	buffer[1] = byte16Low(byte64High1(data));

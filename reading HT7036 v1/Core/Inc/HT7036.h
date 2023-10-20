@@ -254,6 +254,7 @@
 #define GAIN_PF_DEF				1
 #define OFFSET_PF_DEF			0
 #define GAIN_BUTTON_DEF 		1
+#define POWER_COEF_DEF			0.002438330
 //#define PHASE_CORRECTION_ONE	0x0
 
 // -------------------------------PRIVATE VARIABLE--------------------------------------
@@ -290,6 +291,8 @@ uint64_t uint32ToUint64(uint32_t high, uint32_t low);
 uint8_t byte16Low(uint16_t buf);
 uint8_t byte16High(uint16_t buf);
 void uint64ToUint8(uint8_t * buffer, uint64_t data);
+uint16_t byte32High(uint32_t buf);
+uint16_t byte32Low(uint32_t buf);
 
 uint64_t uint32ToUint64(uint32_t high, uint32_t low);
 uint32_t uint16ToUint32(uint16_t high, uint16_t low);
