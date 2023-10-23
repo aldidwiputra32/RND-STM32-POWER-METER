@@ -247,10 +247,9 @@
 #define OFFSET_CURR_STM_DEF		0
 #define GAIN_VOLT_STM_DEF		983 // default before 1000
 #define GAIN_CURR_STM_DEF		1
-#define ZERO_VAL				0.0001
 #define ZERO_VAL_ENERGY			1
 #define PHASE_CORRECTION_ZERO	0
-#define PHASE_CORRECTION_ONE	0xDDFF
+#define PHASE_CORRECTION_ONE	0
 #define GAIN_PF_DEF				1
 #define OFFSET_PF_DEF			0
 #define GAIN_BUTTON_DEF 		1

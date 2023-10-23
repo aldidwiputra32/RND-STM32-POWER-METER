@@ -72,13 +72,12 @@ uint8_t addrSensor[] = {
 };
 
 uint8_t sizeSensor = sizeof(addrSensor)/sizeof(addrSensor[0]);
-uint64_t powerTimer = 0;
-uint64_t powerTimerDelta = 0;
 uint32_t valueSensor[32];
 HAL_StatusTypeDef spiStatus[256];
 extern float HFconstVal;
 extern float ECVal;
 extern float ECDef;
+extern uint64_t powerTimer;
 uint8_t stateConfig = 0;
 uint8_t phase = PHASE_RST;
 float valueFloat[32];
@@ -249,9 +248,6 @@ void backlightHandle();
   * @brief  The application entry point.
   * @retval int
   */
-uint32_t dataTesting = 0x12345678;
-uint32_t dataTesting1 = 1;
-uint8_t dataArrayTesting [4];
 int main(void)
 {
   /* USER CODE BEGIN 1 */
@@ -304,12 +300,12 @@ int main(void)
   powerMeterSetup();
   /* USER CODE END 2 */
 
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
 	  // POWER GROUP FUNCTION (TIMER, READ SENSOR, DATA PROCESSING, CALIB HANDLING) >> ASYNCRONOUS TASK
-	  powerTimerDelta = HAL_GetTick() - powerTimer; powerTimer = HAL_GetTick();
 	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
 	  powerSplitValue();
 	  powerCalibLoop();
@@ -320,7 +316,7 @@ int main(void)
 	  eepromLoop();
 	  // MODBUS UPDATE
 	  modbusValueUpdate();
-	  HAL_Delay(50);
+	  HAL_Delay(10);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -673,7 +669,7 @@ void powerCalibLoop(){
 			else if(addressModbus == 0x4005){
 				stateConfig = Modbus.trigState;
 				addressSlave = modbusGetIndeks( Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
-				powerCoef = uint16ToUint32(Modbus.holdingRegisterValue[addressSlave], Modbus.holdingRegisterValue[addressSlave+1])/1000000000; // deivide by 10 miliar
+				powerCoef =(float)(uint16ToUint32(Modbus.holdingRegisterValue[addressSlave], Modbus.holdingRegisterValue[addressSlave+1]))/1000000000; // deivide by 10 miliar
 			}
 		}else __NOP();
 		Modbus.trigState = 0;
@@ -826,7 +822,7 @@ void eepromLoad(){
 			bufferUint16 = uint8ToUint16(buffer8[0], buffer8[1]);
 			bufferInt16 = (int16_t)bufferUint16;
 			if(bufferUint16 == 0xFFFF){
-				offsetPF_stm32 = (float)GAIN_PF_DEF;
+				offsetPF_stm32 = (float)OFFSET_PF_DEF;
 			}else{
 				offsetPF_stm32 = (float)bufferInt16/10000;
 			}
@@ -847,8 +843,8 @@ void eepromLoad(){
 		if(indeks>=74 && indeks<78)buffer8[indeksAddress++] = eepromBufferRead[indeks];
 		if(indeks==77){
 			uint32_t bufferUint32;
-			bufferUint32 = uint16ToUint32(uint8ToUint16(dataArrayTesting[0],dataArrayTesting[1]),uint8ToUint16(dataArrayTesting[2],dataArrayTesting[3]));
-			if(bufferUint16 == 0xFFFFFFFF){
+			bufferUint32 = uint16ToUint32(uint8ToUint16(buffer8[0],buffer8[1]),uint8ToUint16(buffer8[2],buffer8[3]));
+			if(bufferUint32 == 0xFFFFFFFF){
 				powerCoef = POWER_COEF_DEF;
 			}else{
 				powerCoef = (float)bufferUint32/1000000000;
@@ -933,16 +929,13 @@ void eepromLoop(){
 		phase = PHASE_RST;
 		stateConfig = 0;
 
-		// CASTING FLOAT TO UINT16_T
-		uint16_t bufferGainPF_stm32 = (uint16_t)(gainPF_stm32*10000);
-		uint16_t bufferOffsetPF_stm32 = (uint16_t)(offsetPF_stm32*10000);
 		// ENCODE DATA & WRITE EEPROM
 		eepromEncode(
 				energyActiveA_uint,				energyActiveB_uint,		energyActiveC_uint,
 				energyReactiveA_uint,			energyReactiveB_uint,	energyReactiveC_uint,
-				offsetVolt_ht7036,				offsetCurr_ht7036,		gainVolt_ht7036,		gainCurr_ht7036,
-				offsetVolt_stm32,				offsetCurr_stm32,		gainVolt_stm32,			gainCurr_stm32,
-				Modbus.slaveAddrSlaveSecond, 	calibPF_ht7036,			bufferGainPF_stm32, 	bufferOffsetPF_stm32,
+				offsetVolt_ht7036,				offsetCurr_ht7036,		gainVolt_ht7036,					gainCurr_ht7036,
+				offsetVolt_stm32,				offsetCurr_stm32,		gainVolt_stm32,						gainCurr_stm32,
+				Modbus.slaveAddrSlaveSecond, 	calibPF_ht7036,			(uint16_t)(gainPF_stm32*10000), 	(uint16_t)(offsetPF_stm32*10000),
 				gainCurrentButton_stm32,		(uint32_t)(powerCoef*1000000000)
 		);
 		ee24_write(0, (uint8_t*)eepromBufferWrite, sizeof(eepromBufferWrite), 1000);
@@ -1066,21 +1059,14 @@ void powerSplitValue(){
 	rmsVoltageBC = calcVoltDif(rmsVoltageB, rmsVoltageC);
 	rmsVoltageCA = calcVoltDif(rmsVoltageC, rmsVoltageA);
 	// GETTING DATA FROM FLOAT32 TO FLOAT ARRAY (GENERAL GROUP SENSOR) >> ENCODE
-	valueFloat[0] = rmsVoltageA;			valueFloat[1] = rmsVoltageB;			valueFloat[2] = rmsVoltageC;		valueFloat[3] = rmsVoltageVector;
-	valueFloat[4] = rmsCurrentA;			valueFloat[5] = rmsCurrentB;			valueFloat[6] = rmsCurrentC;		valueFloat[7] = rmsCurrentVector;
-	valueFloat[8] = powerActiveA;			valueFloat[9] = powerActiveB;			valueFloat[10] = powerActiveC;		valueFloat[11] = (powerActiveA + powerActiveB + powerActiveC);
-	valueFloat[12] = powerReactiveA;		valueFloat[13] = powerReactiveB;		valueFloat[14] = powerReactiveC;	valueFloat[15] = (powerReactiveA + powerReactiveB + powerReactiveC);
-	valueFloat[16] = powerApparentA;		valueFloat[17] = powerApparentB;		valueFloat[18] = powerApparentC;	valueFloat[19] = powerApparentCombine;
-	valueFloat[20] = powerFactorA;			valueFloat[21] = powerFactorB;			valueFloat[22] = powerFactorC;		valueFloat[23] = powerFactorCombine;
-	valueFloat[24] = energyActiveA;			valueFloat[25] = energyActiveB;			valueFloat[26] = energyActiveC;		valueFloat[27] = energyActiveCombine;
-	valueFloat[28] = energyReactiveA;		valueFloat[29] = energyReactiveB;		valueFloat[30] = energyReactiveC;	valueFloat[31] = energyReactiveCombine;
-
-	// CALCULATE METER CONSTANT
-	powerApparentBitA = valueSensor[16];	powerApparentBitB = valueSensor[17];	powerApparentBitC = valueSensor[18];
-	if(powerApparentBitA > 10)ECVal = calcMeterConstant(powerApparentBitA, HFconstVal, rmsVoltageA*rmsCurrentA);
-	else if(powerApparentBitB > 10)ECVal = calcMeterConstant(powerApparentBitB, HFconstVal, rmsVoltageB*rmsCurrentB);
-	else if(powerApparentBitC > 10)ECVal = calcMeterConstant(powerApparentBitC, HFconstVal, rmsVoltageC*rmsCurrentC);
-	else ECVal = ECDef;
+	valueFloat[0] = rmsVoltageA;					valueFloat[1] = rmsVoltageB;					valueFloat[2] = rmsVoltageC;				valueFloat[3] = rmsVoltageVector;
+	valueFloat[4] = rmsCurrentA;					valueFloat[5] = rmsCurrentB;					valueFloat[6] = rmsCurrentC;				valueFloat[7] = rmsCurrentVector;
+	valueFloat[8] = powerActiveA;					valueFloat[9] = powerActiveB;					valueFloat[10] = powerActiveC;				valueFloat[11] = (powerActiveA + powerActiveB + powerActiveC);
+	valueFloat[12] = powerReactiveA;				valueFloat[13] = powerReactiveB;				valueFloat[14] = powerReactiveC;			valueFloat[15] = (powerReactiveA + powerReactiveB + powerReactiveC);
+	valueFloat[16] = rmsCurrentA*rmsVoltageA;		valueFloat[17] = rmsCurrentB*rmsVoltageB;		valueFloat[18] = rmsCurrentC*rmsVoltageC;	valueFloat[19] = powerApparentCombine; // CALCULATE MANUAL APPARENT VALUE
+	valueFloat[20] = powerFactorA;					valueFloat[21] = powerFactorB;					valueFloat[22] = powerFactorC;				valueFloat[23] = powerFactorCombine;
+	valueFloat[24] = energyActiveA;					valueFloat[25] = energyActiveB;					valueFloat[26] = energyActiveC;				valueFloat[27] = energyActiveCombine;
+	valueFloat[28] = energyReactiveA;				valueFloat[29] = energyReactiveB;				valueFloat[30] = energyReactiveC;			valueFloat[31] = energyReactiveCombine;
 }
 
 void powerHandleTresholdGroup(){
@@ -1187,6 +1173,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef * htim){
 					menuLevel = MENU_LEVEL_1;
 					paramLv1 = 0;
 					buttonStatus = BTN_IDLE;
+					break;
 				}
 			}
 		}

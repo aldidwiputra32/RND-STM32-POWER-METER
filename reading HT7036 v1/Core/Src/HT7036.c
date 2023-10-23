@@ -10,7 +10,8 @@ extern MODBUS Modbus;
 
 extern uint32_t valueSensor[32];
 extern float valueFloat[32];
-extern uint64_t powerTimerDelta;
+uint64_t powerTimer = 0;
+uint64_t powerTimerDelta = 0;
 //uint8_t dataPrint[1100];
 float HFconstVal;
 float ECValA = 0;
@@ -53,6 +54,7 @@ extern float gainVoltage;
 extern float gainCurrent;
 extern float offsetVoltage;
 extern float offsetCurrent;
+extern float powerCoef;
 extern uint16_t gainCurrentButton_stm32;
 extern float gainPF_stm32;
 extern float offsetPF_stm32;
@@ -205,6 +207,7 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * valueFloat, uint8_t size){
 	int32_t bufferSign;
 	uint8_t stateEnergy = 1;
+	powerTimerDelta = HAL_GetTick() - powerTimer; powerTimer = HAL_GetTick();
 	for(uint8_t indeks=0;indeks<size;indeks++){
 		valueBuffer[indeks] = spiRead24(address[indeks]);
 		// GROUPING DATA RMS ???
@@ -225,8 +228,8 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 			if(ECVal == 0)ECVal = ECDef;
 			// FORMULA >> powerData * 2.592*10^10/(HFconst*EC*2^23)  | HFconst = 1280(def)  &  EC = 6400
 			bufferSign = unsignToSign(&valueBuffer[indeks], BIT_SIZE_24);
-			valueFloat[indeks] = (float)bufferSign * POWER_COEF_DEF * gainCurrent * gainCurrentButton_stm32 * gainVoltage;
-			if((indeks==11)||(indeks==15)||(indeks==19))valueFloat[indeks] = (float)bufferSign * 2 * POWER_COEF_DEF * gainCurrent * gainCurrentButton_stm32 * gainVoltage; // (405000)/(128*64*8388608)
+			valueFloat[indeks] = (float)bufferSign * powerCoef * gainCurrent * gainCurrentButton_stm32 * gainVoltage;
+			if((indeks==11)||(indeks==15)||(indeks==19))valueFloat[indeks] = (float)bufferSign * 2 * powerCoef * gainCurrent * gainCurrentButton_stm32 * gainVoltage; // (405000)/(128*64*8388608)
 			// SAMPLING DATA ACTEVE REACTIVE POWER FOR ENERGY CALCULTION
 			if((indeks-8)>=0 && (indeks-8)<8){
 				bufferEnergy[indeks-8] = valueFloat[indeks];
@@ -245,9 +248,8 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 		}
 		// GROUPING DATA ENERGY
 		if(indeks>=24 && indeks<32){
+			// ABSOLUTED VALUE FUNCTION
 			handleAbsolute(&bufferEnergy[indeks-24]);
-			// MULTIPLICATION FOR USER REQUIREMENT
-			bufferEnergy[indeks-24] = bufferEnergy[indeks-24];
 			// CALCULATION MANUAL DATA SENSOR ENERGY => power*deltaSampling/3600000 >> all value must be uin64_t type variable
 			bufferEnergySUM[indeks-24] += (double)(bufferEnergy[indeks-24]*((float)powerTimerDelta/1000.00f)/3600.00f);  // watt hour
 			energyModbus[indeks-24] = (uint64_t)bufferEnergySUM[indeks-24];
@@ -438,7 +440,6 @@ void uint64ToUint8(uint8_t * buffer, uint64_t data){
 
 void uint8Touint64(uint64_t * buffer, uint8_t * data){
 	uint64_t buffer64;
-	uint32_t buffer32;
 	uint16_t buffer16;
 
 	buffer16 = uint8ToUint16(data[0], data[1]);

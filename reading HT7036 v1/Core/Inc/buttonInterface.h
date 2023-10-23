@@ -50,4 +50,3 @@ void displayLoop();
 void handleTreshold(uint32_t * val, uint8_t max, uint8_t min);
 uint8_t convertRawBtnToFloat(float * buffer, uint8_t * data, float max);
 void floatTodisplay(uint8_t * bufferDisplay, float dataFloat);
-

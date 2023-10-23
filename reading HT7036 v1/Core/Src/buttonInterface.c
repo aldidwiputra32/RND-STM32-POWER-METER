@@ -237,7 +237,7 @@ void menuLoop(){
 			}
 		}
 	}
-	if((HAL_GetTick() - menuTimer >= 1000) || buttonTrigger){
+	if((HAL_GetTick() - menuTimer >= 500) || buttonTrigger){
 		menuTimer = HAL_GetTick();
 		displayLoop(menuLevel,paramLv1,paramLv2,paramLv3);
 	}
