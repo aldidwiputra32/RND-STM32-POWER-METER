@@ -54,7 +54,9 @@ extern float gainVoltage;
 extern float gainCurrent;
 extern float offsetVoltage;
 extern float offsetCurrent;
-extern float powerCoef;
+extern float powerCoefActive;
+extern float powerCoefReactive;
+extern float powerCoefApparent;
 extern uint16_t gainCurrentButton_stm32;
 extern float gainPF_stm32;
 extern float offsetPF_stm32;
@@ -228,8 +230,13 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 			if(ECVal == 0)ECVal = ECDef;
 			// FORMULA >> powerData * 2.592*10^10/(HFconst*EC*2^23)  | HFconst = 1280(def)  &  EC = 6400
 			bufferSign = unsignToSign(&valueBuffer[indeks], BIT_SIZE_24);
-			valueFloat[indeks] = (float)bufferSign * powerCoef * gainCurrent * gainCurrentButton_stm32 * gainVoltage;
-			if((indeks==11)||(indeks==15)||(indeks==19))valueFloat[indeks] = (float)bufferSign * 2 * powerCoef * gainCurrent * gainCurrentButton_stm32 * gainVoltage; // (405000)/(128*64*8388608)
+			if(indeks>=8 && indeks<11){valueFloat[indeks] = (float)bufferSign * powerCoefActive * gainCurrent * gainCurrentButton_stm32 * gainVoltage;}
+			else if(indeks>=12 && indeks<15){valueFloat[indeks] = (float)bufferSign * powerCoefReactive * gainCurrent * gainCurrentButton_stm32 * gainVoltage;}
+			else if(indeks>=16 && indeks<19){valueFloat[indeks] = (float)bufferSign * powerCoefApparent * gainCurrent * gainCurrentButton_stm32 * gainVoltage;}
+
+			if(indeks==11)valueFloat[indeks] = (float)bufferSign * 2 * powerCoefActive * gainCurrent * gainCurrentButton_stm32 * gainVoltage; // (405000)/(128*64*8388608)
+			if(indeks==15)valueFloat[indeks] = (float)bufferSign * 2 * powerCoefReactive * gainCurrent * gainCurrentButton_stm32 * gainVoltage; // (405000)/(128*64*8388608)
+			if(indeks==19)valueFloat[indeks] = (float)bufferSign * 2 * powerCoefApparent * gainCurrent * gainCurrentButton_stm32 * gainVoltage; // (405000)/(128*64*8388608)
 			// SAMPLING DATA ACTEVE REACTIVE POWER FOR ENERGY CALCULTION
 			if((indeks-8)>=0 && (indeks-8)<8){
 				bufferEnergy[indeks-8] = valueFloat[indeks];
