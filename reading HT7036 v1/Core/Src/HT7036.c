@@ -54,9 +54,9 @@ extern float gainVoltage;
 extern float gainCurrent;
 extern float offsetVoltage;
 extern float offsetCurrent;
-extern float powerCoefActive;
-extern float powerCoefReactive;
-extern float powerCoefApparent;
+extern float powerCoefActiveA;
+extern float powerCoefReactiveA;
+extern float powerCoefApparentA;
 extern uint16_t gainCurrentButton_stm32;
 extern float gainPF_stm32;
 extern float offsetPF_stm32;
@@ -82,7 +82,6 @@ HAL_StatusTypeDef spiCommandSpecial(uint8_t address, uint32_t dataSet){
 }
 
 uint32_t spiReadCalib(uint8_t address){
-	HAL_StatusTypeDef buffer1, buffer2;
 	uint8_t request = address | 0x00;
 	uint8_t dataRX[3];
 	uint32_t dataRXbuffer[3];
@@ -119,7 +118,6 @@ HAL_StatusTypeDef spiWriteCalib(uint8_t address, uint32_t dataSet){
 }
 
 uint32_t spiRead24(uint8_t address){
-	 HAL_StatusTypeDef buffer1, buffer2, buffer3;
 	 uint8_t request = address | 0x00;
 	 uint8_t dataRX[3];
 	 uint32_t dataRXBuffer[3];
@@ -127,11 +125,11 @@ uint32_t spiRead24(uint8_t address){
 
 	 spiEnable();
 	 HAL_SPI_Transmit(&hspi2, &request, 1, 75);
-	 buffer1 = HAL_SPI_Receive(&hspi2, &dataRX[0], 1, 75);
+	 HAL_SPI_Receive(&hspi2, &dataRX[0], 1, 75);
 	 dataRXBuffer[0] = (uint32_t)(dataRX[0] << 16);
-	 buffer2 = HAL_SPI_Receive(&hspi2, &dataRX[1], 1, 75);
+	 HAL_SPI_Receive(&hspi2, &dataRX[1], 1, 75);
 	 dataRXBuffer[1] = (uint32_t)(dataRX[1] << 8);
-	 buffer3 = HAL_SPI_Receive(&hspi2, &dataRX[2], 1, 75);
+	 HAL_SPI_Receive(&hspi2, &dataRX[2], 1, 75);
 	 dataRXBuffer[2] = (uint32_t)(dataRX[2] << 0);
 	 spiDisable();
 
@@ -182,13 +180,13 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 	/* WRITE CONFIG HFCONST */
 	HFconstVal = (float)spiReadCalib(w_Hfconst);
 	// READING VALUE PARAMETERd
-	check = spiReadCalib(w_ModeCfg);
-	check = spiReadCalib(w_PhSregApq1);
-	check = spiReadCalib(w_EMCfg);
-	check = spiReadCalib(w_ModuleCFG);
-	check = spiReadCalib(w_PGACtrl);
-	check = spiReadCalib(w_EMUCfg);
-	check = spiReadCalib(w_Hfconst);
+	//check = spiReadCalib(w_ModeCfg);
+	//check = spiReadCalib(w_PhSregApq1);
+	//check = spiReadCalib(w_EMCfg);
+	//check = spiReadCalib(w_ModuleCFG);
+	//check = spiReadCalib(w_PGACtrl);
+	//check = spiReadCalib(w_EMUCfg);
+	//check = spiReadCalib(w_Hfconst);
 
 	// WRTIE CALIBRATION PARAMETER BASED ON ATRIBUTE
 	for(int indeks=0;indeks<numberCalib;indeks++){
@@ -208,7 +206,6 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 
 void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * valueFloat, uint8_t size){
 	int32_t bufferSign;
-	uint8_t stateEnergy = 1;
 	powerTimerDelta = HAL_GetTick() - powerTimer; powerTimer = HAL_GetTick();
 	for(uint8_t indeks=0;indeks<size;indeks++){
 		valueBuffer[indeks] = spiRead24(address[indeks]);
@@ -230,13 +227,13 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 			if(ECVal == 0)ECVal = ECDef;
 			// FORMULA >> powerData * 2.592*10^10/(HFconst*EC*2^23)  | HFconst = 1280(def)  &  EC = 6400
 			bufferSign = unsignToSign(&valueBuffer[indeks], BIT_SIZE_24);
-			if(indeks>=8 && indeks<11){valueFloat[indeks] = (float)bufferSign * powerCoefActive * gainCurrent * gainCurrentButton_stm32 * gainVoltage;}
-			else if(indeks>=12 && indeks<15){valueFloat[indeks] = (float)bufferSign * powerCoefReactive * gainCurrent * gainCurrentButton_stm32 * gainVoltage;}
-			else if(indeks>=16 && indeks<19){valueFloat[indeks] = (float)bufferSign * powerCoefApparent * gainCurrent * gainCurrentButton_stm32 * gainVoltage;}
+			if(indeks>=8 && indeks<11){valueFloat[indeks] = (float)bufferSign * powerCoefActiveA * gainCurrent * gainCurrentButton_stm32 * gainVoltage;}
+			else if(indeks>=12 && indeks<15){valueFloat[indeks] = (float)bufferSign * powerCoefReactiveA * gainCurrent * gainCurrentButton_stm32 * gainVoltage;}
+			else if(indeks>=16 && indeks<19){valueFloat[indeks] = (float)bufferSign * powerCoefApparentA * gainCurrent * gainCurrentButton_stm32 * gainVoltage;}
 
-			if(indeks==11)valueFloat[indeks] = (float)bufferSign * 2 * powerCoefActive * gainCurrent * gainCurrentButton_stm32 * gainVoltage; // (405000)/(128*64*8388608)
-			if(indeks==15)valueFloat[indeks] = (float)bufferSign * 2 * powerCoefReactive * gainCurrent * gainCurrentButton_stm32 * gainVoltage; // (405000)/(128*64*8388608)
-			if(indeks==19)valueFloat[indeks] = (float)bufferSign * 2 * powerCoefApparent * gainCurrent * gainCurrentButton_stm32 * gainVoltage; // (405000)/(128*64*8388608)
+			if(indeks==11)valueFloat[indeks] = (float)bufferSign * 2 * powerCoefActiveA * gainCurrent * gainCurrentButton_stm32 * gainVoltage; // (405000)/(128*64*8388608)
+			if(indeks==15)valueFloat[indeks] = (float)bufferSign * 2 * powerCoefReactiveA * gainCurrent * gainCurrentButton_stm32 * gainVoltage; // (405000)/(128*64*8388608)
+			if(indeks==19)valueFloat[indeks] = (float)bufferSign * 2 * powerCoefApparentA * gainCurrent * gainCurrentButton_stm32 * gainVoltage; // (405000)/(128*64*8388608)
 			// SAMPLING DATA ACTEVE REACTIVE POWER FOR ENERGY CALCULTION
 			if((indeks-8)>=0 && (indeks-8)<8){
 				bufferEnergy[indeks-8] = valueFloat[indeks];
@@ -301,12 +298,11 @@ int32_t unsignToSign(uint32_t * data, uint8_t bitsize){
 uint32_t powerCalculateCalib(uint8_t type, uint32_t dataRaw, float dataActual){
 	float gainFloat;
 	float valueBuffer;
+	uint32_t value;
 	// CALCULATE OFFSET PARAMTER
 	if((type == VRMS_OFFSET)||(type == IRMS_OFFSET)){
-		uint32_t value;
 		// value = data ^ 2 / 2 ^ 15
 		value = (dataRaw*dataRaw) / 32768;
-		return value;
 	}
 	// CALCULATE GAIN PARAMETER
 	if((type == VRMS_GAIN)||(type == IRMS_GAIN)){
@@ -321,8 +317,9 @@ uint32_t powerCalculateCalib(uint8_t type, uint32_t dataRaw, float dataActual){
 			gainFloat = gainFloat * 32768.0f;
 			gainFloat = gainFloat + 65536.0f;
 		}
-		return (uint32_t)gainFloat;
+		value = (uint32_t)gainFloat;
 	}
+	return value;
 }
 
 void powerRestoreCalib(){

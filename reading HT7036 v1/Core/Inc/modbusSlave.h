@@ -18,8 +18,8 @@
 typedef struct{
 	UART_HandleTypeDef * huart;
 	USART_TypeDef * huartInstance;
-	uint8_t dataTX[256];
-	uint8_t dataRX[256];
+	uint8_t dataTX[128];
+	uint8_t dataRX[128];
 	uint8_t sizeRX;
 	uint16_t startAddr;
 	uint16_t numReg;
