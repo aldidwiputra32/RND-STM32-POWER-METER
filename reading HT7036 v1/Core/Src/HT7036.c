@@ -57,6 +57,12 @@ extern float offsetCurrent;
 extern float powerCoefActiveA;
 extern float powerCoefReactiveA;
 extern float powerCoefApparentA;
+extern float powerCoefActiveB;
+extern float powerCoefReactiveB;
+extern float powerCoefApparentB;
+extern float powerCoefActiveC;
+extern float powerCoefReactiveC;
+extern float powerCoefApparentC;
 extern uint16_t gainCurrentButton_stm32;
 extern float gainPF_stm32;
 extern float offsetPF_stm32;
@@ -227,13 +233,25 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 			if(ECVal == 0)ECVal = ECDef;
 			// FORMULA >> powerData * 2.592*10^10/(HFconst*EC*2^23)  | HFconst = 1280(def)  &  EC = 6400
 			bufferSign = unsignToSign(&valueBuffer[indeks], BIT_SIZE_24);
-			if(indeks>=8 && indeks<11){valueFloat[indeks] = (float)bufferSign * powerCoefActiveA * gainCurrent * gainCurrentButton_stm32 * gainVoltage;}
-			else if(indeks>=12 && indeks<15){valueFloat[indeks] = (float)bufferSign * powerCoefReactiveA * gainCurrent * gainCurrentButton_stm32 * gainVoltage;}
-			else if(indeks>=16 && indeks<19){valueFloat[indeks] = (float)bufferSign * powerCoefApparentA * gainCurrent * gainCurrentButton_stm32 * gainVoltage;}
+			// calculate power in phase a
+			if(indeks==8)valueFloat[indeks] = (float)bufferSign * powerCoefActiveA * gainCurrentA * gainCurrentButton_stm32 * gainVoltageA;
+			if(indeks==9)valueFloat[indeks] = (float)bufferSign * powerCoefActiveB * gainCurrentB * gainCurrentButton_stm32 * gainVoltageB;
+			if(indeks==10)valueFloat[indeks] = (float)bufferSign * powerCoefActiveC * gainCurrentC * gainCurrentButton_stm32 * gainVoltageC;
 
-			if(indeks==11)valueFloat[indeks] = (float)bufferSign * 2 * powerCoefActiveA * gainCurrent * gainCurrentButton_stm32 * gainVoltage; // (405000)/(128*64*8388608)
-			if(indeks==15)valueFloat[indeks] = (float)bufferSign * 2 * powerCoefReactiveA * gainCurrent * gainCurrentButton_stm32 * gainVoltage; // (405000)/(128*64*8388608)
-			if(indeks==19)valueFloat[indeks] = (float)bufferSign * 2 * powerCoefApparentA * gainCurrent * gainCurrentButton_stm32 * gainVoltage; // (405000)/(128*64*8388608)
+			// calculate power phase b
+			if(indeks==12)valueFloat[indeks] = (float)bufferSign * powerCoefReactiveA * gainCurrentA * gainCurrentButton_stm32 * gainVoltageA;
+			if(indeks==13)valueFloat[indeks] = (float)bufferSign * powerCoefReactiveB * gainCurrentB * gainCurrentButton_stm32 * gainVoltageB;
+			if(indeks==14)valueFloat[indeks] = (float)bufferSign * powerCoefReactiveC * gainCurrentC * gainCurrentButton_stm32 * gainVoltageC;
+
+			// calculate power phase c
+			if(indeks==16)valueFloat[indeks] = (float)bufferSign * powerCoefApparentA * gainCurrentA * gainCurrentButton_stm32 * gainVoltageA;
+			if(indeks==17)valueFloat[indeks] = (float)bufferSign * powerCoefApparentB * gainCurrentB * gainCurrentButton_stm32 * gainVoltageB;
+			if(indeks==18)valueFloat[indeks] = (float)bufferSign * powerCoefApparentC * gainCurrentC * gainCurrentButton_stm32 * gainVoltageC;
+
+			// calculate power combine phase abc
+			if(indeks==11)valueFloat[indeks] = (float)bufferSign * 2 * powerCoefActiveA * gainCurrentA * gainCurrentButton_stm32 * gainVoltageA; // (405000)/(128*64*8388608)
+			if(indeks==15)valueFloat[indeks] = (float)bufferSign * 2 * powerCoefReactiveB * gainCurrentB * gainCurrentButton_stm32 * gainVoltageB; // (405000)/(128*64*8388608)
+			if(indeks==19)valueFloat[indeks] = (float)bufferSign * 2 * powerCoefApparentC * gainCurrentC * gainCurrentButton_stm32 * gainVoltageC; // (405000)/(128*64*8388608)
 			// SAMPLING DATA ACTEVE REACTIVE POWER FOR ENERGY CALCULTION
 			if((indeks-8)>=0 && (indeks-8)<8){
 				bufferEnergy[indeks-8] = valueFloat[indeks];

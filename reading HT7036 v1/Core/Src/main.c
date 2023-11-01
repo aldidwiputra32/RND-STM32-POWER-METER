@@ -249,7 +249,7 @@ void eepromLoad();
 void powerHandleTresholdGroup();
 void powerHandleTreshold(float * data, float max, float min);
 void backlightHandle();
-
+void decodeGain(uint8_t eepromBufferRead[], float* gainData, int index, float defaultValue);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -513,7 +513,12 @@ void powerCalibLoop(){
 				if(addressModbus == Modbus.holdingRegisterAddress[93+indeks])addressIndeks = splitSensorIndeks[indeks];
 				else __NOP();
 			}
-
+			// -----------------------------------------------------------SLAVE ADDRESS-------------------------------------------------------------------------
+			if(addressModbus == 0x1000){
+				stateConfig = Modbus.trigState;
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
+				Modbus.slaveAddrSlaveSecond = Modbus.holdingRegisterValue[addressSlave];
+			}
 			// --------------------------------------------------CALIBRATION HT7036 FOR SUPER USER------------------------------------------------------------------
 			// FILTER REGISTER OFFSET VOLTAGE RMS
 			if((addressModbus == 0x1001) || (addressModbus == 0x1002) || (addressModbus == 0x1003)){
@@ -654,7 +659,10 @@ void powerCalibLoop(){
 					(addressModbus == 0x5009) || (addressModbus == 0x500A) ||
 					(addressModbus == 0x6005) || (addressModbus == 0x6006) ||
 					(addressModbus == 0x6007) || (addressModbus == 0x6008) ||
-					(addressModbus == 0x6009) || (addressModbus == 0x600A)){
+					(addressModbus == 0x6009) || (addressModbus == 0x600A) ||
+					(addressModbus == 0x2007) || (addressModbus == 0x2008) ||
+					(addressModbus == 0x2009) || (addressModbus == 0x200A) ||
+					(addressModbus == 0x200B) || (addressModbus == 0x200C)){
 				stateConfig = Modbus.trigState;
 			}
 
@@ -698,19 +706,44 @@ void powerCalibLoop(){
 					energyReactiveCombine_uint = energyReactiveA_uint + energyReactiveB_uint + energyReactiveC_uint;
 					bufferEnergySUM[7] = (double)energyReactiveCombine_uint;
 				}
+			}else{
+				// handling modbus power active A(0x4005, 0x4006), B(0x4007, 0x4008), C(0x4009, 0x400A)
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x4005, Modbus.holdingRegisterSize);
+				powerCoefActiveA =(float)(uint16ToUint32(Modbus.holdingRegisterValue[addressSlave], Modbus.holdingRegisterValue[addressSlave+1]))/1000000000;
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x4007, Modbus.holdingRegisterSize);
+				powerCoefActiveB =(float)(uint16ToUint32(Modbus.holdingRegisterValue[addressSlave], Modbus.holdingRegisterValue[addressSlave+1]))/1000000000;
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x4009, Modbus.holdingRegisterSize);
+				powerCoefActiveC =(float)(uint16ToUint32(Modbus.holdingRegisterValue[addressSlave], Modbus.holdingRegisterValue[addressSlave+1]))/1000000000;
+
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x5005, Modbus.holdingRegisterSize);
+				powerCoefReactiveA =(float)(uint16ToUint32(Modbus.holdingRegisterValue[addressSlave], Modbus.holdingRegisterValue[addressSlave+1]))/1000000000;
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x5007, Modbus.holdingRegisterSize);
+				powerCoefReactiveB =(float)(uint16ToUint32(Modbus.holdingRegisterValue[addressSlave], Modbus.holdingRegisterValue[addressSlave+1]))/1000000000;
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x5009, Modbus.holdingRegisterSize);
+				powerCoefReactiveC =(float)(uint16ToUint32(Modbus.holdingRegisterValue[addressSlave], Modbus.holdingRegisterValue[addressSlave+1]))/1000000000;
+
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x6005, Modbus.holdingRegisterSize);
+				powerCoefApparentA =(float)(uint16ToUint32(Modbus.holdingRegisterValue[addressSlave], Modbus.holdingRegisterValue[addressSlave+1]))/1000000000;
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x6007, Modbus.holdingRegisterSize);
+				powerCoefApparentB =(float)(uint16ToUint32(Modbus.holdingRegisterValue[addressSlave], Modbus.holdingRegisterValue[addressSlave+1]))/1000000000;
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x6009, Modbus.holdingRegisterSize);
+				powerCoefApparentC =(float)(uint16ToUint32(Modbus.holdingRegisterValue[addressSlave], Modbus.holdingRegisterValue[addressSlave+1]))/1000000000;
+
+				// handling gain voltage & current  a b c
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x2007, Modbus.holdingRegisterSize);
+				gainVoltageA =(float)Modbus.holdingRegisterValue[addressSlave]/1000;
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x2008, Modbus.holdingRegisterSize);
+				gainVoltageB =(float)Modbus.holdingRegisterValue[addressSlave]/1000;
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x2009, Modbus.holdingRegisterSize);
+				gainVoltageC =(float)Modbus.holdingRegisterValue[addressSlave]/1000;
+
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x200A, Modbus.holdingRegisterSize);
+				gainCurrentA =(float)Modbus.holdingRegisterValue[addressSlave]/1000;
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x200B, Modbus.holdingRegisterSize);
+				gainCurrentB =(float)Modbus.holdingRegisterValue[addressSlave]/1000;
+				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x200C, Modbus.holdingRegisterSize);
+				gainCurrentC =(float)Modbus.holdingRegisterValue[addressSlave]/1000;
 			}
-			// handling modbus power active A(0x4005, 0x4006), B(0x4007, 0x4008), C(0x4009, 0x400A)
-			else if(addressModbus == 0x4005){powerCoefActiveA =(float)(uint16ToUint32(Modbus.holdingRegisterValue[addressSlave], Modbus.holdingRegisterValue[addressSlave+1]))/1000000000;} // deivide by 10 miliar
-			else if(addressModbus == 0x4007){powerCoefActiveB =(float)(uint16ToUint32(Modbus.holdingRegisterValue[addressSlave], Modbus.holdingRegisterValue[addressSlave+1]))/1000000000;} // deivide by 10 miliar
-			else if(addressModbus == 0x4009){powerCoefActiveC =(float)(uint16ToUint32(Modbus.holdingRegisterValue[addressSlave], Modbus.holdingRegisterValue[addressSlave+1]))/1000000000;} // deivide by 10 miliar
-			// handling modbus power reactive A(0x4005, 0x4006), B(0x4007, 0x4008), C(0x4009, 0x400A)
-			else if(addressModbus == 0x5005){powerCoefReactiveA =(float)(uint16ToUint32(Modbus.holdingRegisterValue[addressSlave], Modbus.holdingRegisterValue[addressSlave+1]))/1000000000;} // deivide by 10 miliar
-			else if(addressModbus == 0x5007){powerCoefReactiveB =(float)(uint16ToUint32(Modbus.holdingRegisterValue[addressSlave], Modbus.holdingRegisterValue[addressSlave+1]))/1000000000;} // deivide by 10 miliar
-			else if(addressModbus == 0x5009){powerCoefReactiveC =(float)(uint16ToUint32(Modbus.holdingRegisterValue[addressSlave], Modbus.holdingRegisterValue[addressSlave+1]))/1000000000;} // deivide by 10 miliar
-			// handling modbus power reactive A(0x4005, 0x4006), B(0x4007, 0x4008), C(0x4009, 0x400A)
-			else if(addressModbus == 0x6005){powerCoefApparentA = (float)(uint16ToUint32(Modbus.holdingRegisterValue[addressSlave], Modbus.holdingRegisterValue[addressSlave+1]))/1000000000;} // deivide by 10 miliar
-			else if(addressModbus == 0x6007){powerCoefApparentB = (float)(uint16ToUint32(Modbus.holdingRegisterValue[addressSlave], Modbus.holdingRegisterValue[addressSlave+1]))/1000000000;} // deivide by 10 miliar
-			else if(addressModbus == 0x6009){powerCoefApparentC = (float)(uint16ToUint32(Modbus.holdingRegisterValue[addressSlave], Modbus.holdingRegisterValue[addressSlave+1]))/1000000000;} // deivide by 10 miliar
 		}else __NOP();
 		Modbus.trigState = 0;
 	}else __NOP();
@@ -839,7 +872,7 @@ void eepromLoad(){
 		if(indeks==67){
 			bufferUint16 = uint8ToUint16(buffer8[0], buffer8[1]);
 			bufferInt16 = (int16_t)bufferUint16;
-			if(bufferUint16 == 0xFFFF){offsetPF_stm32 = (float)GAIN_PF_DEF;}
+			if(bufferUint16 == 0xFFFF){offsetPF_stm32 = (float)OFFSET_PF_DEF;}
 			else{offsetPF_stm32 = (float)bufferInt16/10000;}
 			indeksAddress = 0;
 		}
@@ -929,23 +962,23 @@ void eepromLoad(){
 		if(indeks==107){
 			bufferUint16 = uint8ToUint16(buffer8[0], buffer8[1]);
 			if(bufferUint16 == 0xFFFF){	gainVoltageA = GAIN_VOLT_STM_DEF;}
-			else{gainVoltageA = (uint16_t)bufferUint16;}
+			else{gainVoltageA = (float)bufferUint16/1000;}
 			indeksAddress = 0;
 		}
 		// DECODDE GAIN VOLTAGE B
 		if(indeks>=108 && indeks<110)buffer8[indeksAddress++] = eepromBufferRead[indeks];
 		if(indeks==109){
 			bufferUint16 = uint8ToUint16(buffer8[0], buffer8[1]);
-			if(bufferUint16 == 0xFFFF){	gainVoltageA = GAIN_VOLT_STM_DEF;}
-			else{gainVoltageA = (uint16_t)bufferUint16;}
+			if(bufferUint16 == 0xFFFF){	gainVoltageB = GAIN_VOLT_STM_DEF;}
+			else{gainVoltageB = (float)bufferUint16/1000;}
 			indeksAddress = 0;
 		}
 		// DECODDE GAIN VOLTAGE C
 		if(indeks>=110 && indeks<112)buffer8[indeksAddress++] = eepromBufferRead[indeks];
 		if(indeks==111){
 			bufferUint16 = uint8ToUint16(buffer8[0], buffer8[1]);
-			if(bufferUint16 == 0xFFFF){	gainVoltageA = GAIN_VOLT_STM_DEF;}
-			else{gainVoltageA = (uint16_t)bufferUint16;}
+			if(bufferUint16 == 0xFFFF){	gainVoltageC = GAIN_VOLT_STM_DEF;}
+			else{gainVoltageC = (float)bufferUint16/1000;}
 			indeksAddress = 0;
 		}
 		// DECODDE GAIN CURRENT A
@@ -953,7 +986,7 @@ void eepromLoad(){
 		if(indeks==113){
 			bufferUint16 = uint8ToUint16(buffer8[0], buffer8[1]);
 			if(bufferUint16 == 0xFFFF){	gainCurrentA = GAIN_CURR_STM_DEF;}
-			else{gainCurrentA = (uint16_t)bufferUint16;}
+			else{gainCurrentA = (float)bufferUint16/1000;}
 			indeksAddress = 0;
 		}
 		// DECODDE GAIN CURRENT B
@@ -961,7 +994,7 @@ void eepromLoad(){
 		if(indeks==115){
 			bufferUint16 = uint8ToUint16(buffer8[0], buffer8[1]);
 			if(bufferUint16 == 0xFFFF){	gainCurrentB = GAIN_CURR_STM_DEF;}
-			else{gainCurrentB = (uint16_t)bufferUint16;}
+			else{gainCurrentB = (float)bufferUint16/1000;}
 			indeksAddress = 0;
 		}
 		// DECODDE GAIN CURRENT C
@@ -969,7 +1002,7 @@ void eepromLoad(){
 		if(indeks==117){
 			bufferUint16 = uint8ToUint16(buffer8[0], buffer8[1]);
 			if(bufferUint16 == 0xFFFF){	gainCurrentC = GAIN_CURR_STM_DEF;}
-			else{gainCurrentC = (uint16_t)bufferUint16;}
+			else{gainCurrentC = (float)bufferUint16/1000;}
 			indeksAddress = 0;
 		}
 	}
@@ -1008,11 +1041,15 @@ void eepromLoad(){
 	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x2007, Modbus.holdingRegisterSize);		// gain Voltage STM32
 	addressSlave[1] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x2008, Modbus.holdingRegisterSize);
 	addressSlave[2] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x2009, Modbus.holdingRegisterSize);
-	Modbus.holdingRegisterValue[addressSlave[0]] = Modbus.holdingRegisterValue[addressSlave[1]] = Modbus.holdingRegisterValue[addressSlave[2]] = gainVolt_stm32;
+	Modbus.holdingRegisterValue[addressSlave[0]] = (uint16_t)(gainVoltageA*1000);
+	Modbus.holdingRegisterValue[addressSlave[1]] = (uint16_t)(gainVoltageB*1000);
+	Modbus.holdingRegisterValue[addressSlave[2]] = (uint16_t)(gainVoltageC*1000);
 	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x200A, Modbus.holdingRegisterSize);		// gain Current STM32
 	addressSlave[1] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x200B, Modbus.holdingRegisterSize);
 	addressSlave[2] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x200C, Modbus.holdingRegisterSize);
-	Modbus.holdingRegisterValue[addressSlave[0]] = Modbus.holdingRegisterValue[addressSlave[1]] = Modbus.holdingRegisterValue[addressSlave[2]] = gainCurr_stm32;
+	Modbus.holdingRegisterValue[addressSlave[0]] = (uint16_t)(gainCurrentA*1000);
+	Modbus.holdingRegisterValue[addressSlave[1]] = (uint16_t)(gainCurrentB*1000);
+	Modbus.holdingRegisterValue[addressSlave[2]] = (uint16_t)(gainCurrentC*1000);
 	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x1000, Modbus.holdingRegisterSize);		// modbus slave id
 	Modbus.holdingRegisterValue[addressSlave[0]] = Modbus.slaveAddrSlaveSecond;
 	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x4001, Modbus.holdingRegisterSize);		// power factor calibration
@@ -1023,18 +1060,43 @@ void eepromLoad(){
 	Modbus.holdingRegisterValue[addressSlave[0]] = (uint16_t)(offsetPF_stm32*10000);
 	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x4004, Modbus.holdingRegisterSize);		// gain current user via button set >> stm32
 	Modbus.holdingRegisterValue[addressSlave[0]] = gainCurrentButton_stm32;
-	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x4005, Modbus.holdingRegisterSize);		// decode param power active coef
+	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x4005, Modbus.holdingRegisterSize);		// decode param power active coef A
 	addressSlave[1] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x4006, Modbus.holdingRegisterSize);
 	Modbus.holdingRegisterValue[addressSlave[0]] = byte32High((uint32_t)(powerCoefActiveA*1000000000));
 	Modbus.holdingRegisterValue[addressSlave[1]] = byte32Low((uint32_t)(powerCoefActiveA*1000000000));
-	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x5005, Modbus.holdingRegisterSize);		// decode param power reactive coef
+	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x4007, Modbus.holdingRegisterSize);		// decode param power active coef B
+	addressSlave[1] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x4008, Modbus.holdingRegisterSize);
+	Modbus.holdingRegisterValue[addressSlave[0]] = byte32High((uint32_t)(powerCoefActiveB*1000000000));
+	Modbus.holdingRegisterValue[addressSlave[1]] = byte32Low((uint32_t)(powerCoefActiveB*1000000000));
+	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x4009, Modbus.holdingRegisterSize);		// decode param power active coef C
+	addressSlave[1] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x400A, Modbus.holdingRegisterSize);
+	Modbus.holdingRegisterValue[addressSlave[0]] = byte32High((uint32_t)(powerCoefActiveC*1000000000));
+	Modbus.holdingRegisterValue[addressSlave[1]] = byte32Low((uint32_t)(powerCoefActiveC*1000000000));
+	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x5005, Modbus.holdingRegisterSize);		// decode param power reactive coef A
 	addressSlave[1] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x5006, Modbus.holdingRegisterSize);
 	Modbus.holdingRegisterValue[addressSlave[0]] = byte32High((uint32_t)(powerCoefReactiveA*1000000000));
 	Modbus.holdingRegisterValue[addressSlave[1]] = byte32Low((uint32_t)(powerCoefReactiveA*1000000000));
-	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x6005, Modbus.holdingRegisterSize);		// decode param power apparent coef
+	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x5007, Modbus.holdingRegisterSize);		// decode param power reactive coef B
+	addressSlave[1] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x5008, Modbus.holdingRegisterSize);
+	Modbus.holdingRegisterValue[addressSlave[0]] = byte32High((uint32_t)(powerCoefReactiveB*1000000000));
+	Modbus.holdingRegisterValue[addressSlave[1]] = byte32Low((uint32_t)(powerCoefReactiveB*1000000000));
+	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x5009, Modbus.holdingRegisterSize);		// decode param power reactive coef C
+	addressSlave[1] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x500A, Modbus.holdingRegisterSize);
+	Modbus.holdingRegisterValue[addressSlave[0]] = byte32High((uint32_t)(powerCoefReactiveC*1000000000));
+	Modbus.holdingRegisterValue[addressSlave[1]] = byte32Low((uint32_t)(powerCoefReactiveC*1000000000));
+	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x6005, Modbus.holdingRegisterSize);		// decode param power apparent coef A
 	addressSlave[1] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x6006, Modbus.holdingRegisterSize);
 	Modbus.holdingRegisterValue[addressSlave[0]] = byte32High((uint32_t)(powerCoefApparentA*1000000000));
 	Modbus.holdingRegisterValue[addressSlave[1]] = byte32Low((uint32_t)(powerCoefApparentA*1000000000));
+	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x6007, Modbus.holdingRegisterSize);		// decode param power apparent coef B
+	addressSlave[1] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x6008, Modbus.holdingRegisterSize);
+	Modbus.holdingRegisterValue[addressSlave[0]] = byte32High((uint32_t)(powerCoefApparentB*1000000000));
+	Modbus.holdingRegisterValue[addressSlave[1]] = byte32Low((uint32_t)(powerCoefApparentB*1000000000));
+	addressSlave[0] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x6009, Modbus.holdingRegisterSize);		// decode param power apparent coef C
+	addressSlave[1] = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x600A, Modbus.holdingRegisterSize);
+	Modbus.holdingRegisterValue[addressSlave[0]] = byte32High((uint32_t)(powerCoefApparentC*1000000000));
+	Modbus.holdingRegisterValue[addressSlave[1]] = byte32Low((uint32_t)(powerCoefApparentC*1000000000));
+
 }
 
 void eepromLoop(){
@@ -1170,16 +1232,16 @@ void eepromEncode(
 	eepromBufferWrite[69] = byte16Low(gainCurrentButton_stm32);
 	// decode param power coef active phase a b c
 	eepromBufferWrite[70] = byte16High(byte32High(powerCoefActiveA));	eepromBufferWrite[71] = byte16Low(byte32High(powerCoefActiveA)); 	eepromBufferWrite[72] = byte16High(byte32Low(powerCoefActiveA));	eepromBufferWrite[73] = byte16Low(byte32Low(powerCoefActiveA));
-	eepromBufferWrite[74] = byte16High(byte32High(powerCoefActiveA));	eepromBufferWrite[75] = byte16Low(byte32High(powerCoefActiveA)); 	eepromBufferWrite[76] = byte16High(byte32Low(powerCoefActiveA));	eepromBufferWrite[77] = byte16Low(byte32Low(powerCoefActiveA));
-	eepromBufferWrite[78] = byte16High(byte32High(powerCoefActiveA));	eepromBufferWrite[79] = byte16Low(byte32High(powerCoefActiveA)); 	eepromBufferWrite[80] = byte16High(byte32Low(powerCoefActiveA));	eepromBufferWrite[81] = byte16Low(byte32Low(powerCoefActiveA));
+	eepromBufferWrite[74] = byte16High(byte32High(powerCoefActiveB));	eepromBufferWrite[75] = byte16Low(byte32High(powerCoefActiveB)); 	eepromBufferWrite[76] = byte16High(byte32Low(powerCoefActiveB));	eepromBufferWrite[77] = byte16Low(byte32Low(powerCoefActiveB));
+	eepromBufferWrite[78] = byte16High(byte32High(powerCoefActiveC));	eepromBufferWrite[79] = byte16Low(byte32High(powerCoefActiveC)); 	eepromBufferWrite[80] = byte16High(byte32Low(powerCoefActiveC));	eepromBufferWrite[81] = byte16Low(byte32Low(powerCoefActiveC));
 	// decode param power coef reactive phase a b c
 	eepromBufferWrite[82] = byte16High(byte32High(powerCoefReactiveA));	eepromBufferWrite[83] = byte16Low(byte32High(powerCoefReactiveA));	eepromBufferWrite[84] = byte16High(byte32Low(powerCoefReactiveA));	eepromBufferWrite[85] = byte16Low(byte32Low(powerCoefReactiveA));
-	eepromBufferWrite[86] = byte16High(byte32High(powerCoefReactiveA));	eepromBufferWrite[87] = byte16Low(byte32High(powerCoefReactiveA));	eepromBufferWrite[88] = byte16High(byte32Low(powerCoefReactiveA));	eepromBufferWrite[89] = byte16Low(byte32Low(powerCoefReactiveA));
-	eepromBufferWrite[90] = byte16High(byte32High(powerCoefReactiveA));	eepromBufferWrite[91] = byte16Low(byte32High(powerCoefReactiveA));	eepromBufferWrite[92] = byte16High(byte32Low(powerCoefReactiveA));	eepromBufferWrite[93] = byte16Low(byte32Low(powerCoefReactiveA));
+	eepromBufferWrite[86] = byte16High(byte32High(powerCoefReactiveB));	eepromBufferWrite[87] = byte16Low(byte32High(powerCoefReactiveB));	eepromBufferWrite[88] = byte16High(byte32Low(powerCoefReactiveB));	eepromBufferWrite[89] = byte16Low(byte32Low(powerCoefReactiveB));
+	eepromBufferWrite[90] = byte16High(byte32High(powerCoefReactiveC));	eepromBufferWrite[91] = byte16Low(byte32High(powerCoefReactiveC));	eepromBufferWrite[92] = byte16High(byte32Low(powerCoefReactiveC));	eepromBufferWrite[93] = byte16Low(byte32Low(powerCoefReactiveC));
 	// decode param power coef apparnet phase a b c
 	eepromBufferWrite[94] = byte16High(byte32High(powerCoefApparentA)); eepromBufferWrite[95] = byte16Low(byte32High(powerCoefApparentA));	eepromBufferWrite[96] = byte16High(byte32Low(powerCoefApparentA));	eepromBufferWrite[97] = byte16Low(byte32Low(powerCoefApparentA));
-	eepromBufferWrite[98] = byte16High(byte32High(powerCoefApparentA)); eepromBufferWrite[99] = byte16Low(byte32High(powerCoefApparentA));	eepromBufferWrite[100] = byte16High(byte32Low(powerCoefApparentA));	eepromBufferWrite[101] = byte16Low(byte32Low(powerCoefApparentA));
-	eepromBufferWrite[102] = byte16High(byte32High(powerCoefApparentA)); eepromBufferWrite[103] = byte16Low(byte32High(powerCoefApparentA));	eepromBufferWrite[104] = byte16High(byte32Low(powerCoefApparentA));	eepromBufferWrite[105] = byte16Low(byte32Low(powerCoefApparentA));
+	eepromBufferWrite[98] = byte16High(byte32High(powerCoefApparentB)); eepromBufferWrite[99] = byte16Low(byte32High(powerCoefApparentB));	eepromBufferWrite[100] = byte16High(byte32Low(powerCoefApparentB));	eepromBufferWrite[101] = byte16Low(byte32Low(powerCoefApparentB));
+	eepromBufferWrite[102] = byte16High(byte32High(powerCoefApparentC)); eepromBufferWrite[103] = byte16Low(byte32High(powerCoefApparentC));	eepromBufferWrite[104] = byte16High(byte32Low(powerCoefApparentC));	eepromBufferWrite[105] = byte16Low(byte32Low(powerCoefApparentC));
 	// decode gain voltage phase a b c
 	eepromBufferWrite[106] = byte16High(gainVoltageA); eepromBufferWrite[107] = byte16Low(gainVoltageA);
 	eepromBufferWrite[108] = byte16High(gainVoltageB); eepromBufferWrite[109] = byte16Low(gainVoltageB);
@@ -1292,24 +1354,26 @@ void powerHandleCalib(){
 		}
 	}
 	// CALIBRAITION VOLTAGE
-	rmsVoltageA = rmsVoltageA*gainVoltage + offsetVoltage;
-	rmsVoltageB = rmsVoltageB*gainVoltage + offsetVoltage;
-	rmsVoltageC = rmsVoltageC*gainVoltage + offsetVoltage;
+	rmsVoltageA = rmsVoltageA*gainVoltageA + offsetVoltage;
+	rmsVoltageB = rmsVoltageB*gainVoltageB + offsetVoltage;
+	rmsVoltageC = rmsVoltageC*gainVoltageC + offsetVoltage;
 
 	// CALIBRATION CURRENT
-	rmsCurrentA = rmsCurrentA*gainCurrent*gainCurrentButton_stm32 + offsetCurrent;
-	rmsCurrentB = rmsCurrentB*gainCurrent*gainCurrentButton_stm32 + offsetCurrent;
-	rmsCurrentC = rmsCurrentC*gainCurrent*gainCurrentButton_stm32 + offsetCurrent;
+	rmsCurrentA = rmsCurrentA*gainCurrentA*gainCurrentButton_stm32 + offsetCurrent;
+	rmsCurrentB = rmsCurrentB*gainCurrentB*gainCurrentButton_stm32 + offsetCurrent;
+	rmsCurrentC = rmsCurrentC*gainCurrentC*gainCurrentButton_stm32 + offsetCurrent;
 
-	// MODIFY BEGIN
-	valueFloat[0] = rmsVoltageA;
-	valueFloat[1] = rmsVoltageB;
-	valueFloat[2] = rmsVoltageC;
+	// HANDLING POWER APPARENT
+	if(powerCoefApparentA == 0)powerApparentA = rmsVoltageA * rmsCurrentA;
+	if(powerCoefApparentB == 0)powerApparentB = rmsVoltageB * rmsCurrentB;
+	if(powerCoefApparentC == 0)powerApparentC = rmsVoltageC * rmsCurrentC;
 
-	valueFloat[4] = rmsCurrentA;
-	valueFloat[5] = rmsCurrentB;
-	valueFloat[6] = rmsCurrentC;
-	// MODIFY END
+	// HANDLING POWER FACTOR
+	if(gainPF_stm32 == 0){
+		powerFactorA = powerActiveA / powerApparentA;
+		powerFactorB = powerActiveB / powerApparentB;
+		powerFactorC = powerActiveC / powerApparentC;
+	}
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef * htim){
@@ -1363,6 +1427,33 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIOPin){
 	}
 }
 
+void decodeGain(uint8_t eepromBufferRead[], float* gainData, int index, float defaultValue){
+    static int bufferIndex = 0;
+    // macro encodefing sie >> 2
+    if (index % 2 == 0) {
+        uint16_t bufferUint16 = uint8ToUint16(eepromBufferRead[index], eepromBufferRead[index + 1]);
+        if (bufferUint16 == 0xFFFF) {
+            gainData[bufferIndex] = defaultValue;
+        } else {
+            gainData[bufferIndex] = (float)bufferUint16 / 1000;
+        }
+        bufferIndex++;
+    }
+}
+
+//void decodeEEPROMValue(uint8_t indeks, uint8_t startIdx, uint8_t endIdx, uint8_t bufferIndex, uint8_t *buffer, uint64_t *value, uint64_t defaultVal) {
+//    if (indeks >= startIdx && indeks < endIdx) {
+//        buffer[bufferIndex] = eepromBufferRead[indeks];
+//        indeksAddress++;
+//    }
+//    if (indeks == (endIdx - 1)) {
+//        uint8Touint64(value, buffer);
+//        if (*value == 0xFFFFFFFFFFFFFFFF) {
+//            *value = defaultVal;
+//        }
+//        indeksAddress = 0;
+//    }
+//}
 
 
 /* USER CODE END 4 */
