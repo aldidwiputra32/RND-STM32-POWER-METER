@@ -881,8 +881,6 @@ void ht1622HandleUpdateRam(uint8_t type, uint8_t typeDigit, uint8_t column, uint
 	// FILTER 7 SGMENT >>= NINE DIGIT(ACTIVE_ENERGY, REACTIVE_ENERGY)
 	}else if((type == ACTIVE_ENERGY)||(type == REACTIVE_ENERGY)){
 		// ENABLE OR DIABLE UNIT SEGMENT
-//		if(type == ACTIVE_ENERGY){handleUnitSegment(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1);}
-//		else if(type == REACTIVE_ENERGY){handleUnitSegment(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1);}
 		// WRITE 7-SEGMENT >>= NINE DIGIT
 		uint8_t segColumnIndeks = 17;
 		// ITERATE 7-SEGMENT COLUMN
@@ -1252,43 +1250,3 @@ void ht1622Print(void){
 		if(lcdRam22[indeks][6] == 1){write_seg_data_bit_4(2, lcdRam22[indeks][1], lcdRam22[indeks][5], lcdRam22[indeks][4], lcdRam22[indeks][3], lcdRam22[indeks][2]);}
 	}
 }
-
-
-
-
-
-// ==============================================================================================================================
-//for(uint8_t indeks=1;indeks<7;indeks++){
-//		if(mapSegmentUnitIC1[indeks][0] == type){
-//			segBit = mapSegmentUnitIC1[indeks][2];
-//			comBit = mapSegmentUnitIC1[indeks][1];
-//			break;
-//		}
-//	}
-//	// GET DATA ADDRESS RAM IC DRIVER LCD
-//	for(uint8_t indeks=0;indeks<32;indeks++){
-//		// RAM ADDRESS FOR COM 0,1,2,3
-//		if(comBit>=0 && comBit<=3){
-//			for(uint8_t indeks1=0;indeks1<32;indeks1++){
-//				if(lcdRam11[indeks1][0] == segBit){
-//					ramAddressValue = lcdRam11[indeks1][1];
-//					ramAddressIndeks = indeks1;
-//					break;
-//				}
-//			}
-//			break;
-//		}
-//		// RAM ADDRESS FOR COM 4,5,6,7
-//		if(comBit>=4 && comBit<=6){
-//			for(uint8_t indeks1=0;indeks1<32;indeks1++){
-//				if(lcdRam12[indeks1][0] == segBit){
-//					ramAddressValue = lcdRam12[indeks1][1];
-//					ramAddressIndeks = indeks1;
-//					break;
-//				}
-//			}
-//			break;
-//		}
-//	}
-//	lcdRam11[ramAddressIndeks][comBit+2] = 1;
-//
