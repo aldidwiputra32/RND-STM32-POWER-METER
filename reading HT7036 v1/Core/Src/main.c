@@ -111,7 +111,7 @@ float	gainVoltageA = 1,	gainVoltageB = 1,	gainVoltageC = 1,
 float 	offsetVoltageA = 0, 	offsetVoltageB = 0,		offsetVoltageC = 0,
 		offsetCurrentA = 0,		offsetCurrentB = 0,		offsetCurrentC = 0,
 		offsetVoltage = 0,		offsetCurrent = 0, 		offsetPF_stm32 = 0,
-		gainPF_stm32 = 1,
+		gainPF_stm32 = 0,
 		powerCoefActiveA = 0,	powerCoefActiveB = 0,	powerCoefActiveC = 0,
 		powerCoefReactiveA = 0,	powerCoefReactiveB = 0,	powerCoefReactiveC = 0,
 		powerCoefApparentA = 0,	powerCoefApparentB = 0,	powerCoefApparentC = 0;
@@ -893,47 +893,47 @@ void eepromLoad(){
 		}
 		// DECODE POWER ACTIVE COEFFICIENT A
 		if(indeks==73){
-			if(bufferUint32 == 0xFFFFFFFF){powerCoefActiveA = POWER_COEF_DEF;}
+			if(bufferUint32 == 0xFFFFFFFF){powerCoefActiveA = POWER_ACTIVE_A_COEF_DEF;}
 			else{powerCoefActiveA = (float)bufferUint32/1000000000;}
 		}
 		// DECODE POWER ACTIVE COEFFICIENT B
 		if(indeks==77){
-			if(bufferUint32 == 0xFFFFFFFF){powerCoefActiveB = POWER_COEF_DEF;}
+			if(bufferUint32 == 0xFFFFFFFF){powerCoefActiveB = POWER_ACTIVE_B_COEF_DEF;}
 			else{powerCoefActiveB = (float)bufferUint32/1000000000;}
 		}
 		// DECODE POWER ACTIVE COEFFICIENT C
 		if(indeks==81){
-			if(bufferUint32 == 0xFFFFFFFF){powerCoefActiveC = POWER_COEF_DEF;}
+			if(bufferUint32 == 0xFFFFFFFF){powerCoefActiveC = POWER_ACTIVE_C_COEF_DEF;}
 			else{powerCoefActiveC = (float)bufferUint32/1000000000;}
 		}
 		// DECODE POWER REACTIVE COEFFICIENT A
 		if(indeks==85){
-			if(bufferUint32 == 0xFFFFFFFF){powerCoefReactiveA = POWER_COEF_DEF;}
+			if(bufferUint32 == 0xFFFFFFFF){powerCoefReactiveA = POWER_REACTIVE_A_COEF_DEF;}
 			else{powerCoefReactiveA = (float)bufferUint32/1000000000;}
 		}
 		// DECODE POWER REACTIVE COEFFICIENT B
 		if(indeks==89){
-			if(bufferUint32 == 0xFFFFFFFF){powerCoefReactiveB = POWER_COEF_DEF;}
+			if(bufferUint32 == 0xFFFFFFFF){powerCoefReactiveB = POWER_REACTIVE_B_COEF_DEF;}
 			else{powerCoefReactiveB = (float)bufferUint32/1000000000;}
 		}
 		// DECODE POWER REACTIVE COEFFICIENT C
 		if(indeks==93){
-			if(bufferUint32 == 0xFFFFFFFF){powerCoefReactiveC = POWER_COEF_DEF;}
+			if(bufferUint32 == 0xFFFFFFFF){powerCoefReactiveC = POWER_REACTIVE_C_COEF_DEF;}
 			else{powerCoefReactiveC = (float)bufferUint32/1000000000;}
 		}
 		// DECODE POWER APPARENT COEFFICIENT A
 		if(indeks==97){
-			if(bufferUint32 == 0xFFFFFFFF){powerCoefApparentA = POWER_COEF_DEF;}
+			if(bufferUint32 == 0xFFFFFFFF){powerCoefApparentA = POWER_APPARENT_A_COEF_DEF;}
 			else{powerCoefApparentA = (float)bufferUint32/1000000000;}
 		}
 		// DECODE POWER APPARENT COEFFICIENT B
 		if(indeks==101){
-			if(bufferUint32 == 0xFFFFFFFF){powerCoefApparentB= POWER_COEF_DEF;}
+			if(bufferUint32 == 0xFFFFFFFF){powerCoefApparentB= POWER_APPARENT_B_COEF_DEF;}
 			else{powerCoefApparentB = (float)bufferUint32/1000000000;}
 		}
 		// DECODE POWER APPARENT COEFFICIENT C
 		if(indeks==105){
-			if(bufferUint32 == 0xFFFFFFFF){powerCoefApparentC = POWER_COEF_DEF;}
+			if(bufferUint32 == 0xFFFFFFFF){powerCoefApparentC = POWER_APPARENT_C_COEF_DEF;}
 			else{powerCoefApparentC = (float)bufferUint32/1000000000;}
 		}
 		// GET DATA FROM EEPROM
@@ -949,32 +949,32 @@ void eepromLoad(){
 		}
 		// DECODDE GAIN VOLTAGE A
 		if(indeks==107){
-			if(bufferUint16 == 0xFFFF){	gainVoltageA = GAIN_VOLT_STM_DEF;}
+			if(bufferUint16 == 0xFFFF){	gainVoltageA = GAIN_VOLT_STM_DEF_A;}
 			else{gainVoltageA = (float)bufferUint16/1000;}
 		}
 		// DECODDE GAIN VOLTAGE B
 		if(indeks==109){
-			if(bufferUint16 == 0xFFFF){	gainVoltageB = GAIN_VOLT_STM_DEF;}
+			if(bufferUint16 == 0xFFFF){	gainVoltageB = GAIN_VOLT_STM_DEF_B;}
 			else{gainVoltageB = (float)bufferUint16/1000;}
 		}
 		// DECODDE GAIN VOLTAGE C
 		if(indeks==111){
-			if(bufferUint16 == 0xFFFF){	gainVoltageC = GAIN_VOLT_STM_DEF;}
+			if(bufferUint16 == 0xFFFF){	gainVoltageC = GAIN_VOLT_STM_DEF_C;}
 			else{gainVoltageC = (float)bufferUint16/1000;}
 		}
 		// DECODDE GAIN CURRENT A
 		if(indeks==113){
-			if(bufferUint16 == 0xFFFF){	gainCurrentA = GAIN_CURR_STM_DEF;}
+			if(bufferUint16 == 0xFFFF){	gainCurrentA = GAIN_CURR_STM_DEF_A;}
 			else{gainCurrentA = (float)bufferUint16/1000;}
 		}
 		// DECODDE GAIN CURRENT B
 		if(indeks==115){
-			if(bufferUint16 == 0xFFFF){	gainCurrentB = GAIN_CURR_STM_DEF;}
+			if(bufferUint16 == 0xFFFF){	gainCurrentB = GAIN_CURR_STM_DEF_B;}
 			else{gainCurrentB = (float)bufferUint16/1000;}
 		}
 		// DECODDE GAIN CURRENT C
 		if(indeks==117){
-			if(bufferUint16 == 0xFFFF){	gainCurrentC = GAIN_CURR_STM_DEF;}
+			if(bufferUint16 == 0xFFFF){	gainCurrentC = GAIN_CURR_STM_DEF_C;}
 			else{gainCurrentC = (float)bufferUint16/1000;}
 		}
 	}
