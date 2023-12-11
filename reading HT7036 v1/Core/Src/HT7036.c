@@ -50,6 +50,7 @@ extern uint16_t offsetVolt_stm32;
 extern uint16_t offsetCurr_stm32;
 extern uint16_t gainVolt_stm32;
 extern uint16_t gainCurr_stm32;
+extern uint16_t idHt7036;
 extern float gainVoltage;
 extern float gainCurrent;
 extern float offsetVoltage;
@@ -186,8 +187,8 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 	/* WRITE CONFIG HFCONST */
 	HFconstVal = (float)spiReadCalib(w_Hfconst);
 	// READING VALUE PARAMETERd
-	//check = spiReadCalib(w_ModeCfg);
-	//check = spiReadCalib(w_PhSregApq1);
+	check = spiReadCalib(w_ModeCfg);
+	check = spiReadCalib(w_PhSregApq1);
 	//check = spiReadCalib(w_EMCfg);
 	//check = spiReadCalib(w_ModuleCFG);
 	//check = spiReadCalib(w_PGACtrl);
@@ -208,6 +209,7 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 	HAL_Delay(10);
 	spiCommandSpecial(w_calib_state, BYTE_DISABLE);
 	HAL_Delay(75);
+	idHt7036 = spiReadCalib(deviceId);
 }
 
 void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * valueFloat, uint8_t size){

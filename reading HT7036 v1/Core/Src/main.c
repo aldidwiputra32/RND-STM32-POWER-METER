@@ -118,7 +118,8 @@ float 	offsetVoltageA = 0, 	offsetVoltageB = 0,		offsetVoltageC = 0,
 
 uint16_t offsetVolt_ht7036,	offsetCurr_ht7036,	gainVolt_ht7036,	gainCurr_ht7036,
 		 gainVolt_stm32,		gainCurr_stm32,
-		 calibPF_ht7036,	gainCurrentButton_stm32;
+		 calibPF_ht7036,	gainCurrentButton_stm32,
+		 idHt7036;
 
 int16_t offsetVolt_stm32, offsetCurr_stm32;
 
@@ -158,7 +159,8 @@ uint16_t holdingRegisterAddress[] 	= 	{	3027,  3028,  3029,  3030,  3031,  3032,
 											0x2004, 0x2005, 0x2006, 								// offset current ABC Phase
 											0x2007, 0x2008, 0x2009, 								// gain voltage ABC Phase
 											0x200A, 0x200B, 0x200C,									// gain current ABC Phase
-											// [RAW DATA] ADDRESS REGISTER PARAMETER CALIBRATION POWER SENSOR FOR SUPER USER >> 4 Register
+											// [RAW DATA] ADDRESS REGISTER PARAMETER CALIBRATION POWER SENSOR FOR SUPER USER >> 5 Register
+											0x3000,													// ID IC HT7036
 											0x3001,		 											// offset Voltage super User
 											0x3002, 												// offset current super user (2 byte) >> HT7036
 											0x3003, 												// gain voltage super user (2 byte) >> HT7036
@@ -175,8 +177,8 @@ uint16_t holdingRegisterAddress[] 	= 	{	3027,  3028,  3029,  3030,  3031,  3032,
 };
 											// VALUE REGISTER POWER SENSOR
 //uint16_t holdingRegisterSize = (uint16_t)sizeof(holdingRegisterAddress)/sizeof(uint16_t);
-uint16_t holdingRegisterSize = 143; // 125
-uint16_t holdingRegisterValue[143]	= {0}; // 125
+uint16_t holdingRegisterSize = 144;
+uint16_t holdingRegisterValue[144]	= {0};
 extern uint16_t addressModbus;
 
 //------------------------- GROUP VARIABLE EEPROM EXTERNAL 8K ---------------------------------
@@ -315,7 +317,6 @@ int main(void)
   powerMeterSetup();
   /* USER CODE END 2 */
 
-
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -435,7 +436,7 @@ void modbusValueUpdate(){
 	uint32_t bufferUnsign32;
 	uint64_t bufferUnsign64;
 	uint8_t address = 0;
-	uint16_t byteHigh,byteLow;
+	uint16_t byteHigh,byteLow,address16;
 	for(uint8_t indeks=0; indeks<32; indeks++){
 		// RMS GROUP SENSOR >> if(indeks>=0 && indeks<8)
 		if(indeks>=0 && indeks<8){
@@ -494,6 +495,9 @@ void modbusValueUpdate(){
 		Modbus.holdingRegisterValue[address++] = 0;
 		Modbus.holdingRegisterValue[address++] = 0;
 	}
+	// ID IC HT7-36
+	address16 = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x3000, Modbus.holdingRegisterSize);
+	Modbus.holdingRegisterValue[address16] = idHt7036;
 }
 
 void powerCalibLoop(){
@@ -1232,10 +1236,10 @@ void powerSplitValue(){
 void powerHandleTresholdGroup(){
 	// HANDLE TRESHOLD FOR ZEROIING
 	// RMS VOLAGE
-	powerHandleTreshold(&rmsVoltageA,0.5,-0.5);
-	powerHandleTreshold(&rmsVoltageB,0.5,-0.5);
-	powerHandleTreshold(&rmsVoltageC,0.5,-0.5);
-	powerHandleTreshold(&rmsVoltageVector,0.5,-0.5);
+	powerHandleTreshold(&rmsVoltageA,0.8,-0.8);
+	powerHandleTreshold(&rmsVoltageB,0.8,-0.8);
+	powerHandleTreshold(&rmsVoltageC,0.8,-0.8);
+	powerHandleTreshold(&rmsVoltageVector,0.8,-0.8);
 	// RMS VOLTAGE DIV
 	powerHandleTreshold(&rmsVoltageAB,0.5,-0.5);
 	powerHandleTreshold(&rmsVoltageBC,0.5,-0.5);
@@ -1320,6 +1324,9 @@ void powerHandleCalib(){
 			powerFactorA = 1;
 		}else{
 			powerFactorA = bufferActive / bufferApparent;
+			if(powerFactorA > 1) powerFactorA = 1;
+			if(powerFactorA < 0) powerFactorA = 0;
+
 		}
 		if((bufferActive < 0.001) && (bufferApparent < 0.001))powerFactorA = 1;
 
@@ -1329,6 +1336,8 @@ void powerHandleCalib(){
 			powerFactorB = 1;
 		}else{
 			powerFactorB = bufferActive / bufferApparent;
+			if(powerFactorB > 1) powerFactorB = 1;
+			if(powerFactorB < 0) powerFactorB = 0;
 		}
 		if((bufferActive < 0.001) && (bufferApparent < 0.001))powerFactorB = 1;
 
@@ -1338,8 +1347,11 @@ void powerHandleCalib(){
 			powerFactorC = 1;
 		}else{
 			powerFactorC = bufferActive / bufferApparent;
+			if(powerFactorC > 1) powerFactorC = 1;
+			if(powerFactorC < 0) powerFactorC = 0;
 		}
 		if((bufferActive < 0.001) && (bufferApparent < 0.001))powerFactorC = 1;
+
 	}
 }
 
@@ -1441,4 +1453,3 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
-
