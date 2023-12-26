@@ -45,6 +45,7 @@
 #define INTERVAL_EEPROM 	120000
 /* USER CODE END PD */
 
+
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 
