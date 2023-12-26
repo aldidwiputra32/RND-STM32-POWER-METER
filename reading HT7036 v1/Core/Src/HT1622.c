@@ -1187,7 +1187,8 @@ void set_all(void)
 void clean_all()
 {
 	uint16_t i;
-	for(i = 0; i < 0x3F; i++) {  //A5~A0: 00111111
+//	for(i = 0; i < 0x3F; i++) {  //A5~A0: 00111111 >> DEFAULT POWER METER
+	for(i = 0; i < 72; i++) {  //A5~A0: 00111111 >> CUSTOM REGISTER
 		write_seg_data_4(CS1, i, 0x00); //D3~D0: 00001111 set 0
 		write_seg_data_4(CS2, i, 0x00); //D3~D0: 00001111 set 0
 	}
