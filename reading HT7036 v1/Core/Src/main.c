@@ -79,6 +79,8 @@ extern float HFconstVal;
 extern float ECVal;
 extern float ECDef;
 extern uint64_t powerTimer;
+uint64_t rstPowerTimer;
+uint64_t rstPowerTimerDelta;
 uint8_t stateConfig = 0;
 uint8_t phase = PHASE_RST;
 float valueFloat[32];
@@ -255,6 +257,7 @@ void powerHandleTresholdGroup();
 void powerHandleTreshold(float * data, float max, float min);
 void backlightHandle();
 void decodeGain(uint8_t eepromBufferRead[], float* gainData, int index, float defaultValue);
+void handlingPowerInit();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -333,6 +336,8 @@ int main(void)
 	  eepromLoop();
 	  // MODBUS UPDATE
 	  modbusValueUpdate();
+	  // HANDLING INIT VALUE
+	  handlingPowerInit();
 	  HAL_Delay(10);
     /* USER CODE END WHILE */
 
@@ -424,12 +429,12 @@ void powerMeterSetup(){
 			  gainCurr_ht7036,
 			  gainCurr_ht7036,
 	};
-	powerRestoreCalib();
+//	powerRestoreCalib();
 	powerSetup(address,addressData,spiStatus,12);
 	powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
 	powerSplitValue();
 	// INITIAL TIMER SAMPLING POWER & EEPROM
-	powerTimer = eepromTimer = HAL_GetTick();
+	powerTimer = eepromTimer = rstPowerTimer =  HAL_GetTick();
 }
 
 void modbusValueUpdate(){
@@ -1420,7 +1425,43 @@ void decodeGain(uint8_t eepromBufferRead[], float* gainData, int index, float de
         bufferIndex++;
     }
 }
+void handlingPowerInit(){
+	uint8_t statusEvent = 0;
+	uint8_t statusRoutine = 0;
+	uint8_t statusTotal = 0;
 
+	// CHECKING STATUS EVENT
+	if(((rmsVoltageA < 0.1) && (rmsVoltageA > -0.1)) && (rmsCurrentA != 0)){
+		statusEvent = 1;
+	}
+	else if(((rmsVoltageB < 0.1) && (rmsVoltageB > -0.1)) && (rmsCurrentB != 0)){
+		statusEvent = 1;
+	}
+	else if(((rmsVoltageC < 0.1) && (rmsVoltageC > -0.1)) && (rmsCurrentC != 0)){
+		statusEvent = 1;
+	}
+
+	// CHECKING STATUS ROUTINE
+	rstPowerTimerDelta = HAL_GetTick() - rstPowerTimer;
+	if(rstPowerTimerDelta >= 1800000){
+		rstPowerTimer = HAL_GetTick();
+		statusRoutine = 1;
+	}
+
+	// CALCULATE STATUS
+	statusTotal = statusEvent || statusRoutine;
+
+	// TRIGGERR DATA
+	if(statusTotal == 1){
+		// RE-SETUP POWER METER
+		powerMeterSetup();
+		HAL_Delay(1000);
+
+		// RESET STATUS EVENT & ROUTINE
+		statusEvent = 0;
+		statusRoutine = 0;
+	}
+}
 /* USER CODE END 4 */
 
 /**

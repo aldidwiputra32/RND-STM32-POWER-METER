@@ -187,6 +187,9 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 	/* WRITE CONFIG HFCONST */
 	HFconstVal = (float)spiReadCalib(w_Hfconst);
 	// READING VALUE PARAMETERd
+	check = spiReadCalib(deviceId);
+	check = spiReadCalib(deviceId);
+	check = spiReadCalib(deviceId);
 //	check = spiReadCalib(w_ModeCfg);
 //	check = spiReadCalib(w_PhSregApq1);
 	//check = spiReadCalib(w_EMCfg);
