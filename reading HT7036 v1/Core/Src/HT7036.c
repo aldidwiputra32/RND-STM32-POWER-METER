@@ -220,7 +220,7 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 	powerTimerDelta = HAL_GetTick() - powerTimer; powerTimer = HAL_GetTick();
 	for(uint8_t indeks=0;indeks<size;indeks++){
 		valueBuffer[indeks] = spiRead24(address[indeks]);
-		// GROUPING DATA RMS ???
+		// GROUPING DATA RMS
 		if(indeks>=0 && indeks<8){
 			//[VRMS] FORMULA >> rmsData / 2 ^ 13
 			if(indeks<3)valueFloat[indeks] = (float)valueBuffer[indeks] / 8192;

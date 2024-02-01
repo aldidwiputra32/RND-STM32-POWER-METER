@@ -1251,10 +1251,10 @@ void powerHandleTresholdGroup(){
 	powerHandleTreshold(&rmsVoltageBC,0.5,-0.5);
 	powerHandleTreshold(&rmsVoltageCA,0.5,-0.5);
 	// RMS CURRENT
-	powerHandleTreshold(&rmsCurrentA,0.009,-0.009);
-	powerHandleTreshold(&rmsCurrentB,0.009,-0.009);
-	powerHandleTreshold(&rmsCurrentC,0.009,-0.009);
-	powerHandleTreshold(&rmsCurrentVector,0.009,-0.009);
+	// powerHandleTreshold(&rmsCurrentA,0.009,-0.009);
+	// powerHandleTreshold(&rmsCurrentB,0.009,-0.009);
+	// powerHandleTreshold(&rmsCurrentC,0.009,-0.009);
+	// powerHandleTreshold(&rmsCurrentVector,0.009,-0.009);
 	// POWER ACTIVE
 	powerHandleTreshold(&powerActiveA,0.0005,-0.0005);
 	powerHandleTreshold(&powerActiveB,0.0005,-0.0005);
@@ -1310,6 +1310,12 @@ void powerHandleCalib(){
 	rmsVoltageA = rmsVoltageA*gainVoltageA + offsetVoltage;
 	rmsVoltageB = rmsVoltageB*gainVoltageB + offsetVoltage;
 	rmsVoltageC = rmsVoltageC*gainVoltageC + offsetVoltage;
+
+	// HANDLING TRESHOLD CURRENT 5 mA >> 0.005 A
+	powerHandleTreshold(&rmsCurrentA,0.005,-0.005);
+	powerHandleTreshold(&rmsCurrentB,0.005,-0.005);
+	powerHandleTreshold(&rmsCurrentC,0.005,-0.005);
+	powerHandleTreshold(&rmsCurrentVector,0.005,-0.005);
 
 	// CALIBRATION CURRENT
 	rmsCurrentA = rmsCurrentA*gainCurrentA*gainCurrentButton_stm32 + offsetCurrent;
