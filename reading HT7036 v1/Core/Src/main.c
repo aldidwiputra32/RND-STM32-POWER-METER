@@ -97,8 +97,11 @@ float 	powerFactorA,		powerFactorB,		powerFactorC, 		powerFactorCombine;
 // ENERGY REGISTER
 float 	energyActiveA,		energyActiveB, 		energyActiveC,		energyActiveCombine,
 		energyReactiveA,	energyReactiveB, 	energyReactiveC,	energyReactiveCombine;
-//
+// LINE VOLTAGE
 float 	rmsVoltageAB,		rmsVoltageBC,		rmsVoltageCA;
+
+// HANDLING OFFSET
+uint64_t offsetEnergyActive, offsetEnergyReactive;
 
 extern uint64_t energyModbus[8];
 extern double bufferEnergySUM[8];
@@ -106,6 +109,8 @@ extern uint32_t check;
 
 uint64_t 	energyActiveA_uint,		energyActiveB_uint, 		energyActiveC_uint,		energyActiveCombine_uint,
 			energyReactiveA_uint,	energyReactiveB_uint, 		energyReactiveC_uint,	energyReactiveCombine_uint;
+
+
 
 float	gainVoltageA = 1,	gainVoltageB = 1,	gainVoltageC = 1,
 		gainCurrentA = 1,	gainCurrentB = 1,	gainCurrentC = 1,
@@ -185,8 +190,8 @@ uint16_t holdingRegisterValue[144]	= {0};
 extern uint16_t addressModbus;
 
 //------------------------- GROUP VARIABLE EEPROM EXTERNAL 8K ---------------------------------
-uint8_t eepromBufferRead[118];
-uint8_t eepromBufferWrite[118];
+uint8_t eepromBufferRead[134];
+uint8_t eepromBufferWrite[134];
 uint32_t eepromTimerDelta = 0;
 uint32_t eepromTimer = 0;
 
@@ -243,7 +248,9 @@ void eepromEncode(
 		uint16_t gainVoltageC,				// indeks 110 - 111
 		uint16_t gainCurrentA,				// indeks 112 - 113
 		uint16_t gainCurrentB,				// indeks 114 - 115
-		uint16_t gainCurrentC				// indeks 116 - 117
+		uint16_t gainCurrentC,				// indeks 116 - 117
+		uint64_t offsetEnergyActive,		// indeks 118 - 125
+		uint64_t offsetEnergyReactive		// indeks 126 - 133
 );
 uint16_t byteLow32(uint32_t buf){return (uint16_t)((buf & 0x0000FFFF));}
 uint16_t byteHigh32(uint32_t buf){return (uint16_t)((buf & 0xFFFF0000) >> 16);}
@@ -319,6 +326,7 @@ int main(void)
   clean_all();
   // SETUP POWER METER
   powerMeterSetup();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -771,7 +779,7 @@ void eepromLoad(){
 	// GET DATA FROM EEPROM EXTERNAL
 	ee24_read(0, (uint8_t*)eepromBufferRead, sizeof(eepromBufferRead), 1000);// for(uint8_t indeks=0;indeks<64;indeks++)ee24VirtualRead(&eepromBufferRead[indeks], 0, 1024, indeks);
 	// DECODE DATA
-	for(uint8_t indeks=0;indeks<118;indeks++){
+	for(uint8_t indeks=0;indeks<135;indeks++){
 
 		// DECODE ACTIVE ENERGY PHASE A >> valueuint64 [0];
 		if(indeks>=0 && indeks<8)buffer8[indeks] = eepromBufferRead[indeks];
@@ -987,6 +995,22 @@ void eepromLoad(){
 			if(bufferUint16 == 0xFFFF){	gainCurrentC = GAIN_CURR_STM_DEF_C;}
 			else{gainCurrentC = (float)bufferUint16/1000;}
 		}
+		// DECODE GAIN OFFSET ENERGY ACTIVE FOR AUTO RESET
+		if(indeks>=118 && indeks<126){buffer8[indeksAddress++] = eepromBufferRead[indeks];
+			if(indeks == 125){
+				uint8Touint64(&offsetEnergyActive, buffer8);
+				if(offsetEnergyActive == 0xFFFFFFFFFFFFFFFF)offsetEnergyActive = 0;
+				indeksAddress = 0;
+			}
+		}
+		// DECODE GAIN OFFSET ENERGY REACTIVE FOR AUTO RESET
+		if(indeks>=126 && indeks<134){buffer8[indeksAddress++] = eepromBufferRead[indeks];
+			if(indeks == 133){
+				uint8Touint64(&offsetEnergyReactive, buffer8);
+				if(offsetEnergyReactive == 0xFFFFFFFFFFFFFFFF)offsetEnergyReactive = 0;
+				indeksAddress = 0;
+			}
+		}
 	}
 	// SYNCRON FROM DATA EEPROM TO ENERGY[BUFFER ARRAY]
 	bufferEnergySUM[0] = (double)energyActiveA_uint;
@@ -1073,6 +1097,14 @@ void eepromLoop(){
 		phase = PHASE_RST;
 		stateConfig = 0;
 
+		// -----------------------------------
+
+		offsetEnergyActive = 0;
+		offsetEnergyReactive = 0;
+		energyActiveA_uint = 0;//999999997000;
+		energyReactiveA_uint = 0;//999999997000;
+
+		// -----------------------------------
 		// ENCODE DATA & WRITE EEPROM
 		eepromEncode(
 				energyActiveA_uint,							energyActiveB_uint,							energyActiveC_uint,
@@ -1085,7 +1117,8 @@ void eepromLoop(){
 				(uint32_t)(powerCoefReactiveA*1000000000),	(uint32_t)(powerCoefReactiveB*1000000000),	(uint32_t)(powerCoefReactiveC*1000000000),
 				(uint32_t)(powerCoefApparentA*1000000000),	(uint32_t)(powerCoefApparentB*1000000000),	(uint32_t)(powerCoefApparentC*1000000000),
 				(uint16_t)(gainVoltageA*1000),				(uint16_t)(gainVoltageB*1000),				(uint16_t)(gainVoltageC*1000),
-				(uint16_t)(gainCurrentA*1000),				(uint16_t)(gainCurrentB*1000),				(uint16_t)(gainCurrentC*1000)
+				(uint16_t)(gainCurrentA*1000),				(uint16_t)(gainCurrentB*1000),				(uint16_t)(gainCurrentC*1000),
+				offsetEnergyActive,							offsetEnergyReactive
 		);
 		ee24_write(0, (uint8_t*)eepromBufferWrite, sizeof(eepromBufferWrite), 1000);
 	}
@@ -1123,7 +1156,9 @@ void eepromEncode(
 			uint16_t gainVoltageC,				// indeks 110 - 111
 			uint16_t gainCurrentA,				// indeks 112 - 113
 			uint16_t gainCurrentB,				// indeks 114 - 115
-			uint16_t gainCurrentC				// indeks 116 - 117
+			uint16_t gainCurrentC,				// indeks 116 - 117
+			uint64_t offsetEnergyActive,		// indeks 118 - 125
+			uint64_t offsetEnergyReactive		// indeks 126 - 133
 	){
 	uint8_t buffer8[8];
 	uint8_t indeksBuffer=0;
@@ -1203,6 +1238,18 @@ void eepromEncode(
 	eepromBufferWrite[112] = byte16High(gainCurrentA); eepromBufferWrite[113] = byte16Low(gainCurrentA);
 	eepromBufferWrite[114] = byte16High(gainCurrentB); eepromBufferWrite[115] = byte16Low(gainCurrentB);
 	eepromBufferWrite[116] = byte16High(gainCurrentC); eepromBufferWrite[117] = byte16Low(gainCurrentC);
+	// decode buffer offet energy active for auto reset
+	indeksBuffer = 0;
+	uint64ToUint8(buffer8, offsetEnergyActive);
+	for(uint8_t indeks=118;indeks<118+8;indeks++){
+		eepromBufferWrite[indeks] = buffer8[indeksBuffer++];
+	}
+	// decode bufer offset energy reacive for auto reset
+	indeksBuffer = 0;
+	uint64ToUint8(buffer8, offsetEnergyReactive);
+	for(uint8_t indeks=126;indeks<126+8;indeks++){
+		eepromBufferWrite[indeks] = buffer8[indeksBuffer++];
+	}
 }
 
 void powerSplitValue(){

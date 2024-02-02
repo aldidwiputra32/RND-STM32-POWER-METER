@@ -495,7 +495,7 @@ void ht1622UpdateRamChar(uint8_t type, uint8_t typeDigit, uint8_t column, uint8_
 	ht1622HandleUpdateRam(type, typeDigit, column, dataPrint);
 }
 
-void ht1622UpdateRamFloat(uint8_t type, uint8_t typeDigit, uint8_t column, float dataPrintFloat){
+void ht1622UpdateRamFloat(uint8_t type, uint8_t typeDigit, uint8_t column, float dataPrintFloat, double dataPrintDouble){
 	uint8_t dataPrint[17];
 	uint8_t dataPrintRaw[10];
 	// PROCESSING DATA MINUS >> SIGNED VALUE
@@ -525,11 +525,11 @@ void ht1622UpdateRamFloat(uint8_t type, uint8_t typeDigit, uint8_t column, float
 			sprintf(dataPrintRaw,"9999\n");
 		}
 	}else if(typeDigit == NINE_DIGIT){
-		if(dataPrintFloat < 1000000)sprintf(dataPrintRaw,"%.3f\n",dataPrintFloat);
-		else if(dataPrintFloat < 10000000)sprintf(dataPrintRaw,"%.2f\n",dataPrintFloat);
-		else if(dataPrintFloat < 100000000)sprintf(dataPrintRaw,"%.1f\n",dataPrintFloat);
-		else sprintf(dataPrintRaw,"%d\n",(uint32_t)dataPrintFloat);
-		if(dataPrintFloat > 999999999){
+		if(dataPrintDouble < 1000000)sprintf(dataPrintRaw,"%.3f\n",dataPrintDouble);
+		else if(dataPrintDouble < 10000000)sprintf(dataPrintRaw,"%.2f\n",dataPrintDouble);
+		else if(dataPrintDouble < 100000000)sprintf(dataPrintRaw,"%.1f\n",dataPrintDouble);
+		else sprintf(dataPrintRaw,"%d\n",(uint64_t)dataPrintDouble);
+		if(dataPrintDouble > 999999999){
 			sprintf(dataPrintRaw,"999999999\n");
 		}
 	}

@@ -69,6 +69,10 @@ extern float gainPF_stm32;
 extern float offsetPF_stm32;
 extern uint16_t calibPF_ht7036;
 
+// HANDLING OFFSET
+extern uint64_t offsetEnergyActive, offsetEnergyReactive;
+
+
 void spiDisable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);}
 void spiEnable(){HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);}
 

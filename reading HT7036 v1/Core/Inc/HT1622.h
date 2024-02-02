@@ -50,7 +50,7 @@ uint8_t ht1622GenerateBit(uint8_t dataRaw);
 void ht1622ProcessDataPrint(uint8_t type ,uint8_t * dataPrint, uint8_t len, uint8_t * dataBuffer);
 uint8_t ht1622SizeOf(uint8_t * buffer);
 void ht1622UpdateRamChar(uint8_t type, uint8_t typeDigit, uint8_t column, uint8_t * dataPrintChar, uint8_t len);
-void ht1622UpdateRamFloat(uint8_t type, uint8_t typeDigit, uint8_t column, float dataPrintFloat);
+void ht1622UpdateRamFloat(uint8_t type, uint8_t typeDigit, uint8_t column, float dataPrintFloat, double dataPrintDouble);
 void ht1622HandleUpdateRam(uint8_t type, uint8_t typeDigit, uint8_t column, uint8_t * dataPrint);
 void integerToArray(uint8_t data, uint8_t * buffer);
 void handleUnitSegment(

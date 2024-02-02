@@ -11,7 +11,7 @@
 ../Core/Src/HT1622.c:1091:6:integerToArray	8	static
 ../Core/Src/HT1622.c:540:6:ht1622HandleUpdateRam	112	static
 ../Core/Src/HT1622.c:491:6:ht1622UpdateRamChar	24	static
-../Core/Src/HT1622.c:498:6:ht1622UpdateRamFloat	56	static
+../Core/Src/HT1622.c:498:6:ht1622UpdateRamFloat	64	static
 ../Core/Src/HT1622.c:1137:6:send_command	16	static,ignoring_inline_asm
 ../Core/Src/HT1622.c:1148:6:write_seg_data_4	16	static,ignoring_inline_asm
 ../Core/Src/HT1622.c:1159:6:write_seg_data_44	24	static,ignoring_inline_asm
