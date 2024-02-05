@@ -437,7 +437,7 @@ void powerMeterSetup(){
 			  gainCurr_ht7036,
 			  gainCurr_ht7036,
 	};
-//	powerRestoreCalib();
+	// powerRestoreCalib();
 	powerSetup(address,addressData,spiStatus,12);
 	powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
 	powerSplitValue();
