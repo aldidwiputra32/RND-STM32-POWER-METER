@@ -190,6 +190,7 @@ uint16_t holdingRegisterValue[144]	= {0};
 extern uint16_t addressModbus;
 
 //------------------------- GROUP VARIABLE EEPROM EXTERNAL 8K ---------------------------------
+uint8_t eepromSize = 134;
 uint8_t eepromBufferRead[134];
 uint8_t eepromBufferWrite[134];
 uint32_t eepromTimerDelta = 0;
@@ -1073,7 +1074,6 @@ void eepromLoad(){
 	Modbus.holdingRegisterValue[addressSlave[0]+3] = byte32Low((uint32_t)(powerCoefApparentB*1000000000));
 	Modbus.holdingRegisterValue[addressSlave[0]+4] = byte32High((uint32_t)(powerCoefApparentC*1000000000));			// decode param power apparent coef C >> 0x6009, 0x600A
 	Modbus.holdingRegisterValue[addressSlave[0]+5] = byte32Low((uint32_t)(powerCoefApparentC*1000000000));
-
 }
 
 void eepromLoop(){
@@ -1097,14 +1097,6 @@ void eepromLoop(){
 		phase = PHASE_RST;
 		stateConfig = 0;
 
-		// -----------------------------------
-
-		offsetEnergyActive = 0;
-		offsetEnergyReactive = 0;
-		energyActiveA_uint = 0;//999999997000;
-		energyReactiveA_uint = 0;//999999997000;
-
-		// -----------------------------------
 		// ENCODE DATA & WRITE EEPROM
 		eepromEncode(
 				energyActiveA_uint,							energyActiveB_uint,							energyActiveC_uint,
@@ -1121,6 +1113,21 @@ void eepromLoop(){
 				offsetEnergyActive,							offsetEnergyReactive
 		);
 		ee24_write(0, (uint8_t*)eepromBufferWrite, sizeof(eepromBufferWrite), 1000);
+		// CONFIRM READING DATA
+		uint8_t stateEeprom = 1;
+		uint8_t checkStateEeprom = 1;
+		for(uint8_t indeksCheck=0; indeksCheck<5; indeksCheck++){ // CHECKING UNTIL 5 TRY
+			eepromLoad();
+			for(uint8_t indeks=0;indeks<eepromSize;indeks++){
+				checkStateEeprom = eepromBufferRead[indeks] == eepromBufferWrite[indeks];
+				stateEeprom = stateEeprom && checkStateEeprom;
+			}
+			if(stateEeprom == 0){
+				ee24_write(0, (uint8_t*)eepromBufferWrite, sizeof(eepromBufferWrite), 1000);
+			}else{
+				break;
+			}
+		}
 	}
 }
 
@@ -1264,8 +1271,18 @@ void powerSplitValue(){
 	energyActiveA = valueFloat[24];			energyActiveB = valueFloat[25];			energyActiveC = valueFloat[26];		energyActiveCombine = valueFloat[27];
 	energyReactiveA = valueFloat[28];		energyReactiveB = valueFloat[29];		energyReactiveC = valueFloat[30];	energyReactiveCombine = valueFloat[31];
 	// GETTING DATA FROM FLOAT ARRAY TO FLOAT32 (ENERGY GROUP SENSOR) >> DECODE
+	// TESTING --------------------------------------------- PLEASE UNCOMMENCT AFTER FIX
+	// -------------------------------- TESTING START
+//			energyActiveA_uint+=1;
+//			energyActiveB_uint+=1;
+//			energyActiveC_uint+=1;
+//			energyReactiveA_uint+=1;
+//			energyReactiveB_uint+=1;
+//			energyReactiveC_uint+=1;
+	// -------------------------------- TESTING END
 	energyActiveA_uint = energyModbus[0];	energyActiveB_uint = energyModbus[1];	energyActiveC_uint = energyModbus[2];
 	energyReactiveA_uint = energyModbus[4];	energyReactiveB_uint = energyModbus[5];	energyReactiveC_uint = energyModbus[6];
+	// TESTING --------------------------------------------- PLEASE UNCOMMENCT AFTER FIX
 	energyModbus[3] = energyActiveA_uint + energyActiveB_uint + energyActiveC_uint;
 	energyModbus[7] = energyReactiveA_uint + energyReactiveB_uint + energyReactiveC_uint;
 	// DATA PROCESSING
