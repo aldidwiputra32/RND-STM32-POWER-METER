@@ -1124,6 +1124,7 @@ void eepromLoop(){
 			}
 			if(stateEeprom == 0){
 				ee24_write(0, (uint8_t*)eepromBufferWrite, sizeof(eepromBufferWrite), 1000);
+				HAL_Delay(10);
 			}else{
 				break;
 			}
@@ -1271,15 +1272,6 @@ void powerSplitValue(){
 	energyActiveA = valueFloat[24];			energyActiveB = valueFloat[25];			energyActiveC = valueFloat[26];		energyActiveCombine = valueFloat[27];
 	energyReactiveA = valueFloat[28];		energyReactiveB = valueFloat[29];		energyReactiveC = valueFloat[30];	energyReactiveCombine = valueFloat[31];
 	// GETTING DATA FROM FLOAT ARRAY TO FLOAT32 (ENERGY GROUP SENSOR) >> DECODE
-	// TESTING --------------------------------------------- PLEASE UNCOMMENCT AFTER FIX
-	// -------------------------------- TESTING START
-//			energyActiveA_uint+=1;
-//			energyActiveB_uint+=1;
-//			energyActiveC_uint+=1;
-//			energyReactiveA_uint+=1;
-//			energyReactiveB_uint+=1;
-//			energyReactiveC_uint+=1;
-	// -------------------------------- TESTING END
 	energyActiveA_uint = energyModbus[0];	energyActiveB_uint = energyModbus[1];	energyActiveC_uint = energyModbus[2];
 	energyReactiveA_uint = energyModbus[4];	energyReactiveB_uint = energyModbus[5];	energyReactiveC_uint = energyModbus[6];
 	// TESTING --------------------------------------------- PLEASE UNCOMMENCT AFTER FIX
