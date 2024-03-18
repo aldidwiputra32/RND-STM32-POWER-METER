@@ -1274,7 +1274,6 @@ void powerSplitValue(){
 	// GETTING DATA FROM FLOAT ARRAY TO FLOAT32 (ENERGY GROUP SENSOR) >> DECODE
 	energyActiveA_uint = energyModbus[0];	energyActiveB_uint = energyModbus[1];	energyActiveC_uint = energyModbus[2];
 	energyReactiveA_uint = energyModbus[4];	energyReactiveB_uint = energyModbus[5];	energyReactiveC_uint = energyModbus[6];
-	// TESTING --------------------------------------------- PLEASE UNCOMMENCT AFTER FIX
 	energyModbus[3] = energyActiveA_uint + energyActiveB_uint + energyActiveC_uint;
 	energyModbus[7] = energyReactiveA_uint + energyReactiveB_uint + energyReactiveC_uint;
 	// DATA PROCESSING
