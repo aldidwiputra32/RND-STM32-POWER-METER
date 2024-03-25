@@ -328,12 +328,17 @@ int main(void)
   // SETUP POWER METER
   powerMeterSetup();
 
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  // TESTING
+	  ee24_read(0, (uint8_t*)eepromBufferRead, sizeof(eepromBufferRead), 100);
+	  // TESTING
+
 	  // POWER GROUP FUNCTION (TIMER, READ SENSOR, DATA PROCESSING, CALIB HANDLING) >> ASYNCRONOUS TASK
 	  powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
 	  powerSplitValue();
