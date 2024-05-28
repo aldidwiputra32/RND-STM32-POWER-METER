@@ -190,9 +190,9 @@ uint16_t holdingRegisterValue[144]	= {0};
 extern uint16_t addressModbus;
 
 //------------------------- GROUP VARIABLE EEPROM EXTERNAL 8K ---------------------------------
-uint8_t eepromSize = 134;
-uint8_t eepromBufferRead[134];
-uint8_t eepromBufferWrite[134];
+uint8_t eepromSize = 136;
+uint8_t eepromBufferRead[136]; // before modify >> 134
+uint8_t eepromBufferWrite[136]; // before modify >> 134
 uint32_t eepromTimerDelta = 0;
 uint32_t eepromTimer = 0;
 
@@ -781,239 +781,252 @@ void eepromLoad(){
 	uint32_t bufferUint32;
 	// GET DATA FROM EEPROM EXTERNAL
 	ee24_read(0, (uint8_t*)eepromBufferRead, sizeof(eepromBufferRead), 1000);// for(uint8_t indeks=0;indeks<64;indeks++)ee24VirtualRead(&eepromBufferRead[indeks], 0, 1024, indeks);
-	// DECODE DATA
-	for(uint8_t indeks=0;indeks<135;indeks++){
 
-		// DECODE ACTIVE ENERGY PHASE A >> valueuint64 [0];
-		if(indeks>=0 && indeks<8)buffer8[indeks] = eepromBufferRead[indeks];
-		if(indeks == 7){
-			uint8Touint64(&energyActiveA_uint, buffer8);
-			if(energyActiveA_uint == 0xFFFFFFFFFFFFFFFF)energyActiveA_uint = ENERGY_ACTIVE_A_DEF;
-			indeksAddress = 0;
-		}
-		// DECODE ACTIVE ENERGY PHASE B
-		if(indeks>=8 && indeks<16)buffer8[indeksAddress++] = eepromBufferRead[indeks];
-		if(indeks == 15){
-			uint8Touint64(&energyActiveB_uint, buffer8);
-			if(energyActiveB_uint == 0xFFFFFFFFFFFFFFFF)energyActiveB_uint = ENERGY_ACTIVE_B_DEF;
-			indeksAddress = 0;
-		}
-		// DECODE ACTIVE ENERGY PHASE C
-		if(indeks>=16 && indeks<24)buffer8[indeksAddress++] = eepromBufferRead[indeks];
-		if(indeks == 23){
-			uint8Touint64(&energyActiveC_uint, buffer8);
-			if(energyActiveC_uint == 0xFFFFFFFFFFFFFFFF)energyActiveC_uint = ENERGY_ACTIVE_C_DEF;
-			indeksAddress = 0;
-		}
-		// DECODE REACTIVE ENERGY PHASE A
-		if(indeks>=24 && indeks<32)buffer8[indeksAddress++] = eepromBufferRead[indeks];
-		if(indeks == 31){
-			uint8Touint64(&energyReactiveA_uint, buffer8);
-			if(energyReactiveA_uint == 0xFFFFFFFFFFFFFFFF)energyReactiveA_uint = ENERGY_REACTIVE_A_DEF;
-			indeksAddress = 0;
-		}
-		// DECODE REACRIVE ENERGY PHASE B
-		if(indeks>=32 && indeks<40)buffer8[indeksAddress++] = eepromBufferRead[indeks];
-		if(indeks == 39){
-			uint8Touint64(&energyReactiveB_uint, buffer8);
-			if(energyReactiveB_uint == 0xFFFFFFFFFFFFFFFF)energyReactiveB_uint = ENERGY_REACTIVE_B_DEF;
-			indeksAddress = 0;
-		}
-		// DECODE REACTIVE ENERGY PHASE C
-		if(indeks>=40 && indeks<48)buffer8[indeksAddress++] = eepromBufferRead[indeks];
-		if(indeks == 47){
-			uint8Touint64(&energyReactiveC_uint, buffer8);
-			if(energyReactiveC_uint == 0xFFFFFFFFFFFFFFFF)energyReactiveC_uint = ENERGY_REACTIVE_C_DEF;
-			indeksAddress = 0;
-		}
-		// GET DATE FROM EEPROM
-		if(	(indeks>=48 && indeks<50) || (indeks>=50 && indeks<52) ||
-			(indeks>=52 && indeks<54) || (indeks>=54 && indeks<56) ||
-			(indeks>=56 && indeks<58) || (indeks>=58 && indeks<60) ||
-			(indeks>=60 && indeks<62) || (indeks>=62 && indeks<64) ||
-			(indeks>=64 && indeks<66) || (indeks>=66 && indeks<68) ||
-			(indeks>=68 && indeks<70) ){
+	// CHECKING CRC EEPROM
+	uint8_t stateMemory = 0;
+	uint16_t bufferCrc = modbusCreateCRC(eepromBufferWrite, 134);
+	if((eepromBufferRead[134]==byteLow(bufferCrc) && (eepromBufferRead[135]==byteHigh(bufferCrc)))){stateMemory = 1;}
+	else{stateMemory = 0;}
+
+	// GET DATA IF EEPROM NOT CORRUPT >> SOURCE DATA EXTERNAL EEPROM
+	if(stateMemory){
+		// DECODE DATA PROCESS
+		for(uint8_t indeks=0;indeks<135;indeks++){
+			// DECODE ACTIVE ENERGY PHASE A >> valueuint64 [0];
+			if(indeks>=0 && indeks<8)buffer8[indeks] = eepromBufferRead[indeks];
+			if(indeks == 7){
+				uint8Touint64(&energyActiveA_uint, buffer8);
+				if(energyActiveA_uint == 0xFFFFFFFFFFFFFFFF)energyActiveA_uint = ENERGY_ACTIVE_A_DEF;
+				indeksAddress = 0;
+			}
+			// DECODE ACTIVE ENERGY PHASE B
+			if(indeks>=8 && indeks<16)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+			if(indeks == 15){
+				uint8Touint64(&energyActiveB_uint, buffer8);
+				if(energyActiveB_uint == 0xFFFFFFFFFFFFFFFF)energyActiveB_uint = ENERGY_ACTIVE_B_DEF;
+				indeksAddress = 0;
+			}
+			// DECODE ACTIVE ENERGY PHASE C
+			if(indeks>=16 && indeks<24)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+			if(indeks == 23){
+				uint8Touint64(&energyActiveC_uint, buffer8);
+				if(energyActiveC_uint == 0xFFFFFFFFFFFFFFFF)energyActiveC_uint = ENERGY_ACTIVE_C_DEF;
+				indeksAddress = 0;
+			}
+			// DECODE REACTIVE ENERGY PHASE A
+			if(indeks>=24 && indeks<32)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+			if(indeks == 31){
+				uint8Touint64(&energyReactiveA_uint, buffer8);
+				if(energyReactiveA_uint == 0xFFFFFFFFFFFFFFFF)energyReactiveA_uint = ENERGY_REACTIVE_A_DEF;
+				indeksAddress = 0;
+			}
+			// DECODE REACRIVE ENERGY PHASE B
+			if(indeks>=32 && indeks<40)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+			if(indeks == 39){
+				uint8Touint64(&energyReactiveB_uint, buffer8);
+				if(energyReactiveB_uint == 0xFFFFFFFFFFFFFFFF)energyReactiveB_uint = ENERGY_REACTIVE_B_DEF;
+				indeksAddress = 0;
+			}
+			// DECODE REACTIVE ENERGY PHASE C
+			if(indeks>=40 && indeks<48)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+			if(indeks == 47){
+				uint8Touint64(&energyReactiveC_uint, buffer8);
+				if(energyReactiveC_uint == 0xFFFFFFFFFFFFFFFF)energyReactiveC_uint = ENERGY_REACTIVE_C_DEF;
+				indeksAddress = 0;
+			}
+			// GET DATE FROM EEPROM
+			if(	(indeks>=48 && indeks<50) || (indeks>=50 && indeks<52) ||
+				(indeks>=52 && indeks<54) || (indeks>=54 && indeks<56) ||
+				(indeks>=56 && indeks<58) || (indeks>=58 && indeks<60) ||
+				(indeks>=60 && indeks<62) || (indeks>=62 && indeks<64) ||
+				(indeks>=64 && indeks<66) || (indeks>=66 && indeks<68) ||
+				(indeks>=68 && indeks<70) ){
+					buffer8[indeksAddress++] = eepromBufferRead[indeks];
+			}
+			// DECODE GROOUP CAALIBRATION
+			if((indeks==49) || (indeks==51) || (indeks==53) || (indeks==55) || (indeks==57) || (indeks==59) || (indeks==61) || (indeks==63) || (indeks==65) || (indeks==67) || (indeks==69)){
+				bufferUint16 = uint8ToUint16(buffer8[0], buffer8[1]);
+				indeksAddress = 0;
+			}
+
+			// DECODE OFFSET VOLTAGE SUPER USER [HT7036]
+			if(indeks==49){
+				if(bufferUint16 == 0xFFFF){offsetVolt_ht7036 = OFFSET_VOLT_HT_DEF;}
+				else{offsetVolt_ht7036 = bufferUint16;}
+			}
+			// DECODE OFFSET CURRENT SUPER USER [HT7036]
+			if(indeks==51){
+				if(bufferUint16 == 0xFFFF){offsetCurr_ht7036 = OFFSET_CURR_HT_DEF;}
+				else{offsetCurr_ht7036 = bufferUint16;}
+			}
+			// DECODE GAIN VOLTAGE SUPER USER [HT7036]
+			if(indeks==53){
+				if(bufferUint16 == 0xFFFF){gainVolt_ht7036 = GAIN_VOLT_HT_DEF;}
+				else{gainVolt_ht7036 = bufferUint16;}
+			}
+			// DECODE GAIN CURRANT SUPER USER [HT7036]
+			if(indeks==55){
+				if(bufferUint16 == 0xFFFF){gainCurr_ht7036 = GAIN_CURR_HT_DEF;}
+				else{gainCurr_ht7036 = bufferUint16;}
+			}
+			// DECODE OFFSET VOLTAGE USER [STM32]
+			if(indeks==57){
+				if(bufferUint16 == 0xFFFF){offsetVolt_stm32 = OFFSET_VOLT_STM_DEF;}
+				else{offsetVolt_stm32 = bufferUint16;}
+			}
+			// DECODE OFFSET CURRENT USER [STM32]
+			if(indeks==59){
+				if(bufferUint16 == 0xFFFF){offsetCurr_stm32 = OFFSET_CURR_STM_DEF;}
+				else{offsetCurr_stm32 = bufferUint16;}
+			}
+			// DECODE SLAVE ADDRESS MODBUS
+			if(indeks==61){
+				if(bufferUint16 == 0xFFFF){	Modbus.slaveAddrSlaveSecond = SLAVEID_DEF;}
+				else{Modbus.slaveAddrSlaveSecond = (uint8_t)bufferUint16;}
+			}
+			// DECODE POWER FACTOR CALIBRATION SUPER USER
+			if(indeks==63){
+				if(bufferUint16 == 0xFFFF){calibPF_ht7036 = (float)PHASE_CORRECTION_ONE;}
+				else{calibPF_ht7036 = bufferUint16;}
+			}
+			// DECODE GAIN POWER FACTOR CALIBRATION >> STM32
+			if(indeks==65){
+				bufferInt16 = (int16_t)bufferUint16;
+				if(bufferUint16 == 0xFFFF){gainPF_stm32 = (float)GAIN_PF_DEF;}
+				else{gainPF_stm32 = (float)bufferInt16/10000;}
+			}
+			// DECODE OFFSET POWER FACTOR CALIBRATION
+			if(indeks==67){
+				bufferInt16 = (int16_t)bufferUint16;
+				if(bufferUint16 == 0xFFFF){offsetPF_stm32 = (float)OFFSET_PF_DEF;}
+				else{offsetPF_stm32 = (float)bufferInt16/10000;}
+			}
+			// DECODE GAIN CURRENT VIA BUTTTON SET
+			if(indeks==69){
+				if(bufferUint16 == 0xFFFF){gainCurrentButton_stm32 = GAIN_BUTTON_DEF;}
+				else{gainCurrentButton_stm32 = bufferUint16;}
+			}
+
+			// GET DATA FROM EEPROM
+			if(	(indeks>=70 && indeks<74) || (indeks>=74 && indeks<78) ||
+				(indeks>=78 && indeks<82) || (indeks>=82 && indeks<86) ||
+				(indeks>=86 && indeks<90) || (indeks>=90 && indeks<94) ||
+				(indeks>=94 && indeks<98) || (indeks>=98 && indeks<102)||
+				(indeks>=102 && indeks<106)){
 				buffer8[indeksAddress++] = eepromBufferRead[indeks];
-		}
-		// DECODE GROOUP CAALIBRATION
-		if((indeks==49) || (indeks==51) || (indeks==53) || (indeks==55) || (indeks==57) || (indeks==59) || (indeks==61) || (indeks==63) || (indeks==65) || (indeks==67) || (indeks==69)){
-			bufferUint16 = uint8ToUint16(buffer8[0], buffer8[1]);
-			indeksAddress = 0;
-		}
-
-		// DECODE OFFSET VOLTAGE SUPER USER [HT7036]
-		if(indeks==49){
-			if(bufferUint16 == 0xFFFF){offsetVolt_ht7036 = OFFSET_VOLT_HT_DEF;}
-			else{offsetVolt_ht7036 = bufferUint16;}
-		}
-		// DECODE OFFSET CURRENT SUPER USER [HT7036]
-		if(indeks==51){
-			if(bufferUint16 == 0xFFFF){offsetCurr_ht7036 = OFFSET_CURR_HT_DEF;}
-			else{offsetCurr_ht7036 = bufferUint16;}
-		}
-		// DECODE GAIN VOLTAGE SUPER USER [HT7036]
-		if(indeks==53){
-			if(bufferUint16 == 0xFFFF){gainVolt_ht7036 = GAIN_VOLT_HT_DEF;}
-			else{gainVolt_ht7036 = bufferUint16;}
-		}
-		// DECODE GAIN CURRANT SUPER USER [HT7036]
-		if(indeks==55){
-			if(bufferUint16 == 0xFFFF){gainCurr_ht7036 = GAIN_CURR_HT_DEF;}
-			else{gainCurr_ht7036 = bufferUint16;}
-		}
-		// DECODE OFFSET VOLTAGE USER [STM32]
-		if(indeks==57){
-			if(bufferUint16 == 0xFFFF){offsetVolt_stm32 = OFFSET_VOLT_STM_DEF;}
-			else{offsetVolt_stm32 = bufferUint16;}
-		}
-		// DECODE OFFSET CURRENT USER [STM32]
-		if(indeks==59){
-			if(bufferUint16 == 0xFFFF){offsetCurr_stm32 = OFFSET_CURR_STM_DEF;}
-			else{offsetCurr_stm32 = bufferUint16;}
-		}
-		// DECODE SLAVE ADDRESS MODBUS
-		if(indeks==61){
-			if(bufferUint16 == 0xFFFF){	Modbus.slaveAddrSlaveSecond = SLAVEID_DEF;}
-			else{Modbus.slaveAddrSlaveSecond = (uint8_t)bufferUint16;}
-		}
-		// DECODE POWER FACTOR CALIBRATION SUPER USER
-		if(indeks==63){
-			if(bufferUint16 == 0xFFFF){calibPF_ht7036 = (float)PHASE_CORRECTION_ONE;}
-			else{calibPF_ht7036 = bufferUint16;}
-		}
-		// DECODE GAIN POWER FACTOR CALIBRATION >> STM32
-		if(indeks==65){
-			bufferInt16 = (int16_t)bufferUint16;
-			if(bufferUint16 == 0xFFFF){gainPF_stm32 = (float)GAIN_PF_DEF;}
-			else{gainPF_stm32 = (float)bufferInt16/10000;}
-		}
-		// DECODE OFFSET POWER FACTOR CALIBRATION
-		if(indeks==67){
-			bufferInt16 = (int16_t)bufferUint16;
-			if(bufferUint16 == 0xFFFF){offsetPF_stm32 = (float)OFFSET_PF_DEF;}
-			else{offsetPF_stm32 = (float)bufferInt16/10000;}
-		}
-		// DECODE GAIN CURRENT VIA BUTTTON SET
-		if(indeks==69){
-			if(bufferUint16 == 0xFFFF){gainCurrentButton_stm32 = GAIN_BUTTON_DEF;}
-			else{gainCurrentButton_stm32 = bufferUint16;}
-		}
-
-		// GET DATA FROM EEPROM
-		if(	(indeks>=70 && indeks<74) || (indeks>=74 && indeks<78) ||
-			(indeks>=78 && indeks<82) || (indeks>=82 && indeks<86) ||
-			(indeks>=86 && indeks<90) || (indeks>=90 && indeks<94) ||
-			(indeks>=94 && indeks<98) || (indeks>=98 && indeks<102)||
-			(indeks>=102 && indeks<106)){
-			buffer8[indeksAddress++] = eepromBufferRead[indeks];
-		}
-		// DECODE GROUP POWER COEFICIENT
-		if((indeks==73) || (indeks==77) || (indeks==81) || (indeks==85) || (indeks==89) || (indeks==93) || (indeks==97) || (indeks==101) || (indeks==105)){
-			bufferUint32 = uint16ToUint32(uint8ToUint16(buffer8[0],buffer8[1]),uint8ToUint16(buffer8[2],buffer8[3]));
-			indeksAddress = 0;
-		}
-		// DECODE POWER ACTIVE COEFFICIENT A
-		if(indeks==73){
-			if(bufferUint32 == 0xFFFFFFFF){powerCoefActiveA = POWER_ACTIVE_A_COEF_DEF;}
-			else{powerCoefActiveA = (float)bufferUint32/1000000000;}
-		}
-		// DECODE POWER ACTIVE COEFFICIENT B
-		if(indeks==77){
-			if(bufferUint32 == 0xFFFFFFFF){powerCoefActiveB = POWER_ACTIVE_B_COEF_DEF;}
-			else{powerCoefActiveB = (float)bufferUint32/1000000000;}
-		}
-		// DECODE POWER ACTIVE COEFFICIENT C
-		if(indeks==81){
-			if(bufferUint32 == 0xFFFFFFFF){powerCoefActiveC = POWER_ACTIVE_C_COEF_DEF;}
-			else{powerCoefActiveC = (float)bufferUint32/1000000000;}
-		}
-		// DECODE POWER REACTIVE COEFFICIENT A
-		if(indeks==85){
-			if(bufferUint32 == 0xFFFFFFFF){powerCoefReactiveA = POWER_REACTIVE_A_COEF_DEF;}
-			else{powerCoefReactiveA = (float)bufferUint32/1000000000;}
-		}
-		// DECODE POWER REACTIVE COEFFICIENT B
-		if(indeks==89){
-			if(bufferUint32 == 0xFFFFFFFF){powerCoefReactiveB = POWER_REACTIVE_B_COEF_DEF;}
-			else{powerCoefReactiveB = (float)bufferUint32/1000000000;}
-		}
-		// DECODE POWER REACTIVE COEFFICIENT C
-		if(indeks==93){
-			if(bufferUint32 == 0xFFFFFFFF){powerCoefReactiveC = POWER_REACTIVE_C_COEF_DEF;}
-			else{powerCoefReactiveC = (float)bufferUint32/1000000000;}
-		}
-		// DECODE POWER APPARENT COEFFICIENT A
-		if(indeks==97){
-			if(bufferUint32 == 0xFFFFFFFF){powerCoefApparentA = POWER_APPARENT_A_COEF_DEF;}
-			else{powerCoefApparentA = (float)bufferUint32/1000000000;}
-		}
-		// DECODE POWER APPARENT COEFFICIENT B
-		if(indeks==101){
-			if(bufferUint32 == 0xFFFFFFFF){powerCoefApparentB= POWER_APPARENT_B_COEF_DEF;}
-			else{powerCoefApparentB = (float)bufferUint32/1000000000;}
-		}
-		// DECODE POWER APPARENT COEFFICIENT C
-		if(indeks==105){
-			if(bufferUint32 == 0xFFFFFFFF){powerCoefApparentC = POWER_APPARENT_C_COEF_DEF;}
-			else{powerCoefApparentC = (float)bufferUint32/1000000000;}
-		}
-		// GET DATA FROM EEPROM
-		if(		(indeks>=106 && indeks<108) || (indeks>=108 && indeks<110) ||
-				(indeks>=110 && indeks<112) || (indeks>=112 && indeks<114) ||
-				(indeks>=114 && indeks<116) || (indeks>=116 && indeks<118)){
-			buffer8[indeksAddress++] = eepromBufferRead[indeks];
-		}
-		// DECODE GROUP GAIN RMS VOLTAGE AND CURRENT
-		if((indeks==107) || (indeks==109) || (indeks==111) || (indeks==113) || (indeks==113) || (indeks==115) || (indeks==117)){
-			bufferUint16 = uint8ToUint16(buffer8[0], buffer8[1]);
-			indeksAddress = 0;
-		}
-		// DECODDE GAIN VOLTAGE A
-		if(indeks==107){
-			if(bufferUint16 == 0xFFFF){	gainVoltageA = GAIN_VOLT_STM_DEF_A;}
-			else{gainVoltageA = (float)bufferUint16/1000;}
-		}
-		// DECODDE GAIN VOLTAGE B
-		if(indeks==109){
-			if(bufferUint16 == 0xFFFF){	gainVoltageB = GAIN_VOLT_STM_DEF_B;}
-			else{gainVoltageB = (float)bufferUint16/1000;}
-		}
-		// DECODDE GAIN VOLTAGE C
-		if(indeks==111){
-			if(bufferUint16 == 0xFFFF){	gainVoltageC = GAIN_VOLT_STM_DEF_C;}
-			else{gainVoltageC = (float)bufferUint16/1000;}
-		}
-		// DECODDE GAIN CURRENT A
-		if(indeks==113){
-			if(bufferUint16 == 0xFFFF){	gainCurrentA = GAIN_CURR_STM_DEF_A;}
-			else{gainCurrentA = (float)bufferUint16/1000;}
-		}
-		// DECODDE GAIN CURRENT B
-		if(indeks==115){
-			if(bufferUint16 == 0xFFFF){	gainCurrentB = GAIN_CURR_STM_DEF_B;}
-			else{gainCurrentB = (float)bufferUint16/1000;}
-		}
-		// DECODDE GAIN CURRENT C
-		if(indeks==117){
-			if(bufferUint16 == 0xFFFF){	gainCurrentC = GAIN_CURR_STM_DEF_C;}
-			else{gainCurrentC = (float)bufferUint16/1000;}
-		}
-		// DECODE GAIN OFFSET ENERGY ACTIVE FOR AUTO RESET
-		if(indeks>=118 && indeks<126){buffer8[indeksAddress++] = eepromBufferRead[indeks];
-			if(indeks == 125){
-				uint8Touint64(&offsetEnergyActive, buffer8);
-				if(offsetEnergyActive == 0xFFFFFFFFFFFFFFFF)offsetEnergyActive = 0;
+			}
+			// DECODE GROUP POWER COEFICIENT
+			if((indeks==73) || (indeks==77) || (indeks==81) || (indeks==85) || (indeks==89) || (indeks==93) || (indeks==97) || (indeks==101) || (indeks==105)){
+				bufferUint32 = uint16ToUint32(uint8ToUint16(buffer8[0],buffer8[1]),uint8ToUint16(buffer8[2],buffer8[3]));
 				indeksAddress = 0;
 			}
-		}
-		// DECODE GAIN OFFSET ENERGY REACTIVE FOR AUTO RESET
-		if(indeks>=126 && indeks<134){buffer8[indeksAddress++] = eepromBufferRead[indeks];
-			if(indeks == 133){
-				uint8Touint64(&offsetEnergyReactive, buffer8);
-				if(offsetEnergyReactive == 0xFFFFFFFFFFFFFFFF)offsetEnergyReactive = 0;
+			// DECODE POWER ACTIVE COEFFICIENT A
+			if(indeks==73){
+				if(bufferUint32 == 0xFFFFFFFF){powerCoefActiveA = POWER_ACTIVE_A_COEF_DEF;}
+				else{powerCoefActiveA = (float)bufferUint32/1000000000;}
+			}
+			// DECODE POWER ACTIVE COEFFICIENT B
+			if(indeks==77){
+				if(bufferUint32 == 0xFFFFFFFF){powerCoefActiveB = POWER_ACTIVE_B_COEF_DEF;}
+				else{powerCoefActiveB = (float)bufferUint32/1000000000;}
+			}
+			// DECODE POWER ACTIVE COEFFICIENT C
+			if(indeks==81){
+				if(bufferUint32 == 0xFFFFFFFF){powerCoefActiveC = POWER_ACTIVE_C_COEF_DEF;}
+				else{powerCoefActiveC = (float)bufferUint32/1000000000;}
+			}
+			// DECODE POWER REACTIVE COEFFICIENT A
+			if(indeks==85){
+				if(bufferUint32 == 0xFFFFFFFF){powerCoefReactiveA = POWER_REACTIVE_A_COEF_DEF;}
+				else{powerCoefReactiveA = (float)bufferUint32/1000000000;}
+			}
+			// DECODE POWER REACTIVE COEFFICIENT B
+			if(indeks==89){
+				if(bufferUint32 == 0xFFFFFFFF){powerCoefReactiveB = POWER_REACTIVE_B_COEF_DEF;}
+				else{powerCoefReactiveB = (float)bufferUint32/1000000000;}
+			}
+			// DECODE POWER REACTIVE COEFFICIENT C
+			if(indeks==93){
+				if(bufferUint32 == 0xFFFFFFFF){powerCoefReactiveC = POWER_REACTIVE_C_COEF_DEF;}
+				else{powerCoefReactiveC = (float)bufferUint32/1000000000;}
+			}
+			// DECODE POWER APPARENT COEFFICIENT A
+			if(indeks==97){
+				if(bufferUint32 == 0xFFFFFFFF){powerCoefApparentA = POWER_APPARENT_A_COEF_DEF;}
+				else{powerCoefApparentA = (float)bufferUint32/1000000000;}
+			}
+			// DECODE POWER APPARENT COEFFICIENT B
+			if(indeks==101){
+				if(bufferUint32 == 0xFFFFFFFF){powerCoefApparentB= POWER_APPARENT_B_COEF_DEF;}
+				else{powerCoefApparentB = (float)bufferUint32/1000000000;}
+			}
+			// DECODE POWER APPARENT COEFFICIENT C
+			if(indeks==105){
+				if(bufferUint32 == 0xFFFFFFFF){powerCoefApparentC = POWER_APPARENT_C_COEF_DEF;}
+				else{powerCoefApparentC = (float)bufferUint32/1000000000;}
+			}
+			// GET DATA FROM EEPROM
+			if(		(indeks>=106 && indeks<108) || (indeks>=108 && indeks<110) ||
+					(indeks>=110 && indeks<112) || (indeks>=112 && indeks<114) ||
+					(indeks>=114 && indeks<116) || (indeks>=116 && indeks<118)){
+				buffer8[indeksAddress++] = eepromBufferRead[indeks];
+			}
+			// DECODE GROUP GAIN RMS VOLTAGE AND CURRENT
+			if((indeks==107) || (indeks==109) || (indeks==111) || (indeks==113) || (indeks==113) || (indeks==115) || (indeks==117)){
+				bufferUint16 = uint8ToUint16(buffer8[0], buffer8[1]);
 				indeksAddress = 0;
 			}
+			// DECODDE GAIN VOLTAGE A
+			if(indeks==107){
+				if(bufferUint16 == 0xFFFF){	gainVoltageA = GAIN_VOLT_STM_DEF_A;}
+				else{gainVoltageA = (float)bufferUint16/1000;}
+			}
+			// DECODDE GAIN VOLTAGE B
+			if(indeks==109){
+				if(bufferUint16 == 0xFFFF){	gainVoltageB = GAIN_VOLT_STM_DEF_B;}
+				else{gainVoltageB = (float)bufferUint16/1000;}
+			}
+			// DECODDE GAIN VOLTAGE C
+			if(indeks==111){
+				if(bufferUint16 == 0xFFFF){	gainVoltageC = GAIN_VOLT_STM_DEF_C;}
+				else{gainVoltageC = (float)bufferUint16/1000;}
+			}
+			// DECODDE GAIN CURRENT A
+			if(indeks==113){
+				if(bufferUint16 == 0xFFFF){	gainCurrentA = GAIN_CURR_STM_DEF_A;}
+				else{gainCurrentA = (float)bufferUint16/1000;}
+			}
+			// DECODDE GAIN CURRENT B
+			if(indeks==115){
+				if(bufferUint16 == 0xFFFF){	gainCurrentB = GAIN_CURR_STM_DEF_B;}
+				else{gainCurrentB = (float)bufferUint16/1000;}
+			}
+			// DECODDE GAIN CURRENT C
+			if(indeks==117){
+				if(bufferUint16 == 0xFFFF){	gainCurrentC = GAIN_CURR_STM_DEF_C;}
+				else{gainCurrentC = (float)bufferUint16/1000;}
+			}
+			// DECODE GAIN OFFSET ENERGY ACTIVE FOR AUTO RESET
+			if(indeks>=118 && indeks<126){buffer8[indeksAddress++] = eepromBufferRead[indeks];
+				if(indeks == 125){
+					uint8Touint64(&offsetEnergyActive, buffer8);
+					if(offsetEnergyActive == 0xFFFFFFFFFFFFFFFF)offsetEnergyActive = 0;
+					indeksAddress = 0;
+				}
+			}
+			// DECODE GAIN OFFSET ENERGY REACTIVE FOR AUTO RESET
+			if(indeks>=126 && indeks<134){buffer8[indeksAddress++] = eepromBufferRead[indeks];
+				if(indeks == 133){
+					uint8Touint64(&offsetEnergyReactive, buffer8);
+					if(offsetEnergyReactive == 0xFFFFFFFFFFFFFFFF)offsetEnergyReactive = 0;
+					indeksAddress = 0;
+				}
+			}
 		}
+	// GET DATA IF EEPROM CORRUPT >> SOURCE DATA FROM INTERNAL FLASH MEMORY
+	}else{
+
+
 	}
 	// SYNCRON FROM DATA EEPROM TO ENERGY[BUFFER ARRAY]
 	bufferEnergySUM[0] = (double)energyActiveA_uint;
@@ -1114,6 +1127,12 @@ void eepromLoop(){
 				(uint16_t)(gainCurrentA*1000),				(uint16_t)(gainCurrentB*1000),				(uint16_t)(gainCurrentC*1000),
 				offsetEnergyActive,							offsetEnergyReactive
 		);
+		// GENERATE CRC FOR EEPROM >> MODIFY BEGIN
+		uint16_t bufferCrc = modbusCreateCRC(eepromBufferWrite, 134); // mean value 134 >> total data of EEPROM
+		// CONVERT 32 TO 8 BIT ARRAY >> MODIFY END
+		eepromBufferWrite[134] = byteLow(bufferCrc);
+		eepromBufferWrite[135] = byteHigh(bufferCrc);
+
 		ee24_write(0, (uint8_t*)eepromBufferWrite, sizeof(eepromBufferWrite), 1000);
 		// CONFIRM READING DATA
 		uint8_t stateEeprom = 1;

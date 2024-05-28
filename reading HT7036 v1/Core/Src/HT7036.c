@@ -334,10 +334,18 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 		}
 		// GROUPING DATA ENERGY
 		if(indeks>=24 && indeks<32){
+			// INIT BUFFER ENERGY FOR CHECKING >> MODIFY BEGIN
+			double checkBufferEnergySUM[8];
 			// ABSOLUTED VALUE FUNCTION
 			handleAbsolute(&bufferEnergy[indeks-24]);
+			// CALCULTAION ENERGY BUFFER FOR
+			checkBufferEnergySUM[indeks-24] = (double)(bufferEnergy[indeks-24]*((float)powerTimerDelta/1000.00f)/3600.00f);
+			// HANDLING SPIKE ENERGY >> MODIFY END
+			if(checkBufferEnergySUM[indeks-24] > SPIKE_ENERGY_MAX){
+				checkBufferEnergySUM[indeks-24] = 0;
+			}
 			// CALCULATION MANUAL DATA SENSOR ENERGY => power*deltaSampling/3600000 >> all value must be uin64_t type variable
-			bufferEnergySUM[indeks-24] += (double)(bufferEnergy[indeks-24]*((float)powerTimerDelta/1000.00f)/3600.00f);  // watt hour
+			bufferEnergySUM[indeks-24] += checkBufferEnergySUM[indeks-24]; // before modify >> bufferEnergySUM[indeks-24] += (double)(bufferEnergy[indeks-24]*((float)powerTimerDelta/1000.00f)/3600.00f);  // watt hour
 			energyModbus[indeks-24] = (uint64_t)bufferEnergySUM[indeks-24];
 		}
 	}

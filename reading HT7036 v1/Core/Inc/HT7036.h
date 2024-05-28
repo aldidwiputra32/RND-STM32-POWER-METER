@@ -32,6 +32,7 @@
 #define IRMS_GAIN		6
 #define METER_CONSTANT	7
 #define PF_CALIB	 	8
+#define SPIKE_ENERGY_MAX	 ((double)4294967295) // in binner  >> 0xFFFF FFFF
 
 #define COEF_POWER(n) 	((2.592*10000000000)/(n*43.700f*8388608.000f)) // K = 2.592*10^10/(HFconst*EC*2^23)
 
