@@ -85,11 +85,13 @@ void menuLoop(){
 					if(buttonEnergyActive == RESET){
 						bufferEnergySUM[0] = bufferEnergySUM[1] = bufferEnergySUM[2] = bufferEnergySUM[3] = 0.00;
 						energyActiveA_uint = energyActiveB_uint = energyActiveC_uint = energyActiveCombine_uint = 0;
+						offsetEnergyActive = 0; // MODIFY >> 28/05/2024
 						buttonEnergyActive = NON_RESET;
 					}
 					if(buttonEnergyReactive == RESET){
 						bufferEnergySUM[4] = bufferEnergySUM[5] = bufferEnergySUM[6] = bufferEnergySUM[7] = 0.00;
 						energyReactiveA_uint = energyReactiveB_uint = energyReactiveC_uint = energyReactiveCombine_uint = 0;
+						offsetEnergyReactive = 0; // MODIFY >> 28/05/2024
 						buttonEnergyReactive = NON_RESET;
 					}
 					menuLevel = MENU_LEVEL_0;

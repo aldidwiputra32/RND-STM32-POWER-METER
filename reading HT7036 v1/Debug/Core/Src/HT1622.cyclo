@@ -9,7 +9,7 @@
 ../Core/Src/HT1622.c:1036:6:ht1622EncodeGroup	6
 ../Core/Src/HT1622.c:1078:9:ht1622GenerateBit	3
 ../Core/Src/HT1622.c:1091:6:integerToArray	2
-../Core/Src/HT1622.c:540:6:ht1622HandleUpdateRam	139
+../Core/Src/HT1622.c:540:6:ht1622HandleUpdateRam	147
 ../Core/Src/HT1622.c:491:6:ht1622UpdateRamChar	1
 ../Core/Src/HT1622.c:498:6:ht1622UpdateRamFloat	16
 ../Core/Src/HT1622.c:1137:6:send_command	1

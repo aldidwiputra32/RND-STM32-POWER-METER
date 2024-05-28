@@ -46,11 +46,11 @@
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:2905:19:HAL_HalfDuplex_EnableReceiver	2
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:2976:23:HAL_UART_GetState	1
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:2992:10:HAL_UART_GetError	1
-../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3040:19:UART_SetConfig	21
+../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3040:19:UART_SetConfig	19
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3178:6:UART_AdvFeatureConfig	10
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3321:19:UART_WaitOnFlagUntilTimeout	8
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:1152:19:HAL_UART_Transmit	13
-../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:1254:19:HAL_UART_Receive	15
+../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:1254:19:HAL_UART_Receive	14
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3252:19:UART_CheckIdleState	5
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:289:19:HAL_UART_Init	5
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:378:19:HAL_HalfDuplex_Init	5

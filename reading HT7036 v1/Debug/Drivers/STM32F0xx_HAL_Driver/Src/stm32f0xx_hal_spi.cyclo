@@ -1,5 +1,5 @@
-../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_spi.c:3964:26:SPI_WaitFifoStateUntilTimeout.constprop	9
-../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_spi.c:3895:26:SPI_WaitFlagStateUntilTimeout.constprop	8
+../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_spi.c:3895:26:SPI_WaitFlagStateUntilTimeout.constprop	9
+../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_spi.c:3964:26:SPI_WaitFifoStateUntilTimeout.constprop	10
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_spi.c:4295:13:SPI_AbortRx_ISR	5
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_spi.c:4044:26:SPI_EndRxTransaction	9
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_spi.c:4080:26:SPI_EndRxTxTransaction	4

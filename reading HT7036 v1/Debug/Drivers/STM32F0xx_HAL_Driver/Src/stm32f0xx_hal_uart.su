@@ -49,7 +49,7 @@
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3040:19:UART_SetConfig	16	static
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3178:6:UART_AdvFeatureConfig	12	static
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3321:19:UART_WaitOnFlagUntilTimeout	32	static
-../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:1152:19:HAL_UART_Transmit	40	static
+../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:1152:19:HAL_UART_Transmit	48	static
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:1254:19:HAL_UART_Receive	48	static
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3252:19:UART_CheckIdleState	24	static,ignoring_inline_asm
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:289:19:HAL_UART_Init	8	static
