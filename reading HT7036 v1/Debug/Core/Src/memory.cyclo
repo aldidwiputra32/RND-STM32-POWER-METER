@@ -1,0 +1,15 @@
+../Core/Src/memory.c:18:10:GetPage	1
+../Core/Src/memory.c:22:6:memorySetup	1
+../Core/Src/memory.c:34:6:memoryMultipleRead64	3
+../Core/Src/memory.c:55:6:memorySingleRead	1
+../Core/Src/memory.c:48:6:memoryMultipleRead32	2
+../Core/Src/memory.c:65:6:memoryVirtualRead	5
+../Core/Src/memory.c:92:6:memoryReset	2
+../Core/Src/memory.c:101:9:memoryMultipleWrite	3
+../Core/Src/memory.c:117:6:memoryVirtualWrite	4
+../Core/Src/memory.c:141:10:bytePack64	1
+../Core/Src/memory.c:145:10:bytePack32	1
+../Core/Src/memory.c:153:6:pmMemoryWrite	3
+../Core/Src/memory.c:170:6:pmMemoryRead	2
+../Core/Src/memory.c:176:6:pmEncode	1
+../Core/Src/memory.c:193:6:pmDecode	6

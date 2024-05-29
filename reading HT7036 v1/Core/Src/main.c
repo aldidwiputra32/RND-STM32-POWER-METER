@@ -33,6 +33,7 @@
 #include "buttonInterface.h"
 #include "HT1622.h"
 #include "math.h"
+#include "memory.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -209,6 +210,13 @@ extern uint8_t stateConfigButton;
 //------------------------- GROUP VARIABLE DISPLAY 7-SEGMENT ---------------------------------
 uint32_t backlightTimer;
 uint8_t backlightState=1;
+//---------------------------- GROUP VARIABLE FLASH MEMORY -----------------------------------
+extern uint32_t flashAddrVirtual;
+uint32_t bufferFlash[5];
+uint8_t timerFlash=0;
+// TESTING BEGIN
+//uint32_t bufferWrite[5];
+// TESTING END
 
 /* USER CODE END PV */
 
@@ -328,8 +336,38 @@ int main(void)
   // SETUP POWER METER
   powerMeterSetup();
 
-  ee24_read(0, (uint8_t*)eepromBufferRead, sizeof(eepromBufferRead), 100);
-
+  // ----------------------------------- TESTING BEGIN -----------------------------------
+//  memoryReset(FLASH_USER_START_ADDR, FLASH_USER_END_ADDR);
+//  HAL_Delay(10);
+//  pmMemoryRead(bufferRead);
+//  for(uint8_t index=0;index<51;index++){
+//	  pmMemoryWrite(bufferWrite);
+//  }
+//  pmMemoryWrite(bufferWrite);
+//  pmMemoryWrite(bufferWrite);
+//  pmMemoryWrite(bufferWrite);
+//  pmMemoryRead(bufferRead);
+//  pmMemoryWrite(bufferWrite);
+//  energyActiveA_uint = 0;
+//  energyActiveB_uint = 0;
+//  energyActiveC_uint = 112233445566778899;
+//  energyReactiveA_uint = 0;
+//  energyReactiveB_uint = 0;
+//  energyReactiveC_uint = 998877665544332211;
+//  gainCurrentButton_stm32 = 70;
+//  Modbus.slaveAddrSlaveSecond = 80;
+//  pmEncode(bufferWrite);
+//  energyActiveA_uint = 0;
+//  energyActiveB_uint = 0;
+//  energyActiveC_uint = 0;
+//  energyReactiveA_uint = 0;
+//  energyReactiveB_uint = 0;
+//  energyReactiveC_uint = 0;
+//  gainCurrentButton_stm32 = 0;
+//  Modbus.slaveAddrSlaveSecond = 0;
+//  pmDecode(bufferWrite);
+//  for(;;);
+  // ----------------------------------- TESTING END -----------------------------------
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -781,11 +819,16 @@ void eepromLoad(){
 	uint32_t bufferUint32;
 	// GET DATA FROM EEPROM EXTERNAL
 	ee24_read(0, (uint8_t*)eepromBufferRead, sizeof(eepromBufferRead), 1000);// for(uint8_t indeks=0;indeks<64;indeks++)ee24VirtualRead(&eepromBufferRead[indeks], 0, 1024, indeks);
-
-	// CHECKING CRC EEPROM
+	// GET DATA FROM FLASH MEMORY
+	pmMemoryRead(bufferFlash);
+	// CHECKING CRC EEPROM PROCESS
 	uint8_t stateMemory = 0;
-	uint16_t bufferCrc = modbusCreateCRC(eepromBufferWrite, 134);
-	if((eepromBufferRead[134]==byteLow(bufferCrc) && (eepromBufferRead[135]==byteHigh(bufferCrc)))){stateMemory = 1;}
+	uint16_t bufferCrc = modbusCreateCRC(eepromBufferRead, 134);
+	// CRC IS NOT AVAILABLE >> FIRST TIME
+	if((eepromBufferRead[134]==0xFF) && (eepromBufferRead[135]==0xFF)){stateMemory = 1;}
+	// COMPARING BYTE CRC EEPROM WITH GENERATE BYTE CRC >> CRC IS CORRECT
+	else if((eepromBufferRead[134]==byteLow(bufferCrc) && (eepromBufferRead[135]==byteHigh(bufferCrc)))){stateMemory = 1;}
+	// CRC IS NOT CORRECT
 	else{stateMemory = 0;}
 
 	// GET DATA IF EEPROM NOT CORRUPT >> SOURCE DATA EXTERNAL EEPROM
@@ -1025,8 +1068,19 @@ void eepromLoad(){
 		}
 	// GET DATA IF EEPROM CORRUPT >> SOURCE DATA FROM INTERNAL FLASH MEMORY
 	}else{
-
-
+		// GET OTHER DATA FROM DEFAULT VALUE
+		offsetEnergyReactive = 0; offsetEnergyActive = 0;
+		gainCurrentA=GAIN_CURR_STM_DEF_A; gainCurrentB=GAIN_CURR_STM_DEF_B; gainCurrentC=GAIN_CURR_STM_DEF_C;
+		gainVoltageA=GAIN_VOLT_STM_DEF_A; gainVoltageB=GAIN_VOLT_STM_DEF_B; gainVoltageC=GAIN_VOLT_STM_DEF_C;
+		powerCoefActiveA=POWER_ACTIVE_A_COEF_DEF; powerCoefActiveB=POWER_ACTIVE_B_COEF_DEF; powerCoefActiveC=POWER_ACTIVE_C_COEF_DEF;
+		powerCoefReactiveA=POWER_REACTIVE_A_COEF_DEF; powerCoefReactiveB=POWER_REACTIVE_B_COEF_DEF; powerCoefReactiveC=POWER_REACTIVE_C_COEF_DEF;
+		powerCoefApparentA=POWER_APPARENT_A_COEF_DEF; powerCoefApparentB=POWER_APPARENT_B_COEF_DEF; powerCoefApparentC=POWER_APPARENT_C_COEF_DEF;
+		offsetPF_stm32=(float)OFFSET_PF_DEF; gainPF_stm32=(float)GAIN_PF_DEF; calibPF_ht7036=(float)PHASE_CORRECTION_ONE;
+		offsetCurr_stm32=OFFSET_CURR_STM_DEF; offsetVolt_stm32=OFFSET_VOLT_STM_DEF;
+		gainCurr_ht7036=GAIN_CURR_HT_DEF; gainVolt_ht7036=GAIN_VOLT_HT_DEF;
+		offsetCurr_ht7036=OFFSET_CURR_HT_DEF; offsetVolt_ht7036=OFFSET_VOLT_HT_DEF;
+		// DECODE DATA FROM FLASH MEMORY & GET DATA MEMORY
+		pmDecode(bufferFlash);
 	}
 	// SYNCRON FROM DATA EEPROM TO ENERGY[BUFFER ARRAY]
 	bufferEnergySUM[0] = (double)energyActiveA_uint;
@@ -1093,8 +1147,10 @@ void eepromLoad(){
 
 void eepromLoop(){
 	eepromTimerDelta = HAL_GetTick() - eepromTimer;
+	// ROUTINE WRITE EEPROM
 	if(stateConfig || (eepromTimerDelta > INTERVAL_EEPROM)){
 		eepromTimer = HAL_GetTick();
+		timerFlash += 1;
 		// UPDATE VALUE SETTING PARAMETER VIA BUTTON
 		if(stateConfigButton){
 			// slave address
@@ -1110,8 +1166,6 @@ void eepromLoop(){
 		powerMultiReadSensor(addrSensor, valueSensor, valueFloat, 32);
 		powerSplitValue();
 		phase = PHASE_RST;
-		stateConfig = 0;
-
 		// ENCODE DATA & WRITE EEPROM
 		eepromEncode(
 				energyActiveA_uint,							energyActiveB_uint,							energyActiveC_uint,
@@ -1138,7 +1192,7 @@ void eepromLoop(){
 		uint8_t stateEeprom = 1;
 		uint8_t checkStateEeprom = 1;
 		for(uint8_t indeksCheck=0; indeksCheck<5; indeksCheck++){ // CHECKING UNTIL 5 TRY
-			eepromLoad();
+			ee24_read(0, (uint8_t*)eepromBufferRead, sizeof(eepromBufferRead), 1000);
 			for(uint8_t indeks=0;indeks<eepromSize;indeks++){
 				checkStateEeprom = eepromBufferRead[indeks] == eepromBufferWrite[indeks];
 				stateEeprom = stateEeprom && checkStateEeprom;
@@ -1151,134 +1205,92 @@ void eepromLoop(){
 			}
 		}
 	}
+	// ROUTINE WRITE FLASH
+	if((stateConfig) || (timerFlash >= 60)){
+		timerFlash = 0;
+		pmEncode(bufferFlash);
+		pmMemoryWrite(bufferFlash);
+	}
+	// RESET TRIGGER STATE CONFIG VIA BUTTON
+	stateConfig = 0;
+}
+
+void encodeUint64ToEeprom(uint8_t startIndex, uint64_t value) {
+    uint8_t buffer8[8];
+    uint64ToUint8(buffer8, value);
+    for (uint8_t i = 0; i < 8; i++) {
+        eepromBufferWrite[startIndex + i] = buffer8[i];
+    }
+}
+
+void encodeUint32ToEeprom(uint8_t startIndex, uint32_t value) {
+    eepromBufferWrite[startIndex] = byte16High(byte32High(value));
+    eepromBufferWrite[startIndex + 1] = byte16Low(byte32High(value));
+    eepromBufferWrite[startIndex + 2] = byte16High(byte32Low(value));
+    eepromBufferWrite[startIndex + 3] = byte16Low(byte32Low(value));
+}
+
+void encodeUint16ToEeprom(uint8_t startIndex, uint16_t value) {
+    eepromBufferWrite[startIndex] = byte16High(value);
+    eepromBufferWrite[startIndex + 1] = byte16Low(value);
 }
 
 void eepromEncode(
-			uint64_t energyActiveA,				// indeks 0 - 7
-			uint64_t energyActiveB,				// indeks 8 - 15
-			uint64_t energyActiveC,				// indeks 16 - 23
-			uint64_t energyReactiveA,			// indeks 24 - 31
-			uint64_t energyReactiveB,			// indeks 32 - 39
-			uint64_t energyReactiveC,			// indeks 40 - 47
-			uint16_t offsetVolt_ht7036,			// indeks 48 - 49
-			uint16_t offsetCurr_ht7036,			// indeks 50 - 51
-			uint16_t gainVolt_ht7036,			// indeks 52 - 53
-			uint16_t gainCurr_ht7036,			// indeks 54 - 55
-			int16_t offsetVolt_stm32,			// indeks 56 - 57
-			int16_t offsetCurr_stm32,			// indeks 58 - 59
-			uint16_t slaveAddress,				// indeks 60 - 61
-			uint16_t calibPF_ht7036,			// indeks 62 - 63
-			uint16_t gainPF_stm32,				// indeks 64 - 65
-			uint16_t offsetPF_stm32,			// indeks 66 - 67
-			uint16_t gainCurrentButton_stm32,	// indeks 68 - 69
-			uint32_t powerCoefActiveA,			// indeks 70 - 73
-			uint32_t powerCoefActiveB,			// indeks 74 - 77
-			uint32_t powerCoefActiveC,			// indeks 78 - 81
-			uint32_t powerCoefReactiveA,		// indeks 82 - 85
-			uint32_t powerCoefReactiveB,		// indeks 86 - 89
-			uint32_t powerCoefReactiveC,		// indeks 90 - 93
-			uint32_t powerCoefApparentA,		// indeks 94 - 97
-			uint32_t powerCoefApparentB,		// indeks 98 - 101
-			uint32_t powerCoefApparentC,		// indeks 102 - 105
-			uint16_t gainVoltageA,				// indeks 106 - 107
-			uint16_t gainVoltageB,				// indeks 108 - 109
-			uint16_t gainVoltageC,				// indeks 110 - 111
-			uint16_t gainCurrentA,				// indeks 112 - 113
-			uint16_t gainCurrentB,				// indeks 114 - 115
-			uint16_t gainCurrentC,				// indeks 116 - 117
-			uint64_t offsetEnergyActive,		// indeks 118 - 125
-			uint64_t offsetEnergyReactive		// indeks 126 - 133
-	){
-	uint8_t buffer8[8];
-	uint8_t indeksBuffer=0;
-	// ENCCODE ENERGY ACTIVE A
-	uint64ToUint8(buffer8, energyActiveA);
-	for(uint8_t indeks=0;indeks<8;indeks++){eepromBufferWrite[indeks] = buffer8[indeksBuffer++];}
-	// ENCCODE ENERGY ACTIVE B
-	uint64ToUint8(buffer8, energyActiveB);
-	indeksBuffer = 0;
-	for(uint8_t indeks=8;indeks<16;indeks++){eepromBufferWrite[indeks] = buffer8[indeksBuffer++];}
-	// ENCCODE ENERGY ACTIVE C
-	uint64ToUint8(buffer8, energyActiveC);
-	indeksBuffer = 0;
-	for(uint8_t indeks=16;indeks<24;indeks++){eepromBufferWrite[indeks] = buffer8[indeksBuffer++];}
-	// ENCCODE ENERGY REACTIVE A
-	uint64ToUint8(buffer8, energyReactiveA);
-	indeksBuffer = 0;
-	for(uint8_t indeks=24;indeks<32;indeks++){eepromBufferWrite[indeks] = buffer8[indeksBuffer++];}
-	// ENCCODE ENERGY REACTIVE B
-	uint64ToUint8(buffer8, energyReactiveB);
-	indeksBuffer = 0;
-	for(uint8_t indeks=32;indeks<40;indeks++){eepromBufferWrite[indeks] = buffer8[indeksBuffer++];}
-	// ENCCODE ENERGY REACTIVE C
-	uint64ToUint8(buffer8, energyReactiveC);
-	indeksBuffer = 0;
-	for(uint8_t indeks=40;indeks<48;indeks++){eepromBufferWrite[indeks] = buffer8[indeksBuffer++];}
-	// ENCODE OFFSET VOLT HT7036
-	eepromBufferWrite[48] = byte16High(offsetVolt_ht7036);
-	eepromBufferWrite[49] = byte16Low(offsetVolt_ht7036);
-	// ENCODE OFFSET CURRENT  HT3036
-	eepromBufferWrite[50] = byte16High(offsetCurr_ht7036);
-	eepromBufferWrite[51] = byte16Low(offsetCurr_ht7036);
-	// ENCODE GAIN VOLT HT3036
-	eepromBufferWrite[52] = byte16High(gainVolt_ht7036);
-	eepromBufferWrite[53] = byte16Low(gainVolt_ht7036);
-	// ENCODE GAIN CURRENT  HT3036
-	eepromBufferWrite[54] = byte16High(gainCurr_ht7036);
-	eepromBufferWrite[55] = byte16Low(gainCurr_ht7036);
-	// ENCODE OFFSET VOLT STM32
-	eepromBufferWrite[56] = byte16High((uint16_t)offsetVolt_stm32);
-	eepromBufferWrite[57] = byte16Low((uint16_t)offsetVolt_stm32);
-	// ENCODE OFFSET CURRENT STM32
-	eepromBufferWrite[58] = byte16High((uint16_t)offsetCurr_stm32);
-	eepromBufferWrite[59] = byte16Low((uint16_t)offsetCurr_stm32);
-	// ENCODE SLAVE ADDRESS MODBUS
-	eepromBufferWrite[60] = byte16High(slaveAddress);
-	eepromBufferWrite[61] = byte16Low(slaveAddress);
-	// WIRING TYPE
-	eepromBufferWrite[62] = byte16High(calibPF_ht7036);
-	eepromBufferWrite[63] = byte16Low(calibPF_ht7036);
-	// GAIN POWER FACTOR
-	eepromBufferWrite[64] = byte16High(gainPF_stm32);
-	eepromBufferWrite[65] = byte16Low(gainPF_stm32);
-	// OFFSET POWER FACTOR
-	eepromBufferWrite[66] = byte16High(offsetPF_stm32);
-	eepromBufferWrite[67] = byte16Low(offsetPF_stm32);
-	// gain button stm32
-	eepromBufferWrite[68] = byte16High(gainCurrentButton_stm32);
-	eepromBufferWrite[69] = byte16Low(gainCurrentButton_stm32);
-	// decode param power coef active phase a b c
-	eepromBufferWrite[70] = byte16High(byte32High(powerCoefActiveA));	eepromBufferWrite[71] = byte16Low(byte32High(powerCoefActiveA)); 	eepromBufferWrite[72] = byte16High(byte32Low(powerCoefActiveA));	eepromBufferWrite[73] = byte16Low(byte32Low(powerCoefActiveA));
-	eepromBufferWrite[74] = byte16High(byte32High(powerCoefActiveB));	eepromBufferWrite[75] = byte16Low(byte32High(powerCoefActiveB)); 	eepromBufferWrite[76] = byte16High(byte32Low(powerCoefActiveB));	eepromBufferWrite[77] = byte16Low(byte32Low(powerCoefActiveB));
-	eepromBufferWrite[78] = byte16High(byte32High(powerCoefActiveC));	eepromBufferWrite[79] = byte16Low(byte32High(powerCoefActiveC)); 	eepromBufferWrite[80] = byte16High(byte32Low(powerCoefActiveC));	eepromBufferWrite[81] = byte16Low(byte32Low(powerCoefActiveC));
-	// decode param power coef reactive phase a b c
-	eepromBufferWrite[82] = byte16High(byte32High(powerCoefReactiveA));	eepromBufferWrite[83] = byte16Low(byte32High(powerCoefReactiveA));	eepromBufferWrite[84] = byte16High(byte32Low(powerCoefReactiveA));	eepromBufferWrite[85] = byte16Low(byte32Low(powerCoefReactiveA));
-	eepromBufferWrite[86] = byte16High(byte32High(powerCoefReactiveB));	eepromBufferWrite[87] = byte16Low(byte32High(powerCoefReactiveB));	eepromBufferWrite[88] = byte16High(byte32Low(powerCoefReactiveB));	eepromBufferWrite[89] = byte16Low(byte32Low(powerCoefReactiveB));
-	eepromBufferWrite[90] = byte16High(byte32High(powerCoefReactiveC));	eepromBufferWrite[91] = byte16Low(byte32High(powerCoefReactiveC));	eepromBufferWrite[92] = byte16High(byte32Low(powerCoefReactiveC));	eepromBufferWrite[93] = byte16Low(byte32Low(powerCoefReactiveC));
-	// decode param power coef apparnet phase a b c
-	eepromBufferWrite[94] = byte16High(byte32High(powerCoefApparentA)); eepromBufferWrite[95] = byte16Low(byte32High(powerCoefApparentA));	eepromBufferWrite[96] = byte16High(byte32Low(powerCoefApparentA));	eepromBufferWrite[97] = byte16Low(byte32Low(powerCoefApparentA));
-	eepromBufferWrite[98] = byte16High(byte32High(powerCoefApparentB)); eepromBufferWrite[99] = byte16Low(byte32High(powerCoefApparentB));	eepromBufferWrite[100] = byte16High(byte32Low(powerCoefApparentB));	eepromBufferWrite[101] = byte16Low(byte32Low(powerCoefApparentB));
-	eepromBufferWrite[102] = byte16High(byte32High(powerCoefApparentC)); eepromBufferWrite[103] = byte16Low(byte32High(powerCoefApparentC));	eepromBufferWrite[104] = byte16High(byte32Low(powerCoefApparentC));	eepromBufferWrite[105] = byte16Low(byte32Low(powerCoefApparentC));
-	// decode gain voltage phase a b c
-	eepromBufferWrite[106] = byte16High(gainVoltageA); eepromBufferWrite[107] = byte16Low(gainVoltageA);
-	eepromBufferWrite[108] = byte16High(gainVoltageB); eepromBufferWrite[109] = byte16Low(gainVoltageB);
-	eepromBufferWrite[110] = byte16High(gainVoltageC); eepromBufferWrite[111] = byte16Low(gainVoltageC);
-	// decode gain current phase a b c
-	eepromBufferWrite[112] = byte16High(gainCurrentA); eepromBufferWrite[113] = byte16Low(gainCurrentA);
-	eepromBufferWrite[114] = byte16High(gainCurrentB); eepromBufferWrite[115] = byte16Low(gainCurrentB);
-	eepromBufferWrite[116] = byte16High(gainCurrentC); eepromBufferWrite[117] = byte16Low(gainCurrentC);
-	// decode buffer offet energy active for auto reset
-	indeksBuffer = 0;
-	uint64ToUint8(buffer8, offsetEnergyActive);
-	for(uint8_t indeks=118;indeks<118+8;indeks++){
-		eepromBufferWrite[indeks] = buffer8[indeksBuffer++];
-	}
-	// decode bufer offset energy reacive for auto reset
-	indeksBuffer = 0;
-	uint64ToUint8(buffer8, offsetEnergyReactive);
-	for(uint8_t indeks=126;indeks<126+8;indeks++){
-		eepromBufferWrite[indeks] = buffer8[indeksBuffer++];
-	}
+        uint64_t energyActiveA, uint64_t energyActiveB, uint64_t energyActiveC,
+        uint64_t energyReactiveA, uint64_t energyReactiveB, uint64_t energyReactiveC,
+        uint16_t offsetVolt_ht7036, uint16_t offsetCurr_ht7036,
+        uint16_t gainVolt_ht7036, uint16_t gainCurr_ht7036,
+        int16_t offsetVolt_stm32, int16_t offsetCurr_stm32,
+        uint16_t slaveAddress, uint16_t calibPF_ht7036,
+        uint16_t gainPF_stm32, uint16_t offsetPF_stm32,
+        uint16_t gainCurrentButton_stm32,
+        uint32_t powerCoefActiveA, uint32_t powerCoefActiveB, uint32_t powerCoefActiveC,
+        uint32_t powerCoefReactiveA, uint32_t powerCoefReactiveB, uint32_t powerCoefReactiveC,
+        uint32_t powerCoefApparentA, uint32_t powerCoefApparentB, uint32_t powerCoefApparentC,
+        uint16_t gainVoltageA, uint16_t gainVoltageB, uint16_t gainVoltageC,
+        uint16_t gainCurrentA, uint16_t gainCurrentB, uint16_t gainCurrentC,
+        uint64_t offsetEnergyActive, uint64_t offsetEnergyReactive) {
+
+    encodeUint64ToEeprom(0, energyActiveA);
+    encodeUint64ToEeprom(8, energyActiveB);
+    encodeUint64ToEeprom(16, energyActiveC);
+    encodeUint64ToEeprom(24, energyReactiveA);
+    encodeUint64ToEeprom(32, energyReactiveB);
+    encodeUint64ToEeprom(40, energyReactiveC);
+
+    encodeUint16ToEeprom(48, offsetVolt_ht7036);
+    encodeUint16ToEeprom(50, offsetCurr_ht7036);
+    encodeUint16ToEeprom(52, gainVolt_ht7036);
+    encodeUint16ToEeprom(54, gainCurr_ht7036);
+
+    encodeUint16ToEeprom(56, (uint16_t)offsetVolt_stm32);
+    encodeUint16ToEeprom(58, (uint16_t)offsetCurr_stm32);
+    encodeUint16ToEeprom(60, slaveAddress);
+    encodeUint16ToEeprom(62, calibPF_ht7036);
+    encodeUint16ToEeprom(64, gainPF_stm32);
+    encodeUint16ToEeprom(66, offsetPF_stm32);
+    encodeUint16ToEeprom(68, gainCurrentButton_stm32);
+
+    encodeUint32ToEeprom(70, powerCoefActiveA);
+    encodeUint32ToEeprom(74, powerCoefActiveB);
+    encodeUint32ToEeprom(78, powerCoefActiveC);
+    encodeUint32ToEeprom(82, powerCoefReactiveA);
+    encodeUint32ToEeprom(86, powerCoefReactiveB);
+    encodeUint32ToEeprom(90, powerCoefReactiveC);
+    encodeUint32ToEeprom(94, powerCoefApparentA);
+    encodeUint32ToEeprom(98, powerCoefApparentB);
+    encodeUint32ToEeprom(102, powerCoefApparentC);
+
+    encodeUint16ToEeprom(106, gainVoltageA);
+    encodeUint16ToEeprom(108, gainVoltageB);
+    encodeUint16ToEeprom(110, gainVoltageC);
+
+    encodeUint16ToEeprom(112, gainCurrentA);
+    encodeUint16ToEeprom(114, gainCurrentB);
+    encodeUint16ToEeprom(116, gainCurrentC);
+
+    encodeUint64ToEeprom(118, offsetEnergyActive);
+    encodeUint64ToEeprom(126, offsetEnergyReactive);
 }
 
 void powerSplitValue(){
