@@ -267,7 +267,7 @@
 #define POWER_APPARENT_A_COEF_DEF 0
 #define POWER_APPARENT_B_COEF_DEF 0
 #define POWER_APPARENT_C_COEF_DEF 0
-//#define PHASE_CORRECTION_ONE	0x0
+#define UPNORMAL_POWER_VALUE	  6000 // VMAX(240) x IMAX(5) x CONSTANT(5)
 
 // -------------------------------PRIVATE VARIABLE--------------------------------------
 

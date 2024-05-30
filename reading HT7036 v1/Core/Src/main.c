@@ -583,12 +583,15 @@ void powerCalibLoop(){
 			}
 			// --------------------------------------------------CALIBRATION HT7036 FOR SUPER USER------------------------------------------------------------------
 			// FILTER REGISTER OFFSET VOLTAGE RMS
-			if((addressModbus == 0x1001) || (addressModbus == 0x1002) || (addressModbus == 0x1003)){
-				// GET DATA MODBUS FOR ZEROIING VALUE
+			if((addressModbus == 0x1001) || (addressModbus == 0x1002) || (addressModbus == 0x1003) || (addressModbus == 0x1004) || (addressModbus == 0x1005) || (addressModbus == 0x1006) || (addressModbus == 0x1007) || (addressModbus == 0x1008) || (addressModbus == 0x1009) || (addressModbus == 0x100A) || (addressModbus == 0x100B) || (addressModbus == 0x100C)){
+				// GET DATA MODBUS
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
 				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
 				dataCalib32 = (uint32_t)dataCalib16;
 				stateConfig = Modbus.trigState;
+			}
+
+			if((addressModbus == 0x1001) || (addressModbus == 0x1002) || (addressModbus == 0x1003)){
 				// GET ADDRESS REGISTER PARAMETER CALIBRATION [RAW DATA]
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x3001, Modbus.holdingRegisterSize);
 				if(addressModbus == 0x1001){offsetVolt_ht7036 = Modbus.holdingRegisterValue[addressSlave] = powerSingleRecalib(VRMS_OFFSET, w_UaRmsoffse, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0],offsetVolt_ht7036);phase=PHASE_A;}
@@ -597,10 +600,6 @@ void powerCalibLoop(){
 			}
 			// FILTER REGISTER OFFSET CURRENT RMS
 			else if((addressModbus == 0x1004) || (addressModbus == 0x1005) || (addressModbus == 0x1006)){
-				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
-				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
-				dataCalib32 = (uint32_t)dataCalib16;
-				stateConfig = Modbus.trigState;
 				// GET ADDRESS REGISTER PARAMETER CALIBRATION [RAW DATA]
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x3002, Modbus.holdingRegisterSize);
 				if(addressModbus == 0x1004){offsetCurr_ht7036 = Modbus.holdingRegisterValue[addressSlave] = powerSingleRecalib(IRMS_OFFSET, w_IaRmsoffse, &dataCalib32, addrSensor[addressIndeks], &spiStatus[0],offsetCurr_ht7036);phase=PHASE_A;}
@@ -609,10 +608,6 @@ void powerCalibLoop(){
 			}
 			// FILTER REGISTER GAIN VOLTAGE RMS
 			else if((addressModbus == 0x1007) || (addressModbus == 0x1008) || (addressModbus == 0x1009)){
-				stateConfig = Modbus.trigState;
-				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
-				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
-				dataCalib32 = (uint32_t)dataCalib16;
 				// GET ADDRESS REGISTER PARAMETER CALIBRATION [RAW DATA]
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x3003, Modbus.holdingRegisterSize);
 				if(dataCalib16 != 0){
@@ -623,10 +618,6 @@ void powerCalibLoop(){
 			}
 			// FILTER REGISTER GAIN CURRENT RMS
 			else if((addressModbus == 0x100A) || (addressModbus == 0x100B) || (addressModbus == 0x100C)){
-				stateConfig = Modbus.trigState;
-				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbus, Modbus.holdingRegisterSize);
-				dataCalib16 = Modbus.holdingRegisterValue[addressSlave];
-				dataCalib32 = (uint32_t)dataCalib16;
 				// GET ADDRESS REGISTER PARAMETER CALIBRATION [RAW DATA]
 				addressSlave = modbusGetIndeks(Modbus.holdingRegisterAddress, 0x3004, Modbus.holdingRegisterSize);
 				if(addressSlave !=0){
@@ -817,6 +808,7 @@ void eepromLoad(){
 	uint16_t bufferUint16;
 	int16_t bufferInt16;
 	uint32_t bufferUint32;
+	uint64_t bufferUint64;
 	// GET DATA FROM EEPROM EXTERNAL
 	ee24_read(0, (uint8_t*)eepromBufferRead, sizeof(eepromBufferRead), 1000);// for(uint8_t indeks=0;indeks<64;indeks++)ee24VirtualRead(&eepromBufferRead[indeks], 0, 1024, indeks);
 	// GET DATA FROM FLASH MEMORY
@@ -837,43 +829,47 @@ void eepromLoad(){
 		for(uint8_t indeks=0;indeks<135;indeks++){
 			// DECODE ACTIVE ENERGY PHASE A >> valueuint64 [0];
 			if(indeks>=0 && indeks<8)buffer8[indeks] = eepromBufferRead[indeks];
+			// DECODE ACTIVE ENERGY PHASE B
+			if(indeks>=8 && indeks<16)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+			// DECODE ACTIVE ENERGY PHASE C
+			if(indeks>=16 && indeks<24)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+			// DECODE REACTIVE ENERGY PHASE A
+			if(indeks>=24 && indeks<32)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+			// DECODE REACRIVE ENERGY PHASE B
+			if(indeks>=32 && indeks<40)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+			// DECODE REACTIVE ENERGY PHASE C
+			if(indeks>=40 && indeks<48)buffer8[indeksAddress++] = eepromBufferRead[indeks];
+			// CONVERT 8 BIT TO 64 BIT
+			if(indeks == 7 || indeks == 15 || indeks == 23 || indeks == 31 || indeks == 39 || indeks == 47){
+				uint8Touint64(&bufferUint64, buffer8);
+			}
 			if(indeks == 7){
-				uint8Touint64(&energyActiveA_uint, buffer8);
+				energyActiveA_uint = bufferUint64;
 				if(energyActiveA_uint == 0xFFFFFFFFFFFFFFFF)energyActiveA_uint = ENERGY_ACTIVE_A_DEF;
 				indeksAddress = 0;
 			}
-			// DECODE ACTIVE ENERGY PHASE B
-			if(indeks>=8 && indeks<16)buffer8[indeksAddress++] = eepromBufferRead[indeks];
 			if(indeks == 15){
-				uint8Touint64(&energyActiveB_uint, buffer8);
+				energyActiveB_uint = bufferUint64;
 				if(energyActiveB_uint == 0xFFFFFFFFFFFFFFFF)energyActiveB_uint = ENERGY_ACTIVE_B_DEF;
 				indeksAddress = 0;
 			}
-			// DECODE ACTIVE ENERGY PHASE C
-			if(indeks>=16 && indeks<24)buffer8[indeksAddress++] = eepromBufferRead[indeks];
 			if(indeks == 23){
-				uint8Touint64(&energyActiveC_uint, buffer8);
+				energyActiveC_uint = bufferUint64;
 				if(energyActiveC_uint == 0xFFFFFFFFFFFFFFFF)energyActiveC_uint = ENERGY_ACTIVE_C_DEF;
 				indeksAddress = 0;
 			}
-			// DECODE REACTIVE ENERGY PHASE A
-			if(indeks>=24 && indeks<32)buffer8[indeksAddress++] = eepromBufferRead[indeks];
 			if(indeks == 31){
-				uint8Touint64(&energyReactiveA_uint, buffer8);
+				energyReactiveA_uint = bufferUint64;
 				if(energyReactiveA_uint == 0xFFFFFFFFFFFFFFFF)energyReactiveA_uint = ENERGY_REACTIVE_A_DEF;
 				indeksAddress = 0;
 			}
-			// DECODE REACRIVE ENERGY PHASE B
-			if(indeks>=32 && indeks<40)buffer8[indeksAddress++] = eepromBufferRead[indeks];
 			if(indeks == 39){
-				uint8Touint64(&energyReactiveB_uint, buffer8);
+				energyReactiveB_uint = bufferUint64;
 				if(energyReactiveB_uint == 0xFFFFFFFFFFFFFFFF)energyReactiveB_uint = ENERGY_REACTIVE_B_DEF;
 				indeksAddress = 0;
 			}
-			// DECODE REACTIVE ENERGY PHASE C
-			if(indeks>=40 && indeks<48)buffer8[indeksAddress++] = eepromBufferRead[indeks];
 			if(indeks == 47){
-				uint8Touint64(&energyReactiveC_uint, buffer8);
+				energyReactiveC_uint = bufferUint64;
 				if(energyReactiveC_uint == 0xFFFFFFFFFFFFFFFF)energyReactiveC_uint = ENERGY_REACTIVE_C_DEF;
 				indeksAddress = 0;
 			}

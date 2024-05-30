@@ -191,11 +191,11 @@ void powerSetup(uint8_t * address, uint32_t * dataSet, HAL_StatusTypeDef * dataS
 	/* WRITE CONFIG HFCONST */
 	HFconstVal = (float)spiReadCalib(w_Hfconst);
 	// READING VALUE PARAMETERd
-	check = spiReadCalib(deviceId);
-	check = spiReadCalib(deviceId);
-	check = spiReadCalib(deviceId);
-//	check = spiReadCalib(w_ModeCfg);
-//	check = spiReadCalib(w_PhSregApq1);
+	//check = spiReadCalib(deviceId);
+	//check = spiReadCalib(deviceId);
+	//check = spiReadCalib(deviceId);
+	//check = spiReadCalib(w_ModeCfg);
+	//check = spiReadCalib(w_PhSregApq1);
 	//check = spiReadCalib(w_EMCfg);
 	//check = spiReadCalib(w_ModuleCFG);
 	//check = spiReadCalib(w_PGACtrl);
@@ -253,16 +253,25 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 			if(indeks==8){
 				valueFloat[indeks] = (float)bufferSign * powerCoefActiveA * gainCurrentA * gainVoltageA;
 				EXpowerHandleTreshold(&valueFloat[indeks],powerZeroPlus,powerZeroMin);
+				if (valueFloat[indeks] > UPNORMAL_POWER_VALUE){
+					valueFloat[indeks] = 0;
+				}
 				valueFloat[indeks] = valueFloat[indeks]  * gainCurrentButton_stm32;
 			}
 			if(indeks==9){
 				valueFloat[indeks] = (float)bufferSign * powerCoefActiveB * gainCurrentB * gainVoltageB;
 				EXpowerHandleTreshold(&valueFloat[indeks],powerZeroPlus,powerZeroMin);
+				if (valueFloat[indeks] > UPNORMAL_POWER_VALUE){
+					valueFloat[indeks] = 0;
+				}
 				valueFloat[indeks] = valueFloat[indeks] * gainCurrentButton_stm32;
 			}
 			if(indeks==10){
 				valueFloat[indeks] = (float)bufferSign * powerCoefActiveC * gainCurrentC * gainVoltageC;
 				EXpowerHandleTreshold(&valueFloat[indeks],powerZeroPlus,powerZeroMin);
+				if (valueFloat[indeks] > UPNORMAL_POWER_VALUE){
+					valueFloat[indeks] = 0;
+				}
 				valueFloat[indeks] = valueFloat[indeks] * gainCurrentButton_stm32;
 			}
 
@@ -270,16 +279,25 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 			if(indeks==12){
 				valueFloat[indeks] = (float)bufferSign * powerCoefReactiveA * gainCurrentA * gainVoltageA;
 				EXpowerHandleTreshold(&valueFloat[indeks],powerZeroPlus,powerZeroMin);
+				if (valueFloat[indeks] > UPNORMAL_POWER_VALUE){
+					valueFloat[indeks] = 0;
+				}
 				valueFloat[indeks] = valueFloat[indeks] * gainCurrentButton_stm32;
 			}
 			if(indeks==13){
 				valueFloat[indeks] = (float)bufferSign * powerCoefReactiveB * gainCurrentB * gainVoltageB;
 				EXpowerHandleTreshold(&valueFloat[indeks],powerZeroPlus,powerZeroMin);
+				if (valueFloat[indeks] > UPNORMAL_POWER_VALUE){
+					valueFloat[indeks] = 0;
+				}
 				valueFloat[indeks] = valueFloat[indeks] * gainCurrentButton_stm32;
 			}
 			if(indeks==14){
 				valueFloat[indeks] = (float)bufferSign * powerCoefReactiveC * gainCurrentC * gainVoltageC;
 				EXpowerHandleTreshold(&valueFloat[indeks],powerZeroPlus,powerZeroMin);
+				if (valueFloat[indeks] > UPNORMAL_POWER_VALUE){
+					valueFloat[indeks] = 0;
+				}
 				valueFloat[indeks] = valueFloat[indeks] * gainCurrentButton_stm32;
 			}
 
@@ -287,16 +305,25 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 			if(indeks==16){
 				valueFloat[indeks] = (float)bufferSign * powerCoefApparentA * gainCurrentA * gainVoltageA;
 				EXpowerHandleTreshold(&valueFloat[indeks],powerZeroPlus,powerZeroMin);
+				if (valueFloat[indeks] > UPNORMAL_POWER_VALUE){
+					valueFloat[indeks] = 0;
+				}
 				valueFloat[indeks] = valueFloat[indeks] * gainCurrentButton_stm32;
 			}
 			if(indeks==17){
 				valueFloat[indeks] = (float)bufferSign * powerCoefApparentB * gainCurrentB * gainVoltageB;
 				EXpowerHandleTreshold(&valueFloat[indeks],powerZeroPlus,powerZeroMin);
+				if (valueFloat[indeks] > UPNORMAL_POWER_VALUE){
+					valueFloat[indeks] = 0;
+				}
 				valueFloat[indeks] = valueFloat[indeks] * gainCurrentButton_stm32;
 			}
 			if(indeks==18){
 				valueFloat[indeks] = (float)bufferSign * powerCoefApparentC * gainCurrentC * gainVoltageC;
 				EXpowerHandleTreshold(&valueFloat[indeks],powerZeroPlus,powerZeroMin);
+				if (valueFloat[indeks] > UPNORMAL_POWER_VALUE){
+					valueFloat[indeks] = 0;
+				}
 				valueFloat[indeks] = valueFloat[indeks] * gainCurrentButton_stm32;
 			}
 
@@ -304,16 +331,25 @@ void powerMultiReadSensor(uint8_t * address, uint32_t * valueBuffer, float * val
 			if(indeks==11){
 				valueFloat[indeks] = (float)bufferSign * 2 * powerCoefActiveA * gainCurrentA * gainVoltageA; // (405000)/(128*64*8388608)
 				EXpowerHandleTreshold(&valueFloat[indeks],powerZeroPlus,powerZeroMin);
+				if (valueFloat[indeks] > UPNORMAL_POWER_VALUE){
+					valueFloat[indeks] = 0;
+				}
 				valueFloat[indeks] = valueFloat[indeks] * gainCurrentButton_stm32;
 			}
 			if(indeks==15){
 				valueFloat[indeks] = (float)bufferSign * 2 * powerCoefReactiveB * gainCurrentB * gainVoltageB; // (405000)/(128*64*8388608)
 				EXpowerHandleTreshold(&valueFloat[indeks],powerZeroPlus,powerZeroMin);
+				if (valueFloat[indeks] > UPNORMAL_POWER_VALUE){
+					valueFloat[indeks] = 0;
+				}
 				valueFloat[indeks] = valueFloat[indeks] * gainCurrentButton_stm32;
 			}
 			if(indeks==19){
 				valueFloat[indeks] = (float)bufferSign * 2 * powerCoefApparentC * gainCurrentC * gainVoltageC; // (405000)/(128*64*8388608)
 				EXpowerHandleTreshold(&valueFloat[indeks],powerZeroPlus,powerZeroMin);
+				if (valueFloat[indeks] > UPNORMAL_POWER_VALUE){
+					valueFloat[indeks] = 0;
+				}
 				valueFloat[indeks] = valueFloat[indeks] * gainCurrentButton_stm32;
 			}
 			// SAMPLING DATA ACTEVE REACTIVE POWER FOR ENERGY CALCULTION
