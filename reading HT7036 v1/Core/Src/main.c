@@ -336,38 +336,6 @@ int main(void)
   // SETUP POWER METER
   powerMeterSetup();
 
-  // ----------------------------------- TESTING BEGIN -----------------------------------
-//  memoryReset(FLASH_USER_START_ADDR, FLASH_USER_END_ADDR);
-//  HAL_Delay(10);
-//  pmMemoryRead(bufferRead);
-//  for(uint8_t index=0;index<51;index++){
-//	  pmMemoryWrite(bufferWrite);
-//  }
-//  pmMemoryWrite(bufferWrite);
-//  pmMemoryWrite(bufferWrite);
-//  pmMemoryWrite(bufferWrite);
-//  pmMemoryRead(bufferRead);
-//  pmMemoryWrite(bufferWrite);
-//  energyActiveA_uint = 0;
-//  energyActiveB_uint = 0;
-//  energyActiveC_uint = 112233445566778899;
-//  energyReactiveA_uint = 0;
-//  energyReactiveB_uint = 0;
-//  energyReactiveC_uint = 998877665544332211;
-//  gainCurrentButton_stm32 = 70;
-//  Modbus.slaveAddrSlaveSecond = 80;
-//  pmEncode(bufferWrite);
-//  energyActiveA_uint = 0;
-//  energyActiveB_uint = 0;
-//  energyActiveC_uint = 0;
-//  energyReactiveA_uint = 0;
-//  energyReactiveB_uint = 0;
-//  energyReactiveC_uint = 0;
-//  gainCurrentButton_stm32 = 0;
-//  Modbus.slaveAddrSlaveSecond = 0;
-//  pmDecode(bufferWrite);
-//  for(;;);
-  // ----------------------------------- TESTING END -----------------------------------
   /* USER CODE END 2 */
 
   /* Infinite loop */
