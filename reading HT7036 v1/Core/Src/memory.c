@@ -69,8 +69,8 @@ void memoryVirtualRead(uint32_t startAddr, uint32_t endAddr, uint32_t startAddrV
 		// GET DATA FROM FLASH MEMORY
 		memorySingleRead(startAddrScan, &tresholdAddr);
 		// SCAN DATA FROM FLASH ADDRESS
- 		if(((tresholdAddr) == 0xffffffff) || (startAddrScan > (endAddr-3))){
-			if(startAddrScan > (endAddr-3)){
+ 		if(((tresholdAddr) == 0xffffffff) || (startAddrScan >= (endAddr-3))){
+			if(startAddrScan >= (endAddr-3)){
 				startAddrScan = startAddrScan + 4;
 			}
 			// GET LAST ADDRESS WRITED
