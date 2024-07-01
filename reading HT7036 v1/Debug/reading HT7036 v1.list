@@ -27,27 +27,27 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   ALLOC
  11 .ARM.attributes 00000028  00000000  00000000  00011a04  2**0
                   CONTENTS, READONLY
- 12 .debug_info   00026426  00000000  00000000  00011a2c  2**0
+ 12 .debug_info   00026423  00000000  00000000  00011a2c  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 13 .debug_abbrev 0000523f  00000000  00000000  00037e52  2**0
+ 13 .debug_abbrev 0000523f  00000000  00000000  00037e4f  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 14 .debug_loclists 0000fd53  00000000  00000000  0003d091  2**0
+ 14 .debug_loclists 0000fd73  00000000  00000000  0003d08e  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 15 .debug_aranges 000016d0  00000000  00000000  0004cde8  2**3
+ 15 .debug_aranges 000016d0  00000000  00000000  0004ce08  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_rnglists 00001c80  00000000  00000000  0004e4b8  2**0
+ 16 .debug_rnglists 00001c8a  00000000  00000000  0004e4d8  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_macro  00015022  00000000  00000000  00050138  2**0
+ 17 .debug_macro  00015022  00000000  00000000  00050162  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_line   0002b2ef  00000000  00000000  0006515a  2**0
+ 18 .debug_line   0002b329  00000000  00000000  00065184  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .debug_str    0006ee83  00000000  00000000  00090449  2**0
+ 19 .debug_str    0006ee83  00000000  00000000  000904ad  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 20 .comment      00000043  00000000  00000000  000ff2cc  2**0
+ 20 .comment      00000043  00000000  00000000  000ff330  2**0
                   CONTENTS, READONLY
- 21 .debug_frame  000054bc  00000000  00000000  000ff310  2**2
+ 21 .debug_frame  000054bc  00000000  00000000  000ff374  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 22 .debug_line_str 00000068  00000000  00000000  001047cc  2**0
+ 22 .debug_line_str 00000068  00000000  00000000  00104830  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -13770,7 +13770,7 @@ void powerCalibLoop(){
  8006190:	4b89      	ldr	r3, [pc, #548]	@ (80063b8 <powerCalibLoop+0x36c>)
  8006192:	429d      	cmp	r5, r3
  8006194:	d900      	bls.n	8006198 <powerCalibLoop+0x14c>
- 8006196:	e2ba      	b.n	800670e <powerCalibLoop+0x6c2>
+ 8006196:	e2b9      	b.n	800670c <powerCalibLoop+0x6c0>
  8006198:	3b11      	subs	r3, #17
  800619a:	429d      	cmp	r5, r3
  800619c:	d900      	bls.n	80061a0 <powerCalibLoop+0x154>
@@ -14397,137 +14397,140 @@ void powerCalibLoop(){
  8006650:	429e      	cmp	r6, r3
  8006652:	d000      	beq.n	8006656 <powerCalibLoop+0x60a>
  8006654:	e0f0      	b.n	8006838 <powerCalibLoop+0x7ec>
- 8006656:	2600      	movs	r6, #0
+			uint8_t splitSensorIndeks[] = {
+ 8006656:	2700      	movs	r7, #0
 					addressSlaveArray[i] = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbusBuffer+i, Modbus.holdingRegisterSize);
  8006658:	0023      	movs	r3, r4
  800665a:	33fe      	adds	r3, #254	@ 0xfe
  800665c:	8cda      	ldrh	r2, [r3, #38]	@ 0x26
  800665e:	4b68      	ldr	r3, [pc, #416]	@ (8006800 <powerCalibLoop+0x7b4>)
- 8006660:	19a9      	adds	r1, r5, r6
+ 8006660:	0029      	movs	r1, r5
  8006662:	6a18      	ldr	r0, [r3, #32]
- 8006664:	b289      	uxth	r1, r1
- 8006666:	f002 fc8d 	bl	8008f84 <modbusGetIndeks>
-					buffer16[i] = Modbus.holdingRegisterValueRX[addressSlaveArray[i]];
- 800666a:	4a65      	ldr	r2, [pc, #404]	@ (8006800 <powerCalibLoop+0x7b4>)
- 800666c:	0040      	lsls	r0, r0, #1
- 800666e:	6b52      	ldr	r2, [r2, #52]	@ 0x34
- 8006670:	0073      	lsls	r3, r6, #1
- 8006672:	5a82      	ldrh	r2, [r0, r2]
- 8006674:	af09      	add	r7, sp, #36	@ 0x24
+ 8006664:	f002 fc8e 	bl	8008f84 <modbusGetIndeks>
+					buffer16[i] = Modbus.holdingRegisterValueRX[i];
+ 8006668:	4b65      	ldr	r3, [pc, #404]	@ (8006800 <powerCalibLoop+0x7b4>)
+ 800666a:	ae09      	add	r6, sp, #36	@ 0x24
+ 800666c:	6b5b      	ldr	r3, [r3, #52]	@ 0x34
 				for(uint8_t i=0;i<4;i++){
- 8006676:	3601      	adds	r6, #1
-					buffer16[i] = Modbus.holdingRegisterValueRX[addressSlaveArray[i]];
- 8006678:	53da      	strh	r2, [r3, r7]
+ 800666e:	3501      	adds	r5, #1
+					buffer16[i] = Modbus.holdingRegisterValueRX[i];
+ 8006670:	5bdb      	ldrh	r3, [r3, r7]
 				for(uint8_t i=0;i<4;i++){
- 800667a:	2e04      	cmp	r6, #4
- 800667c:	d1ec      	bne.n	8006658 <powerCalibLoop+0x60c>
+ 8006672:	b2ad      	uxth	r5, r5
+					buffer16[i] = Modbus.holdingRegisterValueRX[i];
+ 8006674:	53bb      	strh	r3, [r7, r6]
+				for(uint8_t i=0;i<4;i++){
+ 8006676:	3702      	adds	r7, #2
+ 8006678:	2f08      	cmp	r7, #8
+ 800667a:	d1ed      	bne.n	8006658 <powerCalibLoop+0x60c>
 						byte16High(buffer16[0]),
- 800667e:	883e      	ldrh	r6, [r7, #0]
+ 800667c:	8837      	ldrh	r7, [r6, #0]
 				uint8_t buffer8[8] = {
- 8006680:	ad0b      	add	r5, sp, #44	@ 0x2c
+ 800667e:	ad0b      	add	r5, sp, #44	@ 0x2c
 						byte16High(buffer16[0]),
- 8006682:	0030      	movs	r0, r6
- 8006684:	f7fe fc0e 	bl	8004ea4 <byte16High>
+ 8006680:	0038      	movs	r0, r7
+ 8006682:	f7fe fc0f 	bl	8004ea4 <byte16High>
 				uint8_t buffer8[8] = {
- 8006688:	7028      	strb	r0, [r5, #0]
+ 8006686:	7028      	strb	r0, [r5, #0]
 						byte16Low(buffer16[0]),
- 800668a:	0030      	movs	r0, r6
- 800668c:	f7fe fc08 	bl	8004ea0 <byte16Low>
+ 8006688:	0038      	movs	r0, r7
+ 800668a:	f7fe fc09 	bl	8004ea0 <byte16Low>
 				uint8_t buffer8[8] = {
- 8006690:	7068      	strb	r0, [r5, #1]
+ 800668e:	7068      	strb	r0, [r5, #1]
 						byte16High(buffer16[1]),
- 8006692:	887e      	ldrh	r6, [r7, #2]
- 8006694:	0030      	movs	r0, r6
- 8006696:	f7fe fc05 	bl	8004ea4 <byte16High>
+ 8006690:	8877      	ldrh	r7, [r6, #2]
+ 8006692:	0038      	movs	r0, r7
+ 8006694:	f7fe fc06 	bl	8004ea4 <byte16High>
 				uint8_t buffer8[8] = {
- 800669a:	70a8      	strb	r0, [r5, #2]
+ 8006698:	70a8      	strb	r0, [r5, #2]
 						byte16Low(buffer16[1]),
- 800669c:	0030      	movs	r0, r6
- 800669e:	f7fe fbff 	bl	8004ea0 <byte16Low>
+ 800669a:	0038      	movs	r0, r7
+ 800669c:	f7fe fc00 	bl	8004ea0 <byte16Low>
 				uint8_t buffer8[8] = {
- 80066a2:	70e8      	strb	r0, [r5, #3]
+ 80066a0:	70e8      	strb	r0, [r5, #3]
 						byte16High(buffer16[2]),
- 80066a4:	88be      	ldrh	r6, [r7, #4]
- 80066a6:	0030      	movs	r0, r6
- 80066a8:	f7fe fbfc 	bl	8004ea4 <byte16High>
+ 80066a2:	88b7      	ldrh	r7, [r6, #4]
+ 80066a4:	0038      	movs	r0, r7
+ 80066a6:	f7fe fbfd 	bl	8004ea4 <byte16High>
 				uint8_t buffer8[8] = {
- 80066ac:	7128      	strb	r0, [r5, #4]
+ 80066aa:	7128      	strb	r0, [r5, #4]
 						byte16Low(buffer16[2]),
- 80066ae:	0030      	movs	r0, r6
- 80066b0:	f7fe fbf6 	bl	8004ea0 <byte16Low>
+ 80066ac:	0038      	movs	r0, r7
+ 80066ae:	f7fe fbf7 	bl	8004ea0 <byte16Low>
 				uint8_t buffer8[8] = {
- 80066b4:	7168      	strb	r0, [r5, #5]
+ 80066b2:	7168      	strb	r0, [r5, #5]
 						byte16High(buffer16[3]),
- 80066b6:	88fe      	ldrh	r6, [r7, #6]
- 80066b8:	0030      	movs	r0, r6
- 80066ba:	f7fe fbf3 	bl	8004ea4 <byte16High>
+ 80066b4:	88f6      	ldrh	r6, [r6, #6]
+ 80066b6:	0030      	movs	r0, r6
+ 80066b8:	f7fe fbf4 	bl	8004ea4 <byte16High>
 				uint8_t buffer8[8] = {
- 80066be:	71a8      	strb	r0, [r5, #6]
+ 80066bc:	71a8      	strb	r0, [r5, #6]
 						byte16Low(buffer16[3]),
- 80066c0:	0030      	movs	r0, r6
- 80066c2:	f7fe fbed 	bl	8004ea0 <byte16Low>
+ 80066be:	0030      	movs	r0, r6
+ 80066c0:	f7fe fbee 	bl	8004ea0 <byte16Low>
 				uint8Touint64(&buffer64, buffer8);
- 80066c6:	0029      	movs	r1, r5
+ 80066c4:	0029      	movs	r1, r5
 				uint8_t buffer8[8] = {
- 80066c8:	71e8      	strb	r0, [r5, #7]
+ 80066c6:	71e8      	strb	r0, [r5, #7]
 				uint8Touint64(&buffer64, buffer8);
- 80066ca:	a806      	add	r0, sp, #24
- 80066cc:	f7fe fc05 	bl	8004eda <uint8Touint64>
+ 80066c8:	a806      	add	r0, sp, #24
+ 80066ca:	f7fe fc06 	bl	8004eda <uint8Touint64>
 				if(addressModbus == 3517){energyActiveA_uint = buffer64; bufferEnergySUM[0] = (double)energyActiveA_uint;}
- 80066d0:	9b02      	ldr	r3, [sp, #8]
- 80066d2:	881d      	ldrh	r5, [r3, #0]
- 80066d4:	4b47      	ldr	r3, [pc, #284]	@ (80067f4 <powerCalibLoop+0x7a8>)
- 80066d6:	429d      	cmp	r5, r3
- 80066d8:	d000      	beq.n	80066dc <powerCalibLoop+0x690>
- 80066da:	e1b5      	b.n	8006a48 <powerCalibLoop+0x9fc>
- 80066dc:	9806      	ldr	r0, [sp, #24]
- 80066de:	9907      	ldr	r1, [sp, #28]
- 80066e0:	4b48      	ldr	r3, [pc, #288]	@ (8006804 <powerCalibLoop+0x7b8>)
- 80066e2:	4e49      	ldr	r6, [pc, #292]	@ (8006808 <powerCalibLoop+0x7bc>)
- 80066e4:	6018      	str	r0, [r3, #0]
- 80066e6:	6059      	str	r1, [r3, #4]
- 80066e8:	f7f9 ffe0 	bl	80006ac <__aeabi_ul2d>
- 80066ec:	6030      	str	r0, [r6, #0]
- 80066ee:	6071      	str	r1, [r6, #4]
+ 80066ce:	9b02      	ldr	r3, [sp, #8]
+ 80066d0:	881d      	ldrh	r5, [r3, #0]
+ 80066d2:	4b48      	ldr	r3, [pc, #288]	@ (80067f4 <powerCalibLoop+0x7a8>)
+ 80066d4:	429d      	cmp	r5, r3
+ 80066d6:	d000      	beq.n	80066da <powerCalibLoop+0x68e>
+ 80066d8:	e1b6      	b.n	8006a48 <powerCalibLoop+0x9fc>
+ 80066da:	9806      	ldr	r0, [sp, #24]
+ 80066dc:	9907      	ldr	r1, [sp, #28]
+ 80066de:	4b49      	ldr	r3, [pc, #292]	@ (8006804 <powerCalibLoop+0x7b8>)
+ 80066e0:	4e49      	ldr	r6, [pc, #292]	@ (8006808 <powerCalibLoop+0x7bc>)
+ 80066e2:	6018      	str	r0, [r3, #0]
+ 80066e4:	6059      	str	r1, [r3, #4]
+ 80066e6:	f7f9 ffe1 	bl	80006ac <__aeabi_ul2d>
+ 80066ea:	6030      	str	r0, [r6, #0]
+ 80066ec:	6071      	str	r1, [r6, #4]
 				if(addressModbus == 3533){energyReactiveB_uint = buffer64; bufferEnergySUM[5] = (double)energyReactiveB_uint;}
- 80066f0:	4b46      	ldr	r3, [pc, #280]	@ (800680c <powerCalibLoop+0x7c0>)
- 80066f2:	429d      	cmp	r5, r3
- 80066f4:	d000      	beq.n	80066f8 <powerCalibLoop+0x6ac>
- 80066f6:	e1b4      	b.n	8006a62 <powerCalibLoop+0xa16>
- 80066f8:	9806      	ldr	r0, [sp, #24]
- 80066fa:	9907      	ldr	r1, [sp, #28]
- 80066fc:	4b44      	ldr	r3, [pc, #272]	@ (8006810 <powerCalibLoop+0x7c4>)
- 80066fe:	4d42      	ldr	r5, [pc, #264]	@ (8006808 <powerCalibLoop+0x7bc>)
- 8006700:	6018      	str	r0, [r3, #0]
- 8006702:	6059      	str	r1, [r3, #4]
- 8006704:	f7f9 ffd2 	bl	80006ac <__aeabi_ul2d>
- 8006708:	62a8      	str	r0, [r5, #40]	@ 0x28
- 800670a:	62e9      	str	r1, [r5, #44]	@ 0x2c
+ 80066ee:	4b47      	ldr	r3, [pc, #284]	@ (800680c <powerCalibLoop+0x7c0>)
+ 80066f0:	429d      	cmp	r5, r3
+ 80066f2:	d000      	beq.n	80066f6 <powerCalibLoop+0x6aa>
+ 80066f4:	e1b5      	b.n	8006a62 <powerCalibLoop+0xa16>
+ 80066f6:	9806      	ldr	r0, [sp, #24]
+ 80066f8:	9907      	ldr	r1, [sp, #28]
+ 80066fa:	4b45      	ldr	r3, [pc, #276]	@ (8006810 <powerCalibLoop+0x7c4>)
+ 80066fc:	4d42      	ldr	r5, [pc, #264]	@ (8006808 <powerCalibLoop+0x7bc>)
+ 80066fe:	6018      	str	r0, [r3, #0]
+ 8006700:	6059      	str	r1, [r3, #4]
+ 8006702:	f7f9 ffd3 	bl	80006ac <__aeabi_ul2d>
+ 8006706:	62a8      	str	r0, [r5, #40]	@ 0x28
+ 8006708:	62e9      	str	r1, [r5, #44]	@ 0x2c
 				if(addressModbus == 3219){
- 800670c:	e217      	b.n	8006b3e <powerCalibLoop+0xaf2>
- 800670e:	4b41      	ldr	r3, [pc, #260]	@ (8006814 <powerCalibLoop+0x7c8>)
- 8006710:	429d      	cmp	r5, r3
- 8006712:	d811      	bhi.n	8006738 <powerCalibLoop+0x6ec>
- 8006714:	4b40      	ldr	r3, [pc, #256]	@ (8006818 <powerCalibLoop+0x7cc>)
- 8006716:	429d      	cmp	r5, r3
- 8006718:	d900      	bls.n	800671c <powerCalibLoop+0x6d0>
- 800671a:	e547      	b.n	80061ac <powerCalibLoop+0x160>
- 800671c:	4b3f      	ldr	r3, [pc, #252]	@ (800681c <powerCalibLoop+0x7d0>)
- 800671e:	429d      	cmp	r5, r3
- 8006720:	d804      	bhi.n	800672c <powerCalibLoop+0x6e0>
- 8006722:	4b1e      	ldr	r3, [pc, #120]	@ (800679c <powerCalibLoop+0x750>)
- 8006724:	429d      	cmp	r5, r3
- 8006726:	d800      	bhi.n	800672a <powerCalibLoop+0x6de>
- 8006728:	e77d      	b.n	8006626 <powerCalibLoop+0x5da>
- 800672a:	e53f      	b.n	80061ac <powerCalibLoop+0x160>
- 800672c:	4b3c      	ldr	r3, [pc, #240]	@ (8006820 <powerCalibLoop+0x7d4>)
- 800672e:	18eb      	adds	r3, r5, r3
- 8006730:	2b05      	cmp	r3, #5
- 8006732:	d900      	bls.n	8006736 <powerCalibLoop+0x6ea>
- 8006734:	e777      	b.n	8006626 <powerCalibLoop+0x5da>
- 8006736:	e539      	b.n	80061ac <powerCalibLoop+0x160>
- 8006738:	4b3a      	ldr	r3, [pc, #232]	@ (8006824 <powerCalibLoop+0x7d8>)
- 800673a:	e7f8      	b.n	800672e <powerCalibLoop+0x6e2>
+ 800670a:	e218      	b.n	8006b3e <powerCalibLoop+0xaf2>
+ 800670c:	4b41      	ldr	r3, [pc, #260]	@ (8006814 <powerCalibLoop+0x7c8>)
+ 800670e:	429d      	cmp	r5, r3
+ 8006710:	d811      	bhi.n	8006736 <powerCalibLoop+0x6ea>
+ 8006712:	4b41      	ldr	r3, [pc, #260]	@ (8006818 <powerCalibLoop+0x7cc>)
+ 8006714:	429d      	cmp	r5, r3
+ 8006716:	d900      	bls.n	800671a <powerCalibLoop+0x6ce>
+ 8006718:	e548      	b.n	80061ac <powerCalibLoop+0x160>
+ 800671a:	4b40      	ldr	r3, [pc, #256]	@ (800681c <powerCalibLoop+0x7d0>)
+ 800671c:	429d      	cmp	r5, r3
+ 800671e:	d804      	bhi.n	800672a <powerCalibLoop+0x6de>
+ 8006720:	4b1e      	ldr	r3, [pc, #120]	@ (800679c <powerCalibLoop+0x750>)
+ 8006722:	429d      	cmp	r5, r3
+ 8006724:	d800      	bhi.n	8006728 <powerCalibLoop+0x6dc>
+ 8006726:	e77e      	b.n	8006626 <powerCalibLoop+0x5da>
+ 8006728:	e540      	b.n	80061ac <powerCalibLoop+0x160>
+ 800672a:	4b3d      	ldr	r3, [pc, #244]	@ (8006820 <powerCalibLoop+0x7d4>)
+ 800672c:	18eb      	adds	r3, r5, r3
+ 800672e:	2b05      	cmp	r3, #5
+ 8006730:	d900      	bls.n	8006734 <powerCalibLoop+0x6e8>
+ 8006732:	e778      	b.n	8006626 <powerCalibLoop+0x5da>
+ 8006734:	e53a      	b.n	80061ac <powerCalibLoop+0x160>
+ 8006736:	4b3b      	ldr	r3, [pc, #236]	@ (8006824 <powerCalibLoop+0x7d8>)
+ 8006738:	e7f8      	b.n	800672c <powerCalibLoop+0x6e0>
+ 800673a:	46c0      	nop			@ (mov r8, r8)
  800673c:	00003003 	.word	0x00003003
  8006740:	00001007 	.word	0x00001007
  8006744:	20000810 	.word	0x20000810
@@ -15018,7 +15021,7 @@ void powerCalibLoop(){
  8006b48:	4b39      	ldr	r3, [pc, #228]	@ (8006c30 <powerCalibLoop+0xbe4>)
  8006b4a:	429d      	cmp	r5, r3
  8006b4c:	d000      	beq.n	8006b50 <powerCalibLoop+0xb04>
- 8006b4e:	e5cf      	b.n	80066f0 <powerCalibLoop+0x6a4>
+ 8006b4e:	e5ce      	b.n	80066ee <powerCalibLoop+0x6a2>
  8006b50:	9806      	ldr	r0, [sp, #24]
  8006b52:	9907      	ldr	r1, [sp, #28]
  8006b54:	4b30      	ldr	r3, [pc, #192]	@ (8006c18 <powerCalibLoop+0xbcc>)

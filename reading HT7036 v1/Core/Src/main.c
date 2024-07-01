@@ -691,7 +691,7 @@ void powerCalibLoop(){
 				addressModbusBuffer = addressModbus;
 				for(uint8_t i=0;i<4;i++){
 					addressSlaveArray[i] = modbusGetIndeks(Modbus.holdingRegisterAddress, addressModbusBuffer+i, Modbus.holdingRegisterSize);
-					buffer16[i] = Modbus.holdingRegisterValueRX[addressSlaveArray[i]];
+					buffer16[i] = Modbus.holdingRegisterValueRX[i];
 				}
 				uint8_t buffer8[8] = {
 						byte16High(buffer16[0]),
