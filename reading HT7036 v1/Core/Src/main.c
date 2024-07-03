@@ -327,6 +327,9 @@ int main(void)
 		  MODBUS_En_GPIO_Port,
 		  MODBUS_En_Pin
   );
+  // CLEAR MEMORY
+  ee24_eraseChip();
+  for(;;);
   // START EEPROM EXTERNAL
   ee24_init(&hi2c2, 0, 0, 0);
   eepromLoad();
